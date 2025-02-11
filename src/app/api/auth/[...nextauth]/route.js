@@ -3,12 +3,12 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import NodeCache from "node-cache"; // 📌 Importamos caché en servidor
+import NodeCache from "node-cache";
 
 const prisma = new PrismaClient();
-const sessionCache = new NodeCache({ stdTTL: 3600 }); // 📌 Caché de sesión (1 hora)
+const sessionCache = new NodeCache({ stdTTL: 3600 }); // Caché de sesión (1 hora)
 
-export const authOptions = {
+const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
@@ -22,7 +22,7 @@ export const authOptions = {
           throw new Error("Faltan credenciales");
         }
 
-        // 📌 Verificar si el usuario está en caché
+        // Verificar si el usuario está en caché
         let user = sessionCache.get(`user-${credentials.username}`);
 
         if (!user) {
@@ -39,7 +39,7 @@ export const authOptions = {
             throw new Error("Credenciales incorrectas");
           }
 
-          // 📌 Almacenar en caché los datos del usuario
+          // Almacenar en caché los datos del usuario
           sessionCache.set(`user-${credentials.username}`, user);
         }
 
@@ -61,7 +61,7 @@ export const authOptions = {
           username: token.username,
         };
 
-        // 📌 Guardar sesión en caché
+        // Guardar sesión en caché
         sessionCache.set(`session-${token.id}`, session);
       }
       return session;
@@ -75,7 +75,6 @@ export const authOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-};
+});
 
-const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
