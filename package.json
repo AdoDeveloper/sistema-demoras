@@ -24,7 +24,7 @@
     "next-auth": "^4.24.11",
     "node-cache": "^5.1.2",
     "prisma": "^6.3.1",
-    "react": "^19.0.0",
+    "react": "^18.0.0",
     "react-dom": "^19.0.0",
     "sistema-demoras": "file:",
     "sweetalert2": "^11.16.0"
