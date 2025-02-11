@@ -1,5 +1,5 @@
 // pages/api/demoras/export-csv.js
-import prisma from "../../../../lib/prisma";
+import prisma from "../../../../../lib/prisma";
 import { Parser as Json2CsvParser } from "json2csv";
 
 export default async function handler(req, res) {
