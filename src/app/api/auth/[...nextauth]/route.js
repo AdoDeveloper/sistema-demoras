@@ -3,12 +3,15 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import NodeCache from "node-cache";
+import NodeCache from "node-cache"; // Usamos NodeCache para cachear datos en el servidor
 
+// Instancia de Prisma
 const prisma = new PrismaClient();
-const sessionCache = new NodeCache({ stdTTL: 3600 }); // Caché de sesión (1 hora)
 
-const handler = NextAuth({
+// Caché de sesión (1 hora de tiempo de vida)
+const sessionCache = new NodeCache({ stdTTL: 3600 });
+
+export const authOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
@@ -18,14 +21,16 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        // Verificamos que se hayan enviado las credenciales
         if (!credentials.username || !credentials.password) {
           throw new Error("Faltan credenciales");
         }
 
-        // Verificar si el usuario está en caché
+        // Intentamos obtener el usuario desde la caché
         let user = sessionCache.get(`user-${credentials.username}`);
 
         if (!user) {
+          // Si no está en caché, buscar en la BD
           user = await prisma.user.findUnique({
             where: { username: credentials.username },
           });
@@ -34,15 +39,17 @@ const handler = NextAuth({
             throw new Error("Usuario no encontrado");
           }
 
+          // Comparamos la contraseña usando bcrypt
           const isValid = await bcrypt.compare(credentials.password, user.password);
           if (!isValid) {
             throw new Error("Credenciales incorrectas");
           }
 
-          // Almacenar en caché los datos del usuario
+          // Guardamos el usuario en caché
           sessionCache.set(`user-${credentials.username}`, user);
         }
 
+        // Retornamos solo los datos necesarios para la sesión
         return { id: user.id, username: user.username };
       },
     }),
@@ -56,12 +63,9 @@ const handler = NextAuth({
   callbacks: {
     async session({ session, token }) {
       if (token) {
-        session.user = {
-          id: token.id,
-          username: token.username,
-        };
+        session.user = { id: token.id, username: token.username };
 
-        // Guardar sesión en caché
+        // Guardamos la sesión en caché (opcional)
         sessionCache.set(`session-${token.id}`, session);
       }
       return session;
@@ -75,6 +79,9 @@ const handler = NextAuth({
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
 
+const handler = NextAuth(authOptions);
+
+// Exportamos como funciones GET y POST para que Next.js 15 las reconozca correctamente
 export { handler as GET, handler as POST };
