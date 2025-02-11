@@ -20,11 +20,11 @@
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.12.0",
-    "next": "14.1.0",
+    "next": "15.1.6",
     "next-auth": "^4.24.11",
     "node-cache": "^5.1.2",
     "prisma": "^6.3.1",
-    "react": "^18.0.0",
+    "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sistema-demoras": "file:",
     "sweetalert2": "^11.16.0"
