@@ -2,7 +2,70 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import dynamic from "next/dynamic";
+
+// Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
+const Select = dynamic(() => import("react-select"), { ssr: false });
+
+// Definición del tipo de opción para react-select
+interface OptionType {
+  value: string;
+  label: string;
+}
+
+const enlonadorOptions: OptionType[] = [
+  { value: "ADIEL QUIÑONES", label: "ADIEL QUIÑONES" },
+  { value: "ALEXIS MARTINEZ", label: "ALEXIS MARTINEZ" },
+  { value: "ALEJANDRO CENTENO", label: "ALEJANDRO CENTENO" },
+  { value: "ANIBAL SANCHEZ", label: "ANIBAL SANCHEZ" },
+  { value: "CARLOS CABRERA", label: "CARLOS CABRERA" },
+  { value: "CARLOS RIVERA", label: "CARLOS RIVERA" },
+  { value: "EDENILSON RUIZ", label: "EDENILSON RUIZ" },
+  { value: "EDGARDO GARCIA", label: "EDGARDO GARCIA" },
+  { value: "EDUARDO TINO", label: "EDUARDO TINO" },
+  { value: "EDWIN TESHE", label: "EDWIN TESHE" },
+  { value: "ELIAS PATRIZ", label: "ELIAS PATRIZ" },
+  { value: "EMERSON CAMPOS", label: "EMERSON CAMPOS" },
+  { value: "JORGE MENDEZ", label: "JORGE MENDEZ" },
+  { value: "JOSE FUENTES", label: "JOSE FUENTES" },
+  { value: "JOSE GOCHEZ", label: "JOSE GOCHEZ" },
+  { value: "JOSUE TRINIDAD", label: "JOSUE TRINIDAD" },
+  { value: "KEVIN MARTINEZ", label: "KEVIN MARTINEZ" },
+  { value: "LUIS GIRON", label: "LUIS GIRON" },
+  { value: "MANUEL PEREZ", label: "MANUEL PEREZ" },
+  { value: "TOMAS CADENA", label: "TOMAS CADENA" },
+  { value: "WALDIR PINEDA", label: "WALDIR PINEDA" },
+];
+
+const operadorOptions: OptionType[] = [
+  { value: "CARLOS CABRERA", label: "CARLOS CABRERA" },
+  { value: "CARLOS SIGUACHI", label: "CARLOS SIGUACHI" },
+  { value: "CELVIN DIAZ", label: "CELVIN DIAZ" },
+  { value: "DARWIN HERNANDEZ", label: "DARWIN HERNANDEZ" },
+  { value: "GABRIEL MARTINEZ", label: "GABRIEL MARTINEZ" },
+  { value: "IVAN GOMEZ", label: "IVAN GOMEZ" },
+  { value: "JUAN PEREZ", label: "JUAN PEREZ" },
+  { value: "JORGE ISIDRO", label: "JORGE ISIDRO" },
+  { value: "LUIS RAMOS", label: "LUIS RAMOS" },
+  { value: "MANUEL CORTEZ", label: "MANUEL CORTEZ" },
+  { value: "MARVIN ECHEVERRIA", label: "MARVIN ECHEVERRIA" },
+  { value: "MARVIN SANCHEZ", label: "MARVIN SANCHEZ" },
+  { value: "MELVIN RUBIO", label: "MELVIN RUBIO" },
+  { value: "MIGUEL CRESPIN", label: "MIGUEL CRESPIN" },
+  { value: "MOISES ALVAREZ", label: "MOISES ALVAREZ" },
+  { value: "RAFAEL JIMENEZ", label: "RAFAEL JIMENEZ" },
+  { value: "ROBERTO CALDERON", label: "ROBERTO CALDERON" },
+];
+
+const modeloEquipoOptions: OptionType[] = [
+  { value: "No requiere", label: "No requiere" },
+  { value: "J1", label: "J1" },
+  { value: "J2", label: "J2" },
+  { value: "J3", label: "J3" },
+  { value: "K1", label: "K1" },
+  { value: "K2", label: "K2" },
+  { value: "K3", label: "K3" },
+];
 
 export default function SegundoProceso() {
   const router = useRouter();
@@ -46,7 +109,13 @@ export default function SegundoProceso() {
   // ---------------------------------------
   // useEffect: Cargar/crear "demorasProcess" en localStorage
   // ---------------------------------------
+  
+  
   useEffect(() => {
+    cargarDatosDeLocalStorage();
+  }, []);
+
+  function cargarDatosDeLocalStorage(){
     let stored = localStorage.getItem("demorasProcess");
     if (!stored) {
       // Crear estructura base si no existe
@@ -74,25 +143,21 @@ export default function SegundoProceso() {
         setModeloEquipo(s.modeloEquipo || "No requiere");
 
         setTiempoLlegadaPunto(s.tiempoLlegadaPunto || { hora: "", comentarios: "" });
-        setTiempoLlegadaOperador(s.tiempoLlegadaOperador || {
-          hora: "",
-          comentarios: "",
-        });
-        setTiempoLlegadaEnlonador(s.tiempoLlegadaEnlonador || {
-          hora: "",
-          comentarios: "",
-        });
-        setTiempoLlegadaEquipo(s.tiempoLlegadaEquipo || {
-          hora: "",
-          comentarios: "",
-        });
+        setTiempoLlegadaOperador(
+          s.tiempoLlegadaOperador || { hora: "", comentarios: "" }
+        );
+        setTiempoLlegadaEnlonador(
+          s.tiempoLlegadaEnlonador || { hora: "", comentarios: "" }
+        );
+        setTiempoLlegadaEquipo(
+          s.tiempoLlegadaEquipo || { hora: "", comentarios: "" }
+        );
         setTiempoInicioCarga(s.tiempoInicioCarga || { hora: "", comentarios: "" });
         setTiempoTerminaCarga(s.tiempoTerminaCarga || { hora: "", comentarios: "" });
         setTiempoSalidaPunto(s.tiempoSalidaPunto || { hora: "", comentarios: "" });
       }
     }
-  }, []);
-
+  }
   // ---------------------------------------
   // Helper: Asignar "Ahora" en formato HH:mm:ss (UTC-6)
   // ---------------------------------------
@@ -134,7 +199,7 @@ export default function SegundoProceso() {
   };
 
   // ---------------------------------------
-  // Botón "Anterior" => vuelve a Paso 1
+  // Botón "Anterior" => guardar en cache y regresar al Primer Proceso
   // ---------------------------------------
   const handleAtras = () => {
     const stored = localStorage.getItem("demorasProcess");
@@ -160,21 +225,10 @@ export default function SegundoProceso() {
     router.push("/proceso/iniciar"); // Regresa al Primer Proceso
   };
 
-  // ---------------------------------------
-  // Render principal
-  // ---------------------------------------
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 text-slate-900">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow p-6">
         {/* Barra de Progreso */}
-        {/* <div className="flex items-center mb-4">
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-l-lg">Paso 1</div>
-          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 text-center">
-            Paso 2 de 4
-          </div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 3</div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-r-lg">Paso 4</div>
-        </div> */}
         <div className="flex items-center mb-4">
           <div className="flex-1 bg-orange-500 py-2 px-4 rounded-l-lg"></div>
           <div className="flex-1 bg-orange-500 py-2 px-4"></div>
@@ -183,75 +237,41 @@ export default function SegundoProceso() {
         </div>
         <h2 className="text-xl font-bold mb-4 text-orange-600">Segundo Proceso</h2>
 
-        {/* Campos principales (responsive 1 col en mobile, 2 cols en sm+) */}
+        {/* Campos principales (responsive: 1 columna en mobile, 2 columnas en sm+) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Enlonador */}
-        <div>
-          <label className="block font-semibold mb-1 text-sm sm:text-base">Enlonador</label>
-          <select
-            className="border w-full p-2 text-sm sm:text-base"
-            value={enlonador}
-            onChange={(e) => setEnlonador(e.target.value)}
-          >
-            <option value="" disabled>Seleccione Enlonador</option>
-            {[
-              "ADIEL QUIÑONES",
-              "ALEXIS MARTINEZ",
-              "ALEJANDRO CENTENO",
-              "ANIBAL SANCHEZ",
-              "CARLOS CABRERA",
-              "CARLOS RIVERA",
-              "EDENILSON RUIZ",
-              "EDUARDO TINO",
-              "EDWIN TESHE",
-              "ELIAS PATRIZ",
-              "EMERSON CAMPOS",
-              "JORGE MENDEZ",
-              "JOSE FUENTES",
-              "JOSE GOCHEZ",
-              "JOSUE TRINIDAD",
-              "KEVIN MARTINEZ",
-              "LUIS GIRON",
-              "MANUEL PEREZ",
-              "TOMAS CADENA",
-              "WALDIR PINEDA",
-            ].sort().map((nombre, index) => (
-              <option key={index} value={nombre}>{nombre}</option>
-            ))}
-          </select>
-        </div>
+          {/* Enlonador */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Enlonador
+            </label>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={enlonadorOptions}
+              placeholder="Seleccione Enlonador"
+              value={enlonador ? { value: enlonador, label: enlonador } : null}
+              onChange={(option: OptionType | null) =>
+                setEnlonador(option ? option.value : "")
+              }
+            />
+          </div>
 
-        {/* Operador */}
-        <div>
-          <label className="block font-semibold mb-1 text-sm sm:text-base">Operador</label>
-          <select
-            className="border w-full p-2 text-sm sm:text-base"
-            value={operador}
-            onChange={(e) => setOperador(e.target.value)}
-          >
-            <option value="" disabled>Seleccione Operador</option>
-            {[
-              "CARLOS CABRERA",
-              "CARLOS SIGUACHI",
-              "CELVIN DIAZ",
-              "DARWIN HERNANDEZ",
-              "GABRIEL MARTINEZ",
-              "IVAN GOMEZ",
-              "JORGE ISIDRO",
-              "LUIS RAMOS",
-              "MANUEL CORTEZ",
-              "MARVIN ECHEVERRIA",
-              "MARVIN SANCHEZ",
-              "MELVIN RUBIO",
-              "MIGUEL CRESPIN",
-              "MOISES ALVAREZ",
-              "RAFAEL JIMENEZ",
-              "ROBERTO CALDERON",
-            ].sort().map((nombre, index) => (
-              <option key={index} value={nombre}>{nombre}</option>
-            ))}
-          </select>
-        </div>
+          {/* Operador */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Operador
+            </label>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={operadorOptions}
+              placeholder="Seleccione Operador"
+              value={operador ? { value: operador, label: operador } : null}
+              onChange={(option: OptionType | null) =>
+                setOperador(option ? option.value : "")
+              }
+            />
+          </div>
 
           {/* Personal Asignado */}
           <div>
@@ -271,25 +291,28 @@ export default function SegundoProceso() {
             <label className="block font-semibold mb-1 text-sm sm:text-base">
               Modelo de Equipo
             </label>
-            <select
-              className="border w-full p-2 text-sm sm:text-base"
-              value={modeloEquipo}
-              onChange={(e) => setModeloEquipo(e.target.value)}
-            >
-              <option value="No requiere">No Requiere</option>
-              <option value="J1">J1</option>
-              <option value="J2">J2</option>
-              <option value="J3">J3</option>
-              <option value="K1">K1</option>
-              <option value="K2">K2</option>
-              <option value="K3">K3</option>
-            </select>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={modeloEquipoOptions}
+              placeholder="Seleccione Modelo"
+              value={
+                modeloEquipo
+                  ? { value: modeloEquipo, label: modeloEquipo }
+                  : null
+              }
+              onChange={(option: OptionType | null) =>
+                setModeloEquipo(option ? option.value : "")
+              }
+            />
           </div>
         </div>
 
         {/* Tiempos */}
         <div className="mt-6">
-          <h3 className="font-bold text-lg mb-2 text-sm sm:text-base">Tiempos</h3>
+          <h3 className="font-bold text-lg mb-2 sm:text-sm">
+            Tiempos
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Llegada al Punto */}
             <div className="border rounded p-2">
@@ -559,8 +582,8 @@ export default function SegundoProceso() {
           </div>
         </div>
 
-          {/* Botones de Navegación */}
-          <div className="mt-6 flex justify-between">
+        {/* Botones de Navegación */}
+        <div className="mt-6 flex justify-between">
           <button
             className="bg-gray-500 text-white px-4 py-2 rounded"
             onClick={handleAtras}

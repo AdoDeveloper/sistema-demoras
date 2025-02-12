@@ -3,6 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import React from "react";
+import dynamic from "next/dynamic";
+
+// Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
+const Select = dynamic(() => import("react-select"), { ssr: false });
+
+// Definición del tipo de opción para react-select
+interface OptionType {
+  value: string;
+  label: string;
+}
 
 /** Estructura para { hora, comentarios } */
 function crearSubtiempo(hora = "", comentarios = "") {
@@ -10,11 +20,11 @@ function crearSubtiempo(hora = "", comentarios = "") {
 }
 
 /** Estructura de Vuelta (4 sub-tiempos):
-    - llegadaPunto
-    - salidaPunto
-    - llegadaBascula
-    - salidaBascula
-*/
+ *  - llegadaPunto
+ *  - salidaPunto
+ *  - llegadaBascula
+ *  - salidaBascula
+ */
 function crearNuevaVuelta(
   numeroVuelta,
   llegadaPunto,
@@ -31,8 +41,17 @@ function crearNuevaVuelta(
   };
 }
 
+// Opciones para el select de "Báscula de Salida"
+const basculaSalidaOptions: OptionType[] = [
+  { value: "Báscula 1", label: "Báscula 1" },
+  { value: "Báscula 2", label: "Báscula 2" },
+  { value: "Báscula 3", label: "Báscula 3" },
+  { value: "Báscula 4", label: "Báscula 4" },
+  { value: "Báscula 5", label: "Báscula 5" },
+  { value: "Báscula 6", label: "Báscula 6" },
+];
+
 export default function TercerProceso() {
-  const router = useRouter();
 
   // ----- Campos Principales (Tercer Proceso) -----
   const [pesadorSalida, setPesadorSalida] = useState("");
@@ -46,8 +65,10 @@ export default function TercerProceso() {
   // Registro de vueltas
   const [vueltas, setVueltas] = useState([]);
 
+  const router = useRouter();
+
   // ----------------------------------------------------------------
-  // useEffect al montar => carga datos y sincroniza vuelta 1
+  // useEffect al montar => carga datos y sincroniza Vuelta 1
   // ----------------------------------------------------------------
   useEffect(() => {
     cargarDatosDeLocalStorage();
@@ -55,7 +76,7 @@ export default function TercerProceso() {
   }, []);
 
   // ----------------------------------------------------------------
-  // Carga desde localStorage y sincroniza la vuelta 1
+  // Carga desde localStorage y sincroniza la Vuelta 1
   // ----------------------------------------------------------------
   function cargarDatosDeLocalStorage() {
     let stored = localStorage.getItem("demorasProcess");
@@ -102,30 +123,26 @@ export default function TercerProceso() {
       vueltasLS = parsed.tercerProceso.vueltas;
     }
 
-    // 5) Si NO hay vueltas => crear la Vuelta 1 con los datos del segundo y tercer proceso
+    // 5) Si NO hay vueltas => crear la Vuelta 1 con los datos del Proceso 2 y 3
     if (vueltasLS.length === 0) {
       const v1 = crearNuevaVuelta(
         1,
-        tsLlegPunto,    // => llegadaPunto
-        tsSalidaPunto,  // => salidaPunto
-        entradaBascula, // => llegadaBascula
-        salidaBascula   // => salidaBascula
+        tsLlegPunto,    // llegadaPunto
+        tsSalidaPunto,  // salidaPunto
+        entradaBascula, // llegadaBascula
+        salidaBascula   // salidaBascula
       );
       setVueltas([v1]);
     } else {
-      // 6) Ya hay vueltas => Forzamos que la vuelta #1 se sincronice
-      //    con Proceso 2 y 3 (para evitar inconsistencias)
+      // 6) Ya hay vueltas => sincronizamos la Vuelta 1 con los datos actuales
       const updated = [...vueltasLS];
-
-      // Buscamos la Vuelta 1
       const idxV1 = updated.findIndex((x) => x.numeroVuelta === 1);
       if (idxV1 >= 0) {
-        updated[idxV1].llegadaPunto = tsLlegPunto;    // no editable
+        updated[idxV1].llegadaPunto = tsLlegPunto;
         updated[idxV1].salidaPunto = tsSalidaPunto;
         updated[idxV1].llegadaBascula = entradaBascula;
         updated[idxV1].salidaBascula = salidaBascula;
       } else {
-        // Si no existe, la creamos y la ponemos al inicio
         const v1 = crearNuevaVuelta(
           1,
           tsLlegPunto,
@@ -140,16 +157,15 @@ export default function TercerProceso() {
   }
 
   // ----------------------------------------------------------------
-  // Guarda en localStorage, forzando sincronización de vuelta 1
+  // Guarda en localStorage, sincronizando la Vuelta 1
   // ----------------------------------------------------------------
   function guardarDatosEnLocalStorage() {
-    // Primero sincronizamos la vuelta 1 (por si Proceso 2 o 3 se cambiaron en este step)
     const stored = localStorage.getItem("demorasProcess");
     if (!stored) return;
 
     const parsed = JSON.parse(stored);
 
-    // - Reextraemos de nuevo, por si el usuario cambió algo en este paso
+    // Reextraemos datos del Proceso 2 y 3 para sincronizar la Vuelta 1
     const s = parsed.segundoProceso || {};
     const tsLlegPunto = s.tiempoLlegadaPunto || crearSubtiempo();
     const tsSalidaPunto = s.tiempoSalidaPunto || crearSubtiempo();
@@ -158,7 +174,7 @@ export default function TercerProceso() {
     const entradaBascula = tProc.tiempoEntradaBascula || crearSubtiempo();
     const salidaBascula = tProc.tiempoSalidaBascula || crearSubtiempo();
 
-    // - Actualizamos vuelta 1 en nuestro estado
+    // Actualizamos la Vuelta 1 en nuestro estado
     setVueltas((prev) => {
       const updated = [...prev];
       const idxV1 = updated.findIndex((x) => x.numeroVuelta === 1);
@@ -168,7 +184,6 @@ export default function TercerProceso() {
         updated[idxV1].llegadaBascula = entradaBascula;
         updated[idxV1].salidaBascula = salidaBascula;
       } else {
-        // Caso extraño: no existe V1, la creamos
         const v1 = crearNuevaVuelta(
           1,
           tsLlegPunto,
@@ -181,14 +196,10 @@ export default function TercerProceso() {
       return updated;
     });
 
-    // - Esperamos a que setVueltas se actualice => sincrónicamente
-    //   Para evitar problemas, guardamos en un "efecto colateral" o
-    //   sencillamente lo hacemos con la versión final del estado
-    //   en un setTimeout(0) o similar. O, de forma rápida:
+    // Guardamos en localStorage; para asegurar la actualización de "vueltas",
+    // se usa un setTimeout(0)
     setTimeout(() => {
-      // Volvemos a leer con la V1 ya forzada
       const finalV1State = [...vueltas];
-      // Escribimos en parsed.tercerProceso
       parsed.tercerProceso = {
         pesadorSalida,
         basculaSalida,
@@ -197,7 +208,6 @@ export default function TercerProceso() {
         tiempoSalidaBascula,
         vueltas: finalV1State,
       };
-      // Guardar
       localStorage.setItem("demorasProcess", JSON.stringify(parsed));
     }, 0);
   }
@@ -232,7 +242,7 @@ export default function TercerProceso() {
   };
 
   // ----------------------------------------------------------------
-  // Cambiar algún sub-tiempo en vueltas (excepto vuelta1)
+  // Cambiar un sub-tiempo en las vueltas (excepto la Vuelta 1)
   // ----------------------------------------------------------------
   const handleChangeVueltaTiempo = (indexVuelta, tiempoKey, field, value) => {
     setVueltas((prev) => {
@@ -244,7 +254,7 @@ export default function TercerProceso() {
   };
 
   // ----------------------------------------------------------------
-  // Agregar una vuelta adicional (#2, #3, etc.)
+  // Agregar una vuelta adicional (número #2, #3, etc.)
   // ----------------------------------------------------------------
   const handleAgregarVuelta = () => {
     setVueltas((prev) => [
@@ -260,7 +270,18 @@ export default function TercerProceso() {
   };
 
   // ----------------------------------------------------------------
-  // Botón "Siguiente": guarda y va a paso 4
+  // Eliminar una vuelta (solo si no es la Vuelta 1)
+  // ----------------------------------------------------------------
+  const handleEliminarVuelta = (indexToRemove) => {
+    setVueltas((prev) => {
+      const newVueltas = prev.filter((_, i) => i !== indexToRemove);
+      // Reasignamos los números de vuelta (Vuelta 1 siempre se mantiene)
+      return newVueltas.map((v, i) => ({ ...v, numeroVuelta: i + 1 }));
+    });
+  };
+
+  // ----------------------------------------------------------------
+  // Botón "Siguiente": guarda y navega al Paso 4
   // ----------------------------------------------------------------
   const handleGuardarYContinuar = () => {
     guardarDatosEnLocalStorage();
@@ -268,28 +289,17 @@ export default function TercerProceso() {
   };
 
   // ----------------------------------------------------------------
-  // Botón "Anterior": guarda y regresa a paso 2
+  // Botón "Anterior": guarda y regresa al Paso 2
   // ----------------------------------------------------------------
   const handleAtras = () => {
     guardarDatosEnLocalStorage();
     router.push("/proceso/iniciar/step2");
   };
 
-  // ----------------------------------------------------------------
-  // Render principal
-  // ----------------------------------------------------------------
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-6 text-slate-900">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow p-4 sm:p-6">
         {/* Barra de Progreso */}
-        {/* <div className="flex items-center mb-4">
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-l-lg">Paso 1</div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 2</div>
-          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4">
-            Paso 3 de 4
-          </div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-r-lg">Paso 4</div>
-        </div> */}
         <div className="flex items-center mb-4">
           <div className="flex-1 bg-orange-500 py-2 px-4 text-center rounded-l-lg"></div>
           <div className="flex-1 bg-orange-500 py-2 px-4 text-center"></div>
@@ -305,7 +315,7 @@ export default function TercerProceso() {
           {/* Pesador Salida */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
-              Pesador
+              Pesador Salida
             </label>
             <input
               type="text"
@@ -315,26 +325,23 @@ export default function TercerProceso() {
             />
           </div>
 
-          {/* Báscula de Salida */}
+          {/* Báscula de Salida - Usando react-select */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
               Báscula de Salida
             </label>
-            <select
-              className="border w-full p-2 text-sm sm:text-base"
-              value={basculaSalida}
-              onChange={(e) => setBasculaSalida(e.target.value)}
-            >
-              <option disabled value="">
-                Seleccione Báscula
-              </option>
-              <option value="Báscula 1">Báscula 1</option>
-              <option value="Báscula 2">Báscula 2</option>
-              <option value="Báscula 3">Báscula 3</option>
-              <option value="Báscula 4">Báscula 4</option>
-              <option value="Báscula 5">Báscula 5</option>
-              <option value="Báscula 6">Báscula 6</option>
-            </select>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={basculaSalidaOptions}
+              placeholder="Seleccione Báscula"
+              value={
+                basculaSalida ? { value: basculaSalida, label: basculaSalida } : null
+              }
+              onChange={(option: OptionType | null) =>
+                setBasculaSalida(option ? option.value : "")
+              }
+            />
           </div>
 
           {/* Peso Neto */}
@@ -353,9 +360,9 @@ export default function TercerProceso() {
 
         {/* Tiempos de Entrada/Salida de Báscula (Tercer Proceso) */}
         <div className="mt-6">
-        <h3 className="font-bold text-lg mb-2 text-sm sm:text-base">Tiempos</h3>
+          <h3 className="font-bold text-lg mb-2 sm:text-base">Tiempos</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Entrada Báscula (Tercer Proceso) */}
+            {/* Entrada Báscula */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
                 Entrada Báscula
@@ -393,7 +400,7 @@ export default function TercerProceso() {
               />
             </div>
 
-            {/* Salida Báscula (Tercer Proceso) */}
+            {/* Salida Báscula */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
                 Salida Báscula
@@ -435,14 +442,13 @@ export default function TercerProceso() {
 
         {/* Registro de Vueltas */}
         <div className="mt-6">
-          <h3 className="font-bold text-lg mb-2 text-sm sm:text-base">
+          <h3 className="font-bold text-lg mb-2 sm:text-sm">
             Registro de Vueltas
           </h3>
           <div className="text-sm sm:text-base text-gray-600 mb-2">
             <strong>NOTA:</strong> El proceso normal cuenta como la Vuelta 1.
             <br />
-            Cada vez que el camión deba volver a punto de carga o descarga,
-            agrega una nueva vuelta.
+            Cada vez que el camión deba volver a punto de carga o descarga, agrega una nueva vuelta.
             <div className="mt-1 ml-2 list-disc list-inside">
               <li>Si el camión no alcanzó la carga requerida y debe regresar.</li>
               <li>Si el camión lleva peso en exceso y debe regresar.</li>
@@ -458,7 +464,6 @@ export default function TercerProceso() {
 
           {vueltas.map((v, index) => {
             const esVuelta1 = v.numeroVuelta === 1;
-
             return (
               <div
                 key={v.numeroVuelta}
@@ -490,11 +495,12 @@ export default function TercerProceso() {
                       }
                       disabled={esVuelta1}
                     />
-                    {/* Botón "Ahora" solo en vueltas 2+ */}
                     {!esVuelta1 && (
                       <button
                         className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                        onClick={() => handleSetNowSubtiempo(index, "llegadaPunto")}
+                        onClick={() =>
+                          handleSetNowSubtiempo(index, "llegadaPunto")
+                        }
                       >
                         Ahora
                       </button>
@@ -542,7 +548,9 @@ export default function TercerProceso() {
                     {!esVuelta1 && (
                       <button
                         className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                        onClick={() => handleSetNowSubtiempo(index, "salidaPunto")}
+                        onClick={() =>
+                          handleSetNowSubtiempo(index, "salidaPunto")
+                        }
                       >
                         Ahora
                       </button>
@@ -590,7 +598,9 @@ export default function TercerProceso() {
                     {!esVuelta1 && (
                       <button
                         className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                        onClick={() => handleSetNowSubtiempo(index, "llegadaBascula")}
+                        onClick={() =>
+                          handleSetNowSubtiempo(index, "llegadaBascula")
+                        }
                       >
                         Ahora
                       </button>
@@ -638,7 +648,9 @@ export default function TercerProceso() {
                     {!esVuelta1 && (
                       <button
                         className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                        onClick={() => handleSetNowSubtiempo(index, "salidaBascula")}
+                        onClick={() =>
+                          handleSetNowSubtiempo(index, "salidaBascula")
+                        }
                       >
                         Ahora
                       </button>
@@ -660,6 +672,16 @@ export default function TercerProceso() {
                     disabled={esVuelta1}
                   />
                 </div>
+
+                {/* Si no es la Vuelta 1, se muestra el botón para eliminarla */}
+                {!esVuelta1 && (
+                  <button
+                    className="bg-red-500 text-white px-3 py-1 rounded mt-2 text-xs sm:text-sm"
+                    onClick={() => handleEliminarVuelta(index)}
+                  >
+                    Eliminar Vuelta
+                  </button>
+                )}
               </div>
             );
           })}

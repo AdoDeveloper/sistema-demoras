@@ -16,7 +16,6 @@ export async function middleware(req) {
   return NextResponse.next();
 }
 
-// Configuración para que el middleware se ejecute en todas las rutas protegidas
 export const config = {
-  matcher: ["/"], // Puedes añadir más rutas protegidas aquí
+  matcher: ["/", "/consultar/:path*", "/iniciar/:path*"],
 };

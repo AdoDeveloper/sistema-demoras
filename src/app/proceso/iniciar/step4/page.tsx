@@ -31,13 +31,13 @@ export default function ProcesoFinal() {
 
   // Al montar, verificar/crear "demorasProcess" y cargar datos
   useEffect(() => {
-    cargarDesdeCache();
+    cargarDatosDeLocalStorage();
   }, []);
 
   // -------------------------------------------
   // Función para CARGAR la info de localStorage
   // -------------------------------------------
-  function cargarDesdeCache() {
+  function cargarDatosDeLocalStorage() {
     let stored = localStorage.getItem("demorasProcess");
     if (!stored) {
       // Crear un objeto base si no existe
@@ -108,7 +108,7 @@ export default function ProcesoFinal() {
     localStorage.setItem("demorasProcess", JSON.stringify(parsed));
 
     // Refrescar data para que el resumen se actualice
-    cargarDesdeCache();
+    cargarDatosDeLocalStorage();
 
     // Alerta de éxito
     Swal.fire("Guardado", "Los datos finales se han guardado en cache.", "success");

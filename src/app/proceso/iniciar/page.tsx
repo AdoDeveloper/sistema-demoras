@@ -2,7 +2,157 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import dynamic from "next/dynamic";
+
+// Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
+const Select = dynamic(() => import("react-select"), { ssr: false });
+
+// Definición del tipo de opción para react-select
+interface OptionType {
+  value: string;
+  label: string;
+}
+
+// Opciones para los selects con búsqueda
+const terminalOptions: OptionType[] = [
+  { value: "Terminal 1", label: "Terminal 1" },
+  { value: "Terminal 2", label: "Terminal 2" },
+];
+
+const clienteOptions: OptionType[] = [
+  { value: "ADM EL SALVADOR LTDA DE C.V.", label: "ADM EL SALVADOR LTDA DE C.V." },
+  { value: "AGROINDUSTRIAS BUENAVISTA, S.A. DE C.V.", label: "AGROINDUSTRIAS BUENAVISTA, S.A. DE C.V." },
+  { value: "AGROPECUARIA DEL VALLE, S.A. DE C.V.", label: "AGROPECUARIA DEL VALLE, S.A. DE C.V." },
+  { value: "ARROCERA OMOA, S.A. DE C.V.", label: "ARROCERA OMOA, S.A. DE C.V." },
+  { value: "AVICOLA CAMPESTRE, S.A. DE C.V.", label: "AVICOLA CAMPESTRE, S.A. DE C.V." },
+  { value: "AVICOLA DEL SUR/PROSALCO", label: "AVICOLA DEL SUR" },
+  { value: "AVICOLA SALAZAR", label: "AVICOLA SALAZAR" },
+  { value: "AVICOLA SAN BENITO, S.A. DE C.V.", label: "AVICOLA SAN BENITO, S.A. DE C.V." },
+  { value: "AVICULTOR Y PORCINOCULTORES S.A. DE C.V.", label: "AVICULTOR Y PORCINOCULTORES S.A. DE C.V." },
+  { value: "COOP. GANADERA DE SONSONATE", label: "COOP. GANADERA DE SONSONATE" },
+  { value: "EL GRANJERO, S.A. DE C.V.", label: "EL GRANJERO, S.A. DE C.V." },
+  { value: "GRANJA CATALANA, S.A. DE C.V.", label: "GRANJA CATALANA, S.A. DE C.V." },
+  { value: "IMPORTADORES AGROPECUARIOS", label: "IMPORTADORES AGROPECUARIOS" },
+  { value: "IMPORTADORES AGROPECUARIOS, S.A. DE C.V.", label: "IMPORTADORES AGROPECUARIOS, S.A. DE C.V." },
+  { value: "MARTIR VICTOR ANTONIO DERAS FLORES", label: "MARTIR VICTOR ANTONIO DERAS FLORES" },
+  { value: "MONICA GROSS", label: "MONICA GROSS" },
+  { value: "PRODUCTOS ALIMENTICIOS BOCADELI, S.A. DE C.V.", label: "PRODUCTOS ALIMENTICIOS BOCADELI, S.A. DE C.V." },
+  { value: "PRODUCTOS ALIMENTICIOS DIANA, S.A.", label: "PRODUCTOS ALIMENTICIOS DIANA, S.A." },
+  { value: "PRODUCTOS ALIMENTICIOS SELLO DE ORO, S.A. DE C.V.", label: "PRODUCTOS ALIMENTICIOS SELLO DE ORO, S.A. DE C.V." },
+  { value: "PROSALCO", label: "PROSALCO" },
+  { value: "RAFAEL ANDRES JOVEL MIRANDA", label: "RAFAEL ANDRES JOVEL MIRANDA" },
+  { value: "SALOMON GROSS", label: "SALOMON GROSS" },
+  { value: "SARAM", label: "SARAM" },
+  { value: "TECNICA EN NUTRICION ANIMAL S.A. DE C.V.", label: "TECNICA EN NUTRICION ANIMAL S.A. DE C.V." },
+  { value: "TIERRA FERTIL", label: "TIERRA FERTIL" },
+  { value: "WALTER HERNANDEZ", label: "WALTER HERNANDEZ" },
+];
+
+const ejesOptions: OptionType[] = [
+  { value: "", label: "Seleccione Ejes" },
+  { value: "Camión", label: "Camión" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+];
+
+const tipoProductoOptions: OptionType[] = [
+  { value: "ACEITE ACIDULADO DE SOYA", label: "ACEITE ACIDULADO DE SOYA" },
+  { value: "ACEITE DE SOYA", label: "ACEITE DE SOYA" },
+  { value: "ACEITE DESGOMADO", label: "ACEITE DESGOMADO" },
+  { value: "AFRECHO", label: "AFRECHO" },
+  { value: "ARROZ EN GRANZA", label: "ARROZ EN GRANZA" },
+  { value: "CASCARILLA DE SOYA", label: "CASCARILLA DE SOYA" },
+  { value: "HARINA DE SOYA", label: "HARINA DE SOYA" },
+  { value: "MAIZ AMARILLO", label: "MAIZ AMARILLO" },
+  { value: "MAIZ AMARILLO BRASILEÑO", label: "MAIZ AMARILLO BRASILEÑO" },
+  { value: "MAIZ BLANCO", label: "MAIZ BLANCO" },
+  { value: "MAIZ DESTILADO", label: "MAIZ DESTILADO" },
+  { value: "MALTA", label: "MALTA" },
+  { value: "TRIGO", label: "TRIGO" },
+];
+
+const puntoDespachoOptions = [
+  {
+    label: "Bodegas",
+    options: [
+      { value: "BODEGA 1 PUERTA 1", label: "BODEGA 1 PUERTA 1" },
+      { value: "BODEGA 1 PUERTA 2", label: "BODEGA 1 PUERTA 2" },
+      { value: "BODEGA 1 PUERTA 3", label: "BODEGA 1 PUERTA 3" },
+      { value: "BODEGA 2 PUERTA 1", label: "BODEGA 2 PUERTA 1" },
+      { value: "BODEGA 2 PUERTA 2", label: "BODEGA 2 PUERTA 2" },
+      { value: "BODEGA 3 PUERTA 1", label: "BODEGA 3 PUERTA 1" },
+      { value: "BODEGA 3 PUERTA 2", label: "BODEGA 3 PUERTA 2" },
+      { value: "BODEGA 3 SISTEMA", label: "BODEGA 3 SISTEMA" },
+      { value: "BODEGA 4 PUERTA 1", label: "BODEGA 4 PUERTA 1" },
+      { value: "BODEGA 4 PUERTA 3", label: "BODEGA 4 PUERTA 3" },
+      { value: "BODEGA 5 PUERTA 1", label: "BODEGA 5 PUERTA 1" },
+      { value: "BODEGA 6 PUERTA 3", label: "BODEGA 6 PUERTA 3" },
+    ],
+  },
+  {
+    label: "Silos",
+    options: [
+      { value: "SILO 1 GRAVEDAD", label: "SILO 1 GRAVEDAD" },
+      { value: "SILO 1 SISTEMA", label: "SILO 1 SISTEMA" },
+      { value: "SILO 1 CADENA MOVIL", label: "SILO 1 CADENA MOVIL" },
+      { value: "SILO 2 GRAVEDAD", label: "SILO 2 GRAVEDAD" },
+      { value: "SILO 2 SISTEMA", label: "SILO 2 SISTEMA" },
+      { value: "SILO 2 CADENA MOVIL", label: "SILO 2 CADENA MOVIL" },
+      { value: "SILO 3 GRAVEDAD", label: "SILO 3 GRAVEDAD" },
+      { value: "SILO 3 SISTEMA", label: "SILO 3 SISTEMA" },
+      { value: "SILO 3 CADENA MOVIL", label: "SILO 3 CADENA MOVIL" },
+      { value: "SILO 4 GRAVEDAD", label: "SILO 4 GRAVEDAD" },
+      { value: "SILO 4 SISTEMA", label: "SILO 4 SISTEMA" },
+      { value: "SILO 4 CADENA MOVIL", label: "SILO 4 CADENA MOVIL" },
+      { value: "SILO 5 SISTEMA", label: "SILO 5 SISTEMA" },
+      { value: "SILO 6 SISTEMA", label: "SILO 6 SISTEMA" },
+      { value: "SILO 7 SISTEMA INDIVIDUAL", label: "SILO 7 SISTEMA INDIVIDUAL" },
+      { value: "SILO 7 SISTEMA", label: "SILO 7 SISTEMA" },
+      { value: "SILO 8 SISTEMA INDIVIDUAL", label: "SILO 8 SISTEMA INDIVIDUAL" },
+      { value: "SILO 8 SISTEMA", label: "SILO 8 SISTEMA" },
+      { value: "SILO 9 GRAVEDAD", label: "SILO 9 GRAVEDAD" },
+      { value: "SILO 9 SISTEMA", label: "SILO 9 SISTEMA" },
+      { value: "SILO 10 SISTEMA", label: "SILO 10 SISTEMA" },
+      { value: "SILO 11 SISTEMA", label: "SILO 11 SISTEMA" },
+      { value: "SILO 12 SISTEMA", label: "SILO 12 SISTEMA" },
+      { value: "SILO 13 SISTEMA", label: "SILO 13 SISTEMA" },
+      { value: "SILO 14 SISTEMA", label: "SILO 14 SISTEMA" },
+      { value: "SILO 15 SISTEMA", label: "SILO 15 SISTEMA" },
+      { value: "SILO 16 SISTEMA", label: "SILO 16 SISTEMA" },
+      { value: "SILO 17 SISTEMA", label: "SILO 17 SISTEMA" },
+    ],
+  },
+];
+
+const basculaEntradaOptions: OptionType[] = [
+  { value: "", label: "Seleccione Báscula" },
+  { value: "Báscula 1", label: "Báscula 1" },
+  { value: "Báscula 2", label: "Báscula 2" },
+  { value: "Báscula 3", label: "Báscula 3" },
+  { value: "Báscula 4", label: "Báscula 4" },
+  { value: "Báscula 5", label: "Báscula 5" },
+  { value: "Báscula 6", label: "Báscula 6" },
+];
+
+const tipoCargaOptions: OptionType[] = [
+  { value: "Granel", label: "Granel" },
+  { value: "Envasado", label: "Envasado" },
+];
+
+const metodoCargaOptions: OptionType[] = [
+  { value: "Cabaleo", label: "Cabaleo" },
+  { value: "Carga Máxima", label: "Carga Máxima" },
+];
+
+// Helper para asignar la fecha actual (formato YYYY-MM-DD)
+const handleSetNowDate = (setter: Function) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const fecha = `${year}-${month}-${day}`;
+  setter((prev: any) => ({ ...prev, fecha }));
+};
 
 export default function PrimerProceso() {
   const router = useRouter();
@@ -23,9 +173,11 @@ export default function PrimerProceso() {
   // const [tipoSistema, setTipoSistema] = useState("");
 
   // ----- Tiempos -----
-  const [tiempoPrechequeo, setTiempoPrechequeo] = useState({ hora: "", comentarios: "" });
-  const [tiempoScanner, setTiempoScanner] = useState({ hora: "", comentarios: "" });
-  const [tiempoAutorizacion, setTiempoAutorizacion] = useState({ hora: "", comentarios: "" });
+  // Para Prechequeo, Scanner y Autorización se incluye fecha, hora y comentarios.
+  const [tiempoPrechequeo, setTiempoPrechequeo] = useState({ fecha: "", hora: "", comentarios: "" });
+  const [tiempoScanner, setTiempoScanner] = useState({ fecha: "", hora: "", comentarios: "" });
+  const [tiempoAutorizacion, setTiempoAutorizacion] = useState({ fecha: "", hora: "", comentarios: "" });
+  // Los otros tiempos se mantienen sin fecha.
   const [tiempoIngresoPlanta, setTiempoIngresoPlanta] = useState({ hora: "", comentarios: "" });
   const [tiempoEntradaBascula, setTiempoEntradaBascula] = useState({ hora: "", comentarios: "" });
   const [tiempoSalidaBascula, setTiempoSalidaBascula] = useState({ hora: "", comentarios: "" });
@@ -34,6 +186,10 @@ export default function PrimerProceso() {
   // useEffect: Cargar/crear "demorasProcess" en localStorage
   // ----------------------------------------------------------------
   useEffect(() => {
+    cargarDatosDeLocalStorage();
+  }, []);
+
+  function cargarDatosDeLocalStorage(){
     let stored = localStorage.getItem("demorasProcess");
     if (!stored) {
       const initialData = {
@@ -67,28 +223,25 @@ export default function PrimerProceso() {
         setMetodoCarga(p.metodoCarga || "");
         // setTipoSistema(p.tipoSistema || "");
 
-        setTiempoPrechequeo(p.tiempoPrechequeo || { hora: "", comentarios: "" });
-        setTiempoScanner(p.tiempoScanner || { hora: "", comentarios: "" });
-        setTiempoAutorizacion(p.tiempoAutorizacion || { hora: "", comentarios: "" });
+        setTiempoPrechequeo(p.tiempoPrechequeo || { fecha: "", hora: "", comentarios: "" });
+        setTiempoScanner(p.tiempoScanner || { fecha: "", hora: "", comentarios: "" });
+        setTiempoAutorizacion(p.tiempoAutorizacion || { fecha: "", hora: "", comentarios: "" });
         setTiempoIngresoPlanta(p.tiempoIngresoPlanta || { hora: "", comentarios: "" });
         setTiempoEntradaBascula(p.tiempoEntradaBascula || { hora: "", comentarios: "" });
         setTiempoSalidaBascula(p.tiempoSalidaBascula || { hora: "", comentarios: "" });
       }
     }
-  }, []);
-
+  }
   // ----------------------------------------------------------------
-  // Helper: Asignar "Ahora" a un campo (en formato HH:mm:ss) con step="1"
+  // Helper: Asignar "Ahora" a un campo de tiempo (formato HH:mm:ss)
   // ----------------------------------------------------------------
-  const handleSetNow = (setter) => {
+  const handleSetNow = (setter: Function) => {
     const now = new Date();
-    // Convertir a HH:mm:ss
     const hh = String(now.getHours()).padStart(2, "0");
     const mm = String(now.getMinutes()).padStart(2, "0");
     const ss = String(now.getSeconds()).padStart(2, "0");
     const hora = `${hh}:${mm}:${ss}`;
-
-    setter((prev) => ({ ...prev, hora }));
+    setter((prev: any) => ({ ...prev, hora }));
   };
 
   // ----------------------------------------------------------------
@@ -137,20 +290,9 @@ export default function PrimerProceso() {
     router.push("/");
   };
 
-  // ----------------------------------------------------------------
-  // Render
-  // ----------------------------------------------------------------
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-4 px-2 sm:px-4 text-slate-900">
       <div className="w-full max-w-2xl sm:max-w-4xl bg-white rounded-lg shadow p-4 sm:p-6">
-        {/* <div className="flex items-center mb-4">
-          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 rounded-l-lg text-center">
-            Paso 1 de 4
-          </div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 2</div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 3</div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-r-lg">Paso 4</div>
-        </div> */}
         <div className="flex items-center mb-4">
           <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 rounded-l-lg text-center"></div>
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
@@ -166,52 +308,31 @@ export default function PrimerProceso() {
           {/* Terminal */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">Terminal</label>
-            <select
-              className="border w-full p-2 text-sm sm:text-base"
-              value={terminal}
-              onChange={(e) => setTerminal(e.target.value)}
-            >
-              <option disabled value="">Seleccione Terminal</option>
-              <option value="Terminal 1">Terminal 1</option>
-              <option value="Terminal 2">Terminal 2</option>
-            </select>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={terminalOptions}
+              placeholder="Seleccione Terminal"
+              value={terminal ? { value: terminal, label: terminal } : null}
+              onChange={(option: OptionType | null) =>
+                setTerminal(option ? option.value : "")
+              }
+            />
           </div>
 
           {/* Cliente */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">Cliente</label>
-            <select
-            className="border w-full p-2 text-sm sm:text-base"
-            value={cliente}
-            onChange={(e) => setCliente(e.target.value)}
-            >
-            <option disabled value="">Seleccione Cliente</option>
-            <option value="ADM EL SALVADOR LTDA DE C.V.">ADM EL SALVADOR LTDA DE C.V.</option>
-            <option value="AGROINDUSTRIAS BUENAVISTA, S.A. DE C.V.">AGROINDUSTRIAS BUENAVISTA, S.A. DE C.V.</option>
-            <option value="AGROPECUARIA DEL VALLE, S.A. DE C.V.">AGROPECUARIA DEL VALLE, S.A. DE C.V.</option>
-            <option value="AVICOLA CAMPESTRE, S.A. DE C.V.">AVICOLA CAMPESTRE, S.A. DE C.V.</option>
-            <option value="AVICOLA DEL SUR/PROSALCO">AVICOLA DEL SUR</option>
-            <option value="AVICOLA SALAZAR">AVICOLA SALAZAR</option>
-            <option value="AVICOLA SAN BENITO, S.A. DE C.V.">AVICOLA SAN BENITO, S.A. DE C.V.</option>
-            <option value="AVICULTOR Y PORCINOCULTORES S.A. DE C.V.">AVICULTOR Y PORCINOCULTORES S.A. DE C.V.</option>
-            <option value="COOP. GANADERA DE SONSONATE">COOP. GANADERA DE SONSONATE</option>
-            <option value="EL GRANJERO, S.A. DE C.V.">EL GRANJERO, S.A. DE C.V.</option>
-            <option value="GRANJA CATALANA, S.A. DE C.V.">GRANJA CATALANA, S.A. DE C.V.</option>
-            <option value="IMPORTADORES AGROPECUARIOS">IMPORTADORES AGROPECUARIOS</option>
-            <option value="IMPORTADORES AGROPECUARIOS, S.A. DE C.V.">IMPORTADORES AGROPECUARIOS, S.A. DE C.V.</option>
-            <option value="MARTIR VICTOR ANTONIO DERAS FLORES">MARTIR VICTOR ANTONIO DERAS FLORES</option>
-            <option value="MONICA GROSS">MONICA GROSS</option>
-            <option value="PRODUCTOS ALIMENTICIOS BOCADELI, S.A. DE C.V.">PRODUCTOS ALIMENTICIOS BOCADELI, S.A. DE C.V.</option>
-            <option value="PRODUCTOS ALIMENTICIOS DIANA, S.A.">PRODUCTOS ALIMENTICIOS DIANA, S.A.</option>
-            <option value="PRODUCTOS ALIMENTICIOS SELLO DE ORO, S.A. DE C.V.">PRODUCTOS ALIMENTICIOS SELLO DE ORO, S.A. DE C.V.</option>
-            <option value="PROSALCO">PROSALCO</option>
-            <option value="RAFAEL ANDRES JOVEL MIRANDA">RAFAEL ANDRES JOVEL MIRANDA</option>
-            <option value="SALOMON GROSS">SALOMON GROSS</option>
-            <option value="SARAM">SARAM</option>
-            <option value="TIERRA FERTIL">TIERRA FERTIL</option>
-            <option value="WALTER HERNANDEZ">WALTER HERNANDEZ</option>
-            </select>
-
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={clienteOptions}
+              placeholder="Seleccione Cliente"
+              value={cliente ? { value: cliente, label: cliente } : null}
+              onChange={(option: OptionType | null) =>
+                setCliente(option ? option.value : "")
+              }
+            />
           </div>
 
           {/* Placa */}
@@ -239,16 +360,16 @@ export default function PrimerProceso() {
           {/* Ejes */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">Ejes</label>
-            <select
-              className="border w-full p-2 text-sm sm:text-base"
-              value={ejes}
-              onChange={(e) => setEjes(e.target.value)}
-            >
-              <option value="">Seleccione Ejes</option>
-              <option value="Camión">Camión</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-            </select>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={ejesOptions}
+              placeholder="Seleccione Ejes"
+              value={ejes ? { value: ejes, label: ejes } : null}
+              onChange={(option: OptionType | null) =>
+                setEjes(option ? option.value : "")
+              }
+            />
           </div>
 
           {/* Pesador */}
@@ -278,26 +399,16 @@ export default function PrimerProceso() {
             <label className="block font-semibold mb-1 text-sm sm:text-base">
               Tipo de Producto
             </label>
-            <select
-            className="border w-full p-2 text-sm sm:text-base"
-            value={tipoProducto}
-            onChange={(e) => setTipoProducto(e.target.value)}
-            >
-            <option disabled value="">Seleccione Producto</option>
-            <option value="ACEITE ACIDULADO DE SOYA">ACEITE ACIDULADO DE SOYA</option>
-            <option value="ACEITE DE SOYA">ACEITE DE SOYA</option>
-            <option value="ACEITE DESGOMADO">ACEITE DESGOMADO</option>
-            <option value="AFRECHO">AFRECHO</option>
-            <option value="ARROZ EN GRANZA">ARROZ EN GRANZA</option>
-            <option value="CASCARILLA DE SOYA">CASCARILLA DE SOYA</option>
-            <option value="HARINA DE SOYA">HARINA DE SOYA</option>
-            <option value="MAIZ AMARILLO">MAIZ AMARILLO</option>
-            <option value="MAIZ AMARILLO BRASILEÑO">MAIZ AMARILLO BRASILEÑO</option>
-            <option value="MAIZ BLANCO">MAIZ BLANCO</option>
-            <option value="MAIZ DESTILADO">MAIZ DESTILADO</option>
-            <option value="MALTA">MALTA</option>
-            <option value="TRIGO">TRIGO</option>
-            </select>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={tipoProductoOptions}
+              placeholder="Seleccione Producto"
+              value={tipoProducto ? { value: tipoProducto, label: tipoProducto } : null}
+              onChange={(option: OptionType | null) =>
+                setTipoProducto(option ? option.value : "")
+              }
+            />
           </div>
 
           {/* Punto de Despacho */}
@@ -305,56 +416,16 @@ export default function PrimerProceso() {
             <label className="block font-semibold mb-1 text-sm sm:text-base">
               Punto de Despacho
             </label>
-            <select
-            className="border w-full p-2 text-sm sm:text-base"
-            value={puntoDespacho}
-            onChange={(e) => setPuntoDespacho(e.target.value)}
-            >
-            <option disabled value="">Seleccione Punto</option>
-            <optgroup label="Bodegas">
-                <option value="BODEGA 1 PUERTA 1">BODEGA 1 PUERTA 1</option>
-                <option value="BODEGA 1 PUERTA 2">BODEGA 1 PUERTA 2</option>
-                <option value="BODEGA 1 PUERTA 3">BODEGA 1 PUERTA 3</option>
-                <option value="BODEGA 2 PUERTA 1">BODEGA 2 PUERTA 1</option>
-                <option value="BODEGA 2 PUERTA 2">BODEGA 2 PUERTA 2</option>
-                <option value="BODEGA 3 PUERTA 1">BODEGA 3 PUERTA 1</option>
-                <option value="BODEGA 3 PUERTA 2">BODEGA 3 PUERTA 2</option>
-                <option value="BODEGA 4 PUERTA 1">BODEGA 4 PUERTA 1</option>
-                <option value="BODEGA 4 PUERTA 3">BODEGA 4 PUERTA 3</option>
-                <option value="BODEGA 5 PUERTA 1">BODEGA 5 PUERTA 1</option>
-                <option value="BODEGA 6 PUERTA 3">BODEGA 6 PUERTA 3</option>
-            </optgroup>
-            <optgroup label="Silos">
-                <option value="SILO 1 GRAVEDAD">SILO 1 GRAVEDAD</option>
-                <option value="SILO 1 SISTEMA">SILO 1 SISTEMA</option>
-                <option value="SILO 1 CADENA MOVIL">SILO 1 CADENA MOVIL</option>
-                <option value="SILO 2 GRAVEDAD">SILO 2 GRAVEDAD</option>
-                <option value="SILO 2 SISTEMA">SILO 2 SISTEMA</option>
-                <option value="SILO 2 CADENA MOVIL">SILO 2 CADENA MOVIL</option>
-                <option value="SILO 3 GRAVEDAD">SILO 3 GRAVEDAD</option>
-                <option value="SILO 3 SISTEMA">SILO 3 SISTEMA</option>
-                <option value="SILO 3 CADENA MOVIL">SILO 3 CADENA MOVIL</option>
-                <option value="SILO 4 GRAVEDAD">SILO 4 GRAVEDAD</option>
-                <option value="SILO 4 SISTEMA">SILO 4 SISTEMA</option>
-                <option value="SILO 4 CADENA MOVIL">SILO 4 CADENA MOVIL</option>
-                <option value="SILO 5 SISTEMA">SILO 5 SISTEMA</option>
-                <option value="SILO 6 SISTEMA">SILO 6 SISTEMA</option>
-                <option value="SILO 7 SISTEMA INDIVIDUAL">SILO 7 SISTEMA INDIVIDUAL</option>
-                <option value="SILO 7 SISTEMA">SILO 7 SISTEMA</option>
-                <option value="SILO 8 SISTEMA INDIVIDUAL">SILO 8 SISTEMA INDIVIDUAL</option>
-                <option value="SILO 8 SISTEMA">SILO 8 SISTEMA</option>
-                <option value="SILO 9 GRAVEDAD">SILO 9 GRAVEDAD</option>
-                <option value="SILO 9 SISTEMA">SILO 9 SISTEMA</option>
-                <option value="SILO 10 SISTEMA">SILO 10 SISTEMA</option>
-                <option value="SILO 11 SISTEMA">SILO 11 SISTEMA</option>
-                <option value="SILO 12 SISTEMA">SILO 12 SISTEMA</option>
-                <option value="SILO 13 SISTEMA">SILO 13 SISTEMA</option>
-                <option value="SILO 14 SISTEMA">SILO 14 SISTEMA</option>
-                <option value="SILO 15 SISTEMA">SILO 15 SISTEMA</option>
-                <option value="SILO 16 SISTEMA">SILO 16 SISTEMA</option>
-                <option value="SILO 17 SISTEMA">SILO 17 SISTEMA</option>
-            </optgroup>
-            </select>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={puntoDespachoOptions}
+              placeholder="Seleccione Punto"
+              value={puntoDespacho ? { value: puntoDespacho, label: puntoDespacho } : null}
+              onChange={(option: OptionType | null) =>
+                setPuntoDespacho(option ? option.value : "")
+              }
+            />
           </div>
 
           {/* Báscula de Entrada */}
@@ -362,33 +433,33 @@ export default function PrimerProceso() {
             <label className="block font-semibold mb-1 text-sm sm:text-base">
               Báscula de Entrada
             </label>
-            <select
-              className="border w-full p-2 text-sm sm:text-base"
-              value={basculaEntrada}
-              onChange={(e) => setBasculaEntrada(e.target.value)}
-            >
-              <option disabled value="">Seleccione Báscula</option>
-              <option value="Báscula 1">Báscula 1</option>
-              <option value="Báscula 2">Báscula 2</option>
-              <option value="Báscula 3">Báscula 3</option>
-              <option value="Báscula 4">Báscula 4</option>
-              <option value="Báscula 5">Báscula 5</option>
-              <option value="Báscula 6">Báscula 6</option>
-            </select>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={basculaEntradaOptions}
+              placeholder="Seleccione Báscula"
+              value={basculaEntrada ? { value: basculaEntrada, label: basculaEntrada } : null}
+              onChange={(option: OptionType | null) =>
+                setBasculaEntrada(option ? option.value : "")
+              }
+            />
           </div>
 
           {/* Tipo de Carga */}
           <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Tipo de Carga</label>
-            <select
-              className="border w-full p-2 text-sm sm:text-base"
-              value={tipoCarga}
-              onChange={(e) => setTipoCarga(e.target.value)}
-            >
-              <option value="">Seleccione Tipo</option>
-              <option value="Granel">Granel</option>
-              <option value="Envasado">Envasado</option>
-            </select>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Tipo de Carga
+            </label>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={tipoCargaOptions}
+              placeholder="Seleccione Tipo"
+              value={tipoCarga ? { value: tipoCarga, label: tipoCarga } : null}
+              onChange={(option: OptionType | null) =>
+                setTipoCarga(option ? option.value : "")
+              }
+            />
           </div>
 
           {/* Método de Carga */}
@@ -396,120 +467,181 @@ export default function PrimerProceso() {
             <label className="block font-semibold mb-1 text-sm sm:text-base">
               Método de Carga
             </label>
-            <select
-              className="border w-full p-2 text-sm sm:text-base"
-              value={metodoCarga}
-              onChange={(e) => setMetodoCarga(e.target.value)}
-            >
-              <option value="">Seleccione Metodo</option>
-              <option value="Cabaleo">Cabaleo</option>
-              <option value="Carga Máxima">Carga Máxima</option>
-            </select>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={metodoCargaOptions}
+              placeholder="Seleccione Método"
+              value={metodoCarga ? { value: metodoCarga, label: metodoCarga } : null}
+              onChange={(option: OptionType | null) =>
+                setMetodoCarga(option ? option.value : "")
+              }
+            />
           </div>
         </div>
 
         {/* Tiempos */}
         <div className="mt-6">
-          <h3 className="font-bold text-lg mb-2">Tiempos</h3>
+          <h3 className="font-bold text-lg mb-2 sm:text-sm">Tiempos</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Prechequeo */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Tiempo Prechequeo
+                Prechequeo
               </label>
-              <div className="flex gap-2 mt-1">
-                <input
-                  type="time"
-                  step="1"
-                  className="border p-1 w-full text-sm sm:text-base"
-                  value={tiempoPrechequeo.hora}
+              <div className="flex flex-col gap-2 mt-1">
+                {/* Campo de Fecha */}
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    className="border p-1 w-full text-sm sm:text-base"
+                    value={tiempoPrechequeo.fecha}
+                    onChange={(e) =>
+                      setTiempoPrechequeo((prev) => ({ ...prev, fecha: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
+                    onClick={() => handleSetNowDate(setTiempoPrechequeo)}
+                  >
+                    Ahora
+                  </button>
+                </div>
+                {/* Campo de Hora */}
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    step="1"
+                    className="border p-1 w-full text-sm sm:text-base"
+                    value={tiempoPrechequeo.hora}
+                    onChange={(e) =>
+                      setTiempoPrechequeo((prev) => ({ ...prev, hora: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
+                    onClick={() => handleSetNow(setTiempoPrechequeo)}
+                  >
+                    Ahora
+                  </button>
+                </div>
+                <textarea
+                  className="border w-full p-1 text-xs sm:text-sm"
+                  placeholder="Comentarios..."
+                  value={tiempoPrechequeo.comentarios}
                   onChange={(e) =>
-                    setTiempoPrechequeo((prev) => ({ ...prev, hora: e.target.value }))
+                    setTiempoPrechequeo((prev) => ({ ...prev, comentarios: e.target.value }))
                   }
                 />
-                <button
-                  className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                  onClick={() => handleSetNow(setTiempoPrechequeo)}
-                >
-                  Ahora
-                </button>
               </div>
-              <textarea
-                className="border w-full mt-1 p-1 text-xs sm:text-sm"
-                placeholder="Comentarios..."
-                value={tiempoPrechequeo.comentarios}
-                onChange={(e) =>
-                  setTiempoPrechequeo((prev) => ({ ...prev, comentarios: e.target.value }))
-                }
-              />
             </div>
 
             {/* Scanner */}
             <div className="border rounded p-2">
-              <label className="block font-semibold text-sm sm:text-base">Tiempo Scanner</label>
-              <div className="flex gap-2 mt-1">
-                <input
-                  type="time"
-                  step="1"
-                  className="border p-1 w-full text-sm sm:text-base"
-                  value={tiempoScanner.hora}
+              <label className="block font-semibold text-sm sm:text-base">Scanner</label>
+              <div className="flex flex-col gap-2 mt-1">
+                {/* Campo de Fecha */}
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    className="border p-1 w-full text-sm sm:text-base"
+                    value={tiempoScanner.fecha}
+                    onChange={(e) =>
+                      setTiempoScanner((prev) => ({ ...prev, fecha: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
+                    onClick={() => handleSetNowDate(setTiempoScanner)}
+                  >
+                    Ahora
+                  </button>
+                </div>
+                {/* Campo de Hora */}
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    step="1"
+                    className="border p-1 w-full text-sm sm:text-base"
+                    value={tiempoScanner.hora}
+                    onChange={(e) =>
+                      setTiempoScanner((prev) => ({ ...prev, hora: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
+                    onClick={() => handleSetNow(setTiempoScanner)}
+                  >
+                    Ahora
+                  </button>
+                </div>
+                <textarea
+                  className="border w-full p-1 text-xs sm:text-sm"
+                  placeholder="Comentarios..."
+                  value={tiempoScanner.comentarios}
                   onChange={(e) =>
-                    setTiempoScanner((prev) => ({ ...prev, hora: e.target.value }))
+                    setTiempoScanner((prev) => ({ ...prev, comentarios: e.target.value }))
                   }
                 />
-                <button
-                  className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                  onClick={() => handleSetNow(setTiempoScanner)}
-                >
-                  Ahora
-                </button>
               </div>
-              <textarea
-                className="border w-full mt-1 p-1 text-xs sm:text-sm"
-                placeholder="Comentarios..."
-                value={tiempoScanner.comentarios}
-                onChange={(e) =>
-                  setTiempoScanner((prev) => ({ ...prev, comentarios: e.target.value }))
-                }
-              />
             </div>
 
             {/* Autorización */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Tiempo Autorización
+                Autorización
               </label>
-              <div className="flex gap-2 mt-1">
-                <input
-                  type="time"
-                  step="1"
-                  className="border p-1 w-full text-sm sm:text-base"
-                  value={tiempoAutorizacion.hora}
+              <div className="flex flex-col gap-2 mt-1">
+                {/* Campo de Fecha */}
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    className="border p-1 w-full text-sm sm:text-base"
+                    value={tiempoAutorizacion.fecha}
+                    onChange={(e) =>
+                      setTiempoAutorizacion((prev) => ({ ...prev, fecha: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
+                    onClick={() => handleSetNowDate(setTiempoAutorizacion)}
+                  >
+                    Ahora
+                  </button>
+                </div>
+                {/* Campo de Hora */}
+                <div className="flex gap-2">
+                  <input
+                    type="time"
+                    step="1"
+                    className="border p-1 w-full text-sm sm:text-base"
+                    value={tiempoAutorizacion.hora}
+                    onChange={(e) =>
+                      setTiempoAutorizacion((prev) => ({ ...prev, hora: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
+                    onClick={() => handleSetNow(setTiempoAutorizacion)}
+                  >
+                    Ahora
+                  </button>
+                </div>
+                <textarea
+                  className="border w-full p-1 text-xs sm:text-sm"
+                  placeholder="Comentarios..."
+                  value={tiempoAutorizacion.comentarios}
                   onChange={(e) =>
-                    setTiempoAutorizacion((prev) => ({ ...prev, hora: e.target.value }))
+                    setTiempoAutorizacion((prev) => ({ ...prev, comentarios: e.target.value }))
                   }
                 />
-                <button
-                  className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                  onClick={() => handleSetNow(setTiempoAutorizacion)}
-                >
-                  Ahora
-                </button>
               </div>
-              <textarea
-                className="border w-full mt-1 p-1 text-xs sm:text-sm"
-                placeholder="Comentarios..."
-                value={tiempoAutorizacion.comentarios}
-                onChange={(e) =>
-                  setTiempoAutorizacion((prev) => ({ ...prev, comentarios: e.target.value }))
-                }
-              />
             </div>
 
             {/* Ingreso Planta */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Tiempo Ingreso de Planta
+                Ingreso de Planta
               </label>
               <div className="flex gap-2 mt-1">
                 <input
@@ -541,7 +673,7 @@ export default function PrimerProceso() {
             {/* Entrada Báscula */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Tiempo Entrada Báscula
+                Entrada Báscula
               </label>
               <div className="flex gap-2 mt-1">
                 <input
@@ -565,10 +697,7 @@ export default function PrimerProceso() {
                 placeholder="Comentarios..."
                 value={tiempoEntradaBascula.comentarios}
                 onChange={(e) =>
-                  setTiempoEntradaBascula((prev) => ({
-                    ...prev,
-                    comentarios: e.target.value,
-                  }))
+                  setTiempoEntradaBascula((prev) => ({ ...prev, comentarios: e.target.value }))
                 }
               />
             </div>
@@ -576,7 +705,7 @@ export default function PrimerProceso() {
             {/* Salida Báscula */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Tiempo Salida Báscula
+                Salida Báscula
               </label>
               <div className="flex gap-2 mt-1">
                 <input
@@ -600,18 +729,15 @@ export default function PrimerProceso() {
                 placeholder="Comentarios..."
                 value={tiempoSalidaBascula.comentarios}
                 onChange={(e) =>
-                  setTiempoSalidaBascula((prev) => ({
-                    ...prev,
-                    comentarios: e.target.value,
-                  }))
+                  setTiempoSalidaBascula((prev) => ({ ...prev, comentarios: e.target.value }))
                 }
               />
             </div>
           </div>
         </div>
 
-      {/* Botones de Navegación */}
-      <div className="mt-6 flex justify-between">
+        {/* Botones de Navegación */}
+        <div className="mt-6 flex justify-between">
           <button
             className="bg-red-500 text-white px-4 py-2 rounded"
             onClick={handleCancelar}

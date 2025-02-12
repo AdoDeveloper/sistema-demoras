@@ -26,6 +26,7 @@
     "prisma": "^6.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-select": "^5.10.0",
     "sistema-demoras": "file:",
     "sweetalert2": "^11.16.0"
   },
