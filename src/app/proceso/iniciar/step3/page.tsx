@@ -282,31 +282,30 @@ export default function TercerProceso() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-6 text-slate-900">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow p-4 sm:p-6">
         {/* Barra de Progreso */}
-        <div className="flex items-center mb-4">
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-l-lg">
-            Paso 1
-          </div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">
-            Paso 2
-          </div>
+        {/* <div className="flex items-center mb-4">
+          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-l-lg">Paso 1</div>
+          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 2</div>
           <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4">
             Paso 3 de 4
           </div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-r-lg">
-            Paso 4
-          </div>
+          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-r-lg">Paso 4</div>
+        </div> */}
+        <div className="flex items-center mb-4">
+          <div className="flex-1 bg-orange-500 py-2 px-4 text-center rounded-l-lg"></div>
+          <div className="flex-1 bg-orange-500 py-2 px-4 text-center"></div>
+          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4"></div>
+          <div className="flex-1 bg-blue-600 py-2 px-4 text-center rounded-r-lg"></div>
         </div>
-
         <h2 className="text-xl font-bold mb-4 text-orange-600">
           Tercer Proceso
         </h2>
 
         {/* Campos Principales */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Pesador Salida */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
-              Pesador (Salida)
+              Pesador
             </label>
             <input
               type="text"
@@ -359,7 +358,7 @@ export default function TercerProceso() {
             {/* Entrada Báscula (Tercer Proceso) */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Entrada Báscula (Tercer Proceso)
+                Entrada Báscula
               </label>
               <div className="flex gap-2 mt-1">
                 <input
@@ -397,7 +396,7 @@ export default function TercerProceso() {
             {/* Salida Báscula (Tercer Proceso) */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Salida Báscula (Tercer Proceso)
+                Salida Báscula
               </label>
               <div className="flex gap-2 mt-1">
                 <input

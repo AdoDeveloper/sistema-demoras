@@ -5,7 +5,7 @@ import prisma from "../../../../lib/prisma";
 export async function GET() {
   try {
     const demoras = await prisma.demora.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "asc" },
     });
     // Retorna una respuesta JSON con status 200
     return NextResponse.json(demoras, { status: 200 });

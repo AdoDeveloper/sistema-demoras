@@ -14,7 +14,7 @@ export default function Dashboard() {
       router.push("/login");
     }
 
-    // 📌 Obtener datos desde caché si existen
+    // Obtener datos desde caché si existen
     const cached = sessionStorage.getItem("user");
     if (cached) {
       setCachedUser(JSON.parse(cached));
@@ -29,51 +29,65 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-lg bg-white shadow-lg rounded-2xl p-6 border-t-4 border-orange-500">
-        
-        <div className="flex justify-center">
-          <img src="/logo.png" alt="ALMAPAC Logo" className="h-16" />
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="w-full max-w-md bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden">
+        {/* Franja superior en color naranja (original) */}
+        <div className="h-2 bg-orange-500"></div>
+        <div className="p-6">
+          {/* Logo centrado */}
+          <div className="flex justify-center">
+            <img
+              src="/logo.png"
+              alt="ALMAPAC Logo"
+              className="w-20 h-20 object-contain"
+            />
+          </div>
 
-        <h1 className="text-center text-2xl font-bold text-blue-700 mt-4">
-          ALMAPAC Sistema de Demoras
-        </h1>
+          {/* Título principal */}
+          <h1 className="text-center text-3xl font-bold text-blue-700 mt-4">
+            Control de Tiempos
+          </h1>
 
-        <div className="mt-6 bg-orange-500 text-white text-xl font-semibold py-2 px-4 rounded-lg text-center">
-          Panel de Control
-        </div>
+          {/* Banner del Panel de Control */}
+          <div className="mt-4 text-center font-bold text-white py-2 px-4 bg-orange-500 rounded-md shadow-md">
+            Panel de Control
+          </div>
 
-        <div className="p-6 text-center">
-          <p className="text-lg font-semibold text-gray-800">
-            👋 Bienvenido, <span className="text-blue-700">{cachedUser?.username || "Usuario"}</span>
-          </p>
-          {/* <p className="text-sm text-gray-600">🆔 ID: {cachedUser?.id}</p> */}
+          {/* Área de bienvenida y botones */}
+          <div className="mt-6 p-4 border border-orange-500 rounded-md">
+            <p className="text-lg font-semibold text-gray-800">
+              👋 Bienvenido,{" "}
+              <span className="text-blue-700">
+                {cachedUser?.username || "Usuario"}
+              </span>
+            </p>
 
-          <div className="mt-6 grid grid-cols-2 gap-5">
-            <button
-              className="col-span-2 bg-orange-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-orange-600"
-              onClick={() => router.push("/proceso/iniciar")}
-            >
-            Iniciar Proceso
-            </button>
+            {/* Grid de botones responsive */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                className="md:col-span-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-md shadow-xl transform transition duration-200 hover:-translate-y-1 active:translate-y-0"
+                onClick={() => router.push("/proceso/iniciar")}
+              >
+                Iniciar Proceso
+              </button>
 
-            <button
-              className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700"
-              onClick={() => router.push("/proceso/consultar")}
-            >
-            Ver Registros
-            </button>
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md shadow-xl transform transition duration-200 hover:-translate-y-1 active:translate-y-0"
+                onClick={() => router.push("/proceso/consultar")}
+              >
+                Ver Registros
+              </button>
 
-            <button
-              className="bg-red-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-red-600"
-              onClick={() => {
-                sessionStorage.removeItem("user");
-                signOut();
-              }}
-            >
-            Cerrar Sesión
-            </button>
+              <button
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-md shadow-xl transform transition duration-200 hover:-translate-y-1 active:translate-y-0"
+                onClick={() => {
+                  sessionStorage.removeItem("user");
+                  signOut();
+                }}
+              >
+                Cerrar Sesión
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -143,19 +143,20 @@ export default function PrimerProceso() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-4 px-2 sm:px-4 text-slate-900">
       <div className="w-full max-w-2xl sm:max-w-4xl bg-white rounded-lg shadow p-4 sm:p-6">
-      <div className="flex items-center mb-4">
-          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4">
+        {/* <div className="flex items-center mb-4">
+          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 rounded-l-lg text-center">
             Paso 1 de 4
           </div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-l-lg">
-            Paso 2
-          </div>
+          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 2</div>
           <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 3</div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-r-lg">
-            Paso 4
-          </div>
+          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-r-lg">Paso 4</div>
+        </div> */}
+        <div className="flex items-center mb-4">
+          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 rounded-l-lg text-center"></div>
+          <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
+          <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
+          <div className="flex-1 bg-blue-600 py-2 px-4 text-center rounded-r-lg"></div>
         </div>
-
         <h2 className="text-lg sm:text-xl font-bold mb-4 text-orange-600 text-center sm:text-left">
           Primer Proceso
         </h2>
@@ -609,16 +610,16 @@ export default function PrimerProceso() {
           </div>
         </div>
 
-        {/* Botones */}
-        <div className="mt-6 flex flex-col sm:flex-row justify-between gap-2">
+      {/* Botones de Navegación */}
+      <div className="mt-6 flex justify-between">
           <button
-            className="bg-red-500 text-white px-4 py-2 rounded text-sm sm:text-base"
+            className="bg-red-500 text-white px-4 py-2 rounded"
             onClick={handleCancelar}
           >
             Cancelar
           </button>
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm sm:text-base"
+            className="bg-blue-600 text-white px-4 py-2 rounded"
             onClick={handleGuardarYContinuar}
           >
             Siguiente

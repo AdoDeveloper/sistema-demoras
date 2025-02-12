@@ -79,6 +79,5 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
 });
 
-// Con Next.js 13+ (App Router), se exportan como GET y POST
 export const GET = handler;
 export const POST = handler;

@@ -47,12 +47,12 @@ export default function LoginForm() {
         
         {/* Logo sin sombra */}
         <div className="flex justify-center mb-6">
-          <Image src="/logo.png" alt="Almapac Logo" width={150} height={50} />
+          <Image src="/logo.png" alt="Almapac Logo" width={300} height={150} />
         </div>
 
         {/* Título */}
         <h2 className="text-2xl font-extrabold text-center mb-4 text-cyan-700">
-          Sistema de Demoras
+          Control de Tiempos
         </h2>
 
         {/* Mensaje de error */}
@@ -90,7 +90,7 @@ export default function LoginForm() {
             type="submit"
             className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg shadow-md transform active:translate-y-1 active:shadow-sm transition-all hover:bg-orange-600"
           >
-            🔐 Iniciar Sesión
+             Iniciar Sesión
           </button>
         </form>
       </div>

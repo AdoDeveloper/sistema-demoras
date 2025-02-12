@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Swal from "sweetalert2"; // Importamos SweetAlert2
+import Swal from "sweetalert2"; // Importamos sweetalert2
 import React from "react";
 
 export default function ProcesoFinal() {
@@ -29,16 +29,14 @@ export default function ProcesoFinal() {
     procesoFinal: false,
   });
 
-  // ----------------------------------------------------------------
   // Al montar, verificar/crear "demorasProcess" y cargar datos
-  // ----------------------------------------------------------------
   useEffect(() => {
     cargarDesdeCache();
   }, []);
 
-  // ----------------------------------------------------------------
-  // Función para cargar la info de localStorage
-  // ----------------------------------------------------------------
+  // -------------------------------------------
+  // Función para CARGAR la info de localStorage
+  // -------------------------------------------
   function cargarDesdeCache() {
     let stored = localStorage.getItem("demorasProcess");
     if (!stored) {
@@ -78,9 +76,7 @@ export default function ProcesoFinal() {
     }
   }
 
-  // ----------------------------------------------------------------
-  // Helper: setear la hora actual (HH:mm:ss, UTC-6)
-  // ----------------------------------------------------------------
+  // Helper para setear la hora actual en formato HH:mm:ss con UTC-6
   const handleSetNow = (setter) => {
     const now = new Date();
     const hora = now.toLocaleTimeString("en-GB", {
@@ -90,9 +86,9 @@ export default function ProcesoFinal() {
     setter((prev) => ({ ...prev, hora }));
   };
 
-  // ----------------------------------------------------------------
-  // Guardar localmente la info y refrescar el resumen
-  // ----------------------------------------------------------------
+  // ------------------------------------------------------------
+  //  Botón "Guardar" => almacena en localStorage y refresca
+  // ------------------------------------------------------------
   const handleGuardarLocal = () => {
     const stored = localStorage.getItem("demorasProcess");
     if (!stored) {
@@ -108,31 +104,65 @@ export default function ProcesoFinal() {
       tiempoSalidaPlanta,
     };
 
-    // Guardar en localStorage
+    // Guardar
     localStorage.setItem("demorasProcess", JSON.stringify(parsed));
 
-    // Volver a cargar para refrescar resumen
+    // Refrescar data para que el resumen se actualice
     cargarDesdeCache();
 
     // Alerta de éxito
     Swal.fire("Guardado", "Los datos finales se han guardado en cache.", "success");
   };
 
-  // ----------------------------------------------------------------
-  // Al dar clic en enviar, preguntar primero con SweetAlert2
-  // ----------------------------------------------------------------
-  const handleEnviar = () => {
-    // Validar datos
+  // ------------------------------------------------------------
+  //  VALIDAR QUE TODOS LOS PROCESOS ESTÉN COMPLETOS
+  // ------------------------------------------------------------
+  function validarTodosLosProcesos() {
+    if (!dataResumen) {
+      // Si ni siquiera existe dataResumen, algo está mal
+      return "No se encontraron datos en caché.";
+    }
+
+    const { primerProceso, segundoProceso, tercerProceso, procesoFinal } = dataResumen;
+
+    // Verifica "primerProceso" (ejemplo: placa, cliente, etc.)
+    // Aquí decides qué "datos mínimos" deben existir. Haré un check básico:
+    if (!primerProceso || !primerProceso.placa || !primerProceso.cliente) {
+      return "El Primer Proceso está incompleto o faltan campos obligatorios.";
+    }
+
+    // Verifica "segundoProceso"
+    if (!segundoProceso || !segundoProceso.enlonador || !segundoProceso.operador) {
+      return "El Segundo Proceso está incompleto o faltan campos obligatorios.";
+    }
+
+    // Verifica "tercerProceso"
+    if (!tercerProceso || !tercerProceso.pesadorSalida || !tercerProceso.vueltas) {
+      return "El Tercer Proceso está incompleto o faltan campos obligatorios.";
+    }
+
+    // Verifica "procesoFinal" => en particular, la hora
     if (!tiempoLlegadaTerminal.hora || !tiempoSalidaPlanta.hora) {
-      Swal.fire(
-        "Incompleto",
-        "Faltan datos de Llegada Terminal / Salida Planta",
-        "warning"
-      );
+      return "Faltan datos de Llegada Terminal / Salida Planta";
+    }
+
+    // Si pasa todas las validaciones
+    return "";
+  }
+
+  // ------------------------------------------------------------
+  //  Botón "Enviar" => intenta enviar a la API
+  // ------------------------------------------------------------
+  const handleEnviar = async () => {
+    // Primero valida todos los procesos
+    const errorProceso = validarTodosLosProcesos();
+    if (errorProceso) {
+      // Muestra alerta con el mensaje
+      Swal.fire("Incompleto", errorProceso, "warning");
       return;
     }
 
-    // Preguntar al usuario si está seguro de enviar
+    // Confirmar con el usuario si realmente desea enviar
     Swal.fire({
       title: "¿Enviar los datos?",
       text: "Se procederá a guardar la información definitivamente.",
@@ -144,15 +174,10 @@ export default function ProcesoFinal() {
       cancelButtonText: "Cancelar",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        // El usuario confirmó el envío
         try {
           const stored = localStorage.getItem("demorasProcess");
           if (!stored) {
-            Swal.fire(
-              "Error",
-              "No se encontró demorasProcess en localStorage",
-              "error"
-            );
+            Swal.fire("Error", "No se encontró demorasProcess en localStorage", "error");
             return;
           }
 
@@ -172,40 +197,32 @@ export default function ProcesoFinal() {
           });
 
           if (res.ok) {
-            // Éxito: limpia localStorage, alerta
+            // Éxito: limpia localStorage, alerta y redirige
             localStorage.removeItem("demorasProcess");
-            Swal.fire(
-              "Enviado",
-              "Datos enviados y guardados correctamente.",
-              "success"
-            );
+            Swal.fire("Enviado", "Datos enviados y guardados correctamente.", "success")
+              .then(() => {
+                // Redirigir al home
+                router.push("/");
+              });
           } else {
             const { error } = await res.json();
-            Swal.fire(
-              "Error",
-              `Error al guardar en DB: ${error || "Desconocido"}`,
-              "error"
-            );
+            Swal.fire("Error", `Error al guardar en DB: ${error || "Desconocido"}`, "error");
           }
         } catch (err) {
           console.error(err);
           Swal.fire("Error", "Error de conexión al guardar los datos.", "error");
         }
       }
-      // Si el usuario canceló, no hacemos nada más
+      // Si el usuario canceló, no hacemos nada
     });
   };
 
-  // ----------------------------------------------------------------
   // Botón "Anterior": vuelve a paso 3
-  // ----------------------------------------------------------------
   const handleAtras = () => {
     router.push("/proceso/iniciar/step3");
   };
 
-  // ----------------------------------------------------------------
   // Toggles de acordeón
-  // ----------------------------------------------------------------
   const toggleAccordion = (section) => {
     setAccordionOpen((prev) => ({
       ...prev,
@@ -591,21 +608,20 @@ export default function ProcesoFinal() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 text-slate-900">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow p-6">
         {/* Barra de Progreso */}
-        <div className="flex items-center mb-4">
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-l-lg">
-            Paso 1
-          </div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">
-            Paso 2
-          </div>
-          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">
-            Paso 3
-          </div>
+        {/* <div className="flex items-center mb-4">
+          <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-l-lg">Paso 1</div>
+          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 2</div>
+          <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 3</div>
           <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 rounded-r-lg">
             Paso 4 de 4
           </div>
+        </div> */}
+        <div className="flex items-center mb-4">
+          <div className="flex-1 bg-orange-500 py-2 px-4 text-center rounded-l-lg"></div>
+          <div className="flex-1 bg-orange-500 py-2 px-4 text-center"></div>
+          <div className="flex-1 bg-orange-500 py-2 px-4 text-center"></div>
+          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 rounded-r-lg"></div>
         </div>
-
         <h2 className="text-xl font-bold mb-4 text-orange-600">
           Proceso Final
         </h2>
@@ -613,11 +629,11 @@ export default function ProcesoFinal() {
         {/* Campos de Tiempos (Llegada Terminal, Salida Planta) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Llegada Terminal */}
-          <div className="border rounded p-2 bg-yellow-50">
-            <label className="block font-semibold mb-1 text-yellow-700 text-sm">
+          <div className="border rounded p-2">
+            <label className="block font-semibold mb-1 text-sm">
               Llegada Terminal
             </label>
-            <div className="flex gap-2 mt-1 items-center">
+            <div className="flex gap-2 mt-1">
               <input
                 type="time"
                 step="1"
@@ -631,7 +647,7 @@ export default function ProcesoFinal() {
                 }
               />
               <button
-                className="bg-yellow-400 text-white px-3 rounded hover:bg-yellow-500 text-sm"
+                className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
                 onClick={() => handleSetNow(setTiempoLlegadaTerminal)}
               >
                 Ahora
@@ -651,11 +667,11 @@ export default function ProcesoFinal() {
           </div>
 
           {/* Salida de Planta */}
-          <div className="border rounded p-2 bg-green-50">
-            <label className="block font-semibold mb-1 text-green-700 text-sm">
+          <div className="border rounded p-2">
+            <label className="block font-semibold mb-1 text-sm">
               Salida de Planta
             </label>
-            <div className="flex gap-2 mt-1 items-center">
+            <div className="flex gap-2 mt-1">
               <input
                 type="time"
                 step="1"
@@ -669,7 +685,7 @@ export default function ProcesoFinal() {
                 }
               />
               <button
-                className="bg-green-400 text-white px-3 rounded hover:bg-green-500 text-sm"
+                className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
                 onClick={() => handleSetNow(setTiempoSalidaPlanta)}
               >
                 Ahora
@@ -693,6 +709,10 @@ export default function ProcesoFinal() {
         <div className="mt-6">
           <h3 className="font-bold text-lg mb-2">Resumen de la Información</h3>
           {renderResumenAcordeon()}
+        </div>
+
+        <div className="text-sm sm:text-base text-gray-600 mt-4">
+            <strong>NOTA:</strong> Guardar los datos antes de enviar.
         </div>
 
         {/* Botones */}

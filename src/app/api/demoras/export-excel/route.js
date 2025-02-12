@@ -53,7 +53,7 @@ function getFileName() {
   const dd = String(now.getDate()).padStart(2, "0");
   const hh = String(now.getHours()).padStart(2, "0");
   const min = String(now.getMinutes()).padStart(2, "0");
-  return `Demoras-${yyyy}-${mm}-${dd}_${hh}-${min}.xlsx`;
+  return `Demoras-${yyyy}-${mm}-${dd}-${hh}-${min}.xlsx`;
 }
 
 /**

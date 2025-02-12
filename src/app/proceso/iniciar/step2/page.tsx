@@ -167,40 +167,91 @@ export default function SegundoProceso() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 text-slate-900">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow p-6">
         {/* Barra de Progreso */}
-        <div className="flex items-center mb-4">
+        {/* <div className="flex items-center mb-4">
           <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-l-lg">Paso 1</div>
-          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4">
+          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 text-center">
             Paso 2 de 4
           </div>
           <div className="flex-1 bg-gray-200 py-2 px-4 text-center">Paso 3</div>
           <div className="flex-1 bg-gray-200 py-2 px-4 text-center rounded-r-lg">Paso 4</div>
+        </div> */}
+        <div className="flex items-center mb-4">
+          <div className="flex-1 bg-orange-500 py-2 px-4 rounded-l-lg"></div>
+          <div className="flex-1 bg-orange-500 py-2 px-4"></div>
+          <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
+          <div className="flex-1 bg-blue-600 py-2 px-4 text-center rounded-r-lg"></div>
         </div>
-
         <h2 className="text-xl font-bold mb-4 text-orange-600">Segundo Proceso</h2>
 
         {/* Campos principales (responsive 1 col en mobile, 2 cols en sm+) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Enlonador */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Enlonador</label>
-            <input
-              type="text"
-              className="border w-full p-2 text-sm sm:text-base"
-              value={enlonador}
-              onChange={(e) => setEnlonador(e.target.value)}
-            />
-          </div>
+        {/* Enlonador */}
+        <div>
+          <label className="block font-semibold mb-1 text-sm sm:text-base">Enlonador</label>
+          <select
+            className="border w-full p-2 text-sm sm:text-base"
+            value={enlonador}
+            onChange={(e) => setEnlonador(e.target.value)}
+          >
+            <option value="" disabled>Seleccione Enlonador</option>
+            {[
+              "ADIEL QUIÑONES",
+              "ALEXIS MARTINEZ",
+              "ALEJANDRO CENTENO",
+              "ANIBAL SANCHEZ",
+              "CARLOS CABRERA",
+              "CARLOS RIVERA",
+              "EDENILSON RUIZ",
+              "EDUARDO TINO",
+              "EDWIN TESHE",
+              "ELIAS PATRIZ",
+              "EMERSON CAMPOS",
+              "JORGE MENDEZ",
+              "JOSE FUENTES",
+              "JOSE GOCHEZ",
+              "JOSUE TRINIDAD",
+              "KEVIN MARTINEZ",
+              "LUIS GIRON",
+              "MANUEL PEREZ",
+              "TOMAS CADENA",
+              "WALDIR PINEDA",
+            ].sort().map((nombre, index) => (
+              <option key={index} value={nombre}>{nombre}</option>
+            ))}
+          </select>
+        </div>
 
-          {/* Operador */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Operador</label>
-            <input
-              type="text"
-              className="border w-full p-2 text-sm sm:text-base"
-              value={operador}
-              onChange={(e) => setOperador(e.target.value)}
-            />
-          </div>
+        {/* Operador */}
+        <div>
+          <label className="block font-semibold mb-1 text-sm sm:text-base">Operador</label>
+          <select
+            className="border w-full p-2 text-sm sm:text-base"
+            value={operador}
+            onChange={(e) => setOperador(e.target.value)}
+          >
+            <option value="" disabled>Seleccione Operador</option>
+            {[
+              "CARLOS CABRERA",
+              "CARLOS SIGUACHI",
+              "CELVIN DIAZ",
+              "DARWIN HERNANDEZ",
+              "GABRIEL MARTINEZ",
+              "IVAN GOMEZ",
+              "JORGE ISIDRO",
+              "LUIS RAMOS",
+              "MANUEL CORTEZ",
+              "MARVIN ECHEVERRIA",
+              "MARVIN SANCHEZ",
+              "MELVIN RUBIO",
+              "MIGUEL CRESPIN",
+              "MOISES ALVAREZ",
+              "RAFAEL JIMENEZ",
+              "ROBERTO CALDERON",
+            ].sort().map((nombre, index) => (
+              <option key={index} value={nombre}>{nombre}</option>
+            ))}
+          </select>
+        </div>
 
           {/* Personal Asignado */}
           <div>
@@ -208,7 +259,7 @@ export default function SegundoProceso() {
               Personal Asignado
             </label>
             <input
-              type="text"
+              type="number"
               className="border w-full p-2 text-sm sm:text-base"
               value={personalAsignado}
               onChange={(e) => setPersonalAsignado(e.target.value)}
