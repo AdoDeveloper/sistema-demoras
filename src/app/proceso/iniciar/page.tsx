@@ -190,7 +190,7 @@ export default function PrimerProceso() {
             <option value="AGROINDUSTRIAS BUENAVISTA, S.A. DE C.V.">AGROINDUSTRIAS BUENAVISTA, S.A. DE C.V.</option>
             <option value="AGROPECUARIA DEL VALLE, S.A. DE C.V.">AGROPECUARIA DEL VALLE, S.A. DE C.V.</option>
             <option value="AVICOLA CAMPESTRE, S.A. DE C.V.">AVICOLA CAMPESTRE, S.A. DE C.V.</option>
-            <option value="AVICOLA DEL SUR/PROSALCO">AVICOLA DEL SUR/PROSALCO</option>
+            <option value="AVICOLA DEL SUR/PROSALCO">AVICOLA DEL SUR</option>
             <option value="AVICOLA SALAZAR">AVICOLA SALAZAR</option>
             <option value="AVICOLA SAN BENITO, S.A. DE C.V.">AVICOLA SAN BENITO, S.A. DE C.V.</option>
             <option value="AVICULTOR Y PORCINOCULTORES S.A. DE C.V.">AVICULTOR Y PORCINOCULTORES S.A. DE C.V.</option>
