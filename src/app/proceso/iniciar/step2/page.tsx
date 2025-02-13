@@ -103,6 +103,28 @@ const modeloEquipoOptions: OptionType[] = [
   { value: "J", label: "J" },
   { value: "K", label: "K" },
 ];
+// Función para aplicar la máscara de tiempo (HH:MM:SS)
+// Se remueven caracteres no numéricos, se limita a 6 dígitos y se formatea.
+const handleTimeInputChange = (
+  e: React.ChangeEvent<HTMLInputElement>,
+  setter: Function
+) => {
+  let digits = e.target.value.replace(/\D/g, "");
+  if (digits.length > 6) {
+    digits = digits.slice(0, 6);
+  }
+  let formatted = "";
+  if (digits.length > 0) {
+    formatted = digits.substring(0, 2);
+    if (digits.length > 2) {
+      formatted += ":" + digits.substring(2, 4);
+      if (digits.length > 4) {
+        formatted += ":" + digits.substring(4, 6);
+      }
+    }
+  }
+  setter((prev: any) => ({ ...prev, hora: formatted }));
+};
 
 export default function SegundoProceso() {
   const router = useRouter();
@@ -231,6 +253,9 @@ export default function SegundoProceso() {
     router.push("/proceso/iniciar"); // Regresa al Primer Proceso
   };
 
+  // Patrón para validar formato HH:MM:SS (24 horas)
+  const timePattern = "^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$";
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 text-slate-900">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow p-6">
@@ -260,7 +285,7 @@ export default function SegundoProceso() {
 
           {/* Operador */}
           <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Operador</label>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">Operador/Electricista</label>
             <Select
               className="react-select-container"
               classNamePrefix="react-select"
@@ -343,16 +368,15 @@ export default function SegundoProceso() {
 
             {/* Llegada del Operador */}
             <div className="border rounded p-2">
-              <label className="block font-semibold text-sm sm:text-base">Llegada del Operador</label>
+              <label className="block font-semibold text-sm sm:text-base">Llegada del Operador/Electricista</label>
               <div className="flex gap-2 mt-1">
                 <input
-                  type="time"
-                  step="1"
+                  type="text"
+                  pattern={timePattern}
+                  placeholder="HH:MM:SS"
                   className="border p-1 w-full text-sm sm:text-base"
                   value={tiempoLlegadaOperador.hora}
-                  onChange={(e) =>
-                    setTiempoLlegadaOperador((prev) => ({ ...prev, hora: e.target.value }))
-                  }
+                  onChange={(e) => handleTimeInputChange(e, setTiempoLlegadaOperador)}
                 />
                 <button
                   className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
