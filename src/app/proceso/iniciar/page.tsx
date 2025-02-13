@@ -23,6 +23,13 @@ const porteriaOptions: OptionType[] = [
   { value: "Porteria 6", label: "Porteria 6" },
 ];
 
+// Opciones para los selects
+const ejesOptions: OptionType[] = [
+  { value: "Camión", label: "Camión" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+];
+
 const puntoDespachoOptions = [
   {
     label: "Bodegas",
@@ -119,6 +126,7 @@ export default function PrimerProceso() {
   const [puntoDespacho, setPuntoDespacho] = useState("");
   const [basculaEntrada, setBasculaEntrada] = useState("");
   const [metodoCarga, setMetodoCarga] = useState("");
+  const [numeroEjes, setNumeroEjes] = useState("");
 
   // Estados para los tiempos
   const [tiempoPrechequeo, setTiempoPrechequeo] = useState({ fecha: "", hora: "", comentarios: "" });
@@ -158,6 +166,7 @@ export default function PrimerProceso() {
         setPuntoDespacho(p.puntoDespacho || "");
         setBasculaEntrada(p.basculaEntrada || "");
         setMetodoCarga(p.metodoCarga || "");
+        setNumeroEjes(p.numeroEjes || "");
         setTiempoPrechequeo(p.tiempoPrechequeo || { fecha: "", hora: "", comentarios: "" });
         setTiempoScanner(p.tiempoScanner || { fecha: "", hora: "", comentarios: "" });
         setTiempoAutorizacion(p.tiempoAutorizacion || { fecha: "", hora: "", comentarios: "" });
@@ -191,6 +200,7 @@ export default function PrimerProceso() {
         puntoDespacho,
         basculaEntrada,
         metodoCarga,
+        numeroEjes,
         tiempoPrechequeo,
         tiempoScanner,
         tiempoAutorizacion,
@@ -315,6 +325,23 @@ export default function PrimerProceso() {
               value={metodoCarga ? { value: metodoCarga, label: metodoCarga } : null}
               onChange={(option: OptionType | null) =>
                 setMetodoCarga(option ? option.value : "")
+              }
+            />
+          </div>
+
+          {/* Numero de Ejes */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Numero de Ejes
+            </label>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={ejesOptions}
+              placeholder="Seleccione Portería"
+              value={numeroEjes ? { value: numeroEjes, label: numeroEjes } : null}
+              onChange={(option: OptionType | null) =>
+                setNumeroEjes(option ? option.value : "")
               }
             />
           </div>

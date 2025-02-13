@@ -380,6 +380,9 @@ export default function ProcesoFinal() {
                 <div>
                   <strong>Método de Carga:</strong> {primerProceso.metodoCarga || "N/A"}
                 </div>
+                <div>
+                  <strong>Numero de Ejes:</strong> {primerProceso.numeroEjes || "N/A"}
+                </div>
               </div>
               <div className="mt-2">
                 <p className="font-semibold text-gray-700">Tiempos</p>

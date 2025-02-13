@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
-/** 
+/**
  * Parsea un string "HH:mm:ss" y retorna un Date(1970,0,1,HH,mm,ss).
  * Si falla, retorna null.
  */
 function parseHora(hhmmss) {
   if (!hhmmss) return null;
   try {
-    const [hh, mm, ss] = hhmmss.split(":").map((v) => parseInt(v, 10));
+    const [hh, mm, ss] = hhmmss.split(":").map(Number);
     return new Date(1970, 0, 1, hh, mm, ss);
   } catch {
     return null;
@@ -17,20 +17,20 @@ function parseHora(hhmmss) {
 }
 
 /**
- * Calcula la diferencia en formato HH:mm:ss entre 2 Date(1970,0,1,HH,mm,ss).
+ * Calcula la diferencia en formato "HH:mm:ss" entre dos objetos Date.
  */
 function diffHoras(t1, t2) {
   if (!t1 || !t2) return "";
   let diffMs = t2.getTime() - t1.getTime();
   let diffSegs = Math.floor(diffMs / 1000);
   let diffMins = Math.floor(diffSegs / 60);
-  let diffHoras = Math.floor(diffMins / 60);
+  let diffHrs = Math.floor(diffMins / 60);
 
   diffSegs = diffSegs % 60;
   diffMins = diffMins % 60;
-  diffHoras = diffHoras % 24;
+  diffHrs = diffHrs % 24;
 
-  const hh = String(diffHoras).padStart(2, "0");
+  const hh = String(diffHrs).padStart(2, "0");
   const mm = String(diffMins).padStart(2, "0");
   const ss = String(diffSegs).padStart(2, "0");
 
@@ -38,35 +38,31 @@ function diffHoras(t1, t2) {
 }
 
 /**
- * Formatea una vuelta para mostrarla en texto normal.
- * Por cada propiedad (excepto "numeroVuelta"), si el valor es un objeto y tiene la propiedad "hora",
- * se muestra esa hora; de lo contrario se muestra "N/A".
+ * Convierte un string "HH:mm:ss" a segundos.
  */
-function formatVuelta(vuelta) {
-  if (typeof vuelta !== "object" || vuelta === null) {
-    return String(vuelta);
-  }
-  const parts = [];
-  for (const key in vuelta) {
-    if (key === "numeroVuelta") continue; // No mostrar el campo numeroVuelta
-    let displayValue = "N/A";
-    const val = vuelta[key];
-    if (typeof val === "object" && val !== null) {
-      displayValue = val.hora || "N/A";
-    } else if (val !== undefined && val !== null && val !== "") {
-      displayValue = val;
-    }
-    parts.push(`${key}: ${displayValue}`);
-  }
-  return parts.join(", ");
+function timeStrToSeconds(timeStr) {
+  if (!timeStr) return 0;
+  const parts = timeStr.split(":").map(Number);
+  if (parts.length < 3) return 0;
+  return parts[0] * 3600 + parts[1] * 60 + parts[2];
+}
+
+/**
+ * Convierte segundos a un string "HH:mm:ss".
+ */
+function secondsToTimeStr(totalSeconds) {
+  const hh = Math.floor(totalSeconds / 3600);
+  const mm = Math.floor((totalSeconds % 3600) / 60);
+  const ss = totalSeconds % 60;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 }
 
 export default function DemorasPage() {
   const [demoras, setDemoras] = useState([]);
-  const [showModal, setShowModal] = useState(false);
   const [selectedDemora, setSelectedDemora] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  // Cargar la lista de demoras desde la API
+  // Cargar la lista de registros desde el endpoint /api/demoras
   useEffect(() => {
     async function fetchDemoras() {
       try {
@@ -84,17 +80,6 @@ export default function DemorasPage() {
     fetchDemoras();
   }, []);
 
-  // Botón para exportar Excel
-  const handleExportExcel = () => {
-    window.open("/api/demoras/export-excel", "_blank");
-  };
-
-  // Botón para regresar al Dashboard
-  const handleRegresarDashboard = () => {
-    window.location.href = "/";
-  };
-
-  // Abrir modal con detalle del registro
   const handleOpenModal = (item) => {
     setSelectedDemora(item);
     setShowModal(true);
@@ -106,188 +91,72 @@ export default function DemorasPage() {
   };
 
   return (
-    <div className="p-4 bg-slate-200 min-h-screen text-slate-800">
-      <div className="flex justify-between mb-4">
-        <h1 className="text-2xl font-bold">Registros de Demoras</h1>
-        <button
-          onClick={handleRegresarDashboard}
-          className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-        >
-          Regresar
-        </button>
+    <div className="p-4 bg-gray-100 min-h-screen text-gray-800">
+      {/* Encabezado */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
+        <h1 className="text-2xl font-bold mb-2 md:mb-0">Registros de Demoras</h1>
+        <div className="flex space-x-4">
+          <button
+            onClick={() => (window.location.href = "/")}
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+          >
+            Regresar
+          </button>
+          <button
+            onClick={() => window.open("/api/demoras/export-excel", "_blank")}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Exportar Excel
+          </button>
+        </div>
       </div>
 
-      <div className="flex space-x-4 mb-6">
-        <button
-          onClick={handleExportExcel}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          Exportar Excel
-        </button>
-      </div>
-
-      {/* Tabla con scroll horizontal */}
+      {/* Tabla de registros */}
       <div className="overflow-auto bg-white shadow rounded">
         <table className="min-w-full border text-xs">
           <thead className="bg-gray-200">
             <tr>
               <th className="border px-2 py-1">Fecha Inicio</th>
               <th className="border px-2 py-1">Tiempo Total</th>
-              {/* Primer Proceso */}
-              <th className="border px-2 py-1">Terminal</th>
-              <th className="border px-2 py-1">Cliente</th>
-              <th className="border px-2 py-1">Placa</th>
-              <th className="border px-2 py-1">Remolque</th>
-              <th className="border px-2 py-1">Ejes</th>
-              <th className="border px-2 py-1">Pesador</th>
-              <th className="border px-2 py-1">Peso Inicial</th>
-              <th className="border px-2 py-1">Producto</th>
-              <th className="border px-2 py-1">Punto Despacho</th>
-              <th className="border px-2 py-1">Báscula Entrada</th>
-              <th className="border px-2 py-1">Tipo Carga</th>
+              <th className="border px-2 py-1">Usuario</th>
+              <th className="border px-2 py-1">Nro. Transacción</th>
               <th className="border px-2 py-1">Método Carga</th>
-
-              <th className="border px-2 py-1">Prechequeo</th>
-              <th className="border px-2 py-1">Scanner</th>
-              <th className="border px-2 py-1">Autorizado</th>
-              <th className="border px-2 py-1">Ingreso Planta</th>
-              <th className="border px-2 py-1">Entrada Báscula</th>
-              <th className="border px-2 py-1">Salida Báscula</th>
-
-              {/* Segundo Proceso */}
-              <th className="border px-2 py-1">Enlonador</th>
               <th className="border px-2 py-1">Operador</th>
-              <th className="border px-2 py-1">Personal</th>
-              <th className="border px-2 py-1">Modelo Equipo</th>
-
-              <th className="border px-2 py-1">Llegada Punto</th>
-              <th className="border px-2 py-1">Llegada Operador</th>
-              <th className="border px-2 py-1">Llegada Enlonador</th>
-              <th className="border px-2 py-1">Llegada Equipo</th>
-              <th className="border px-2 py-1">Inicio Carga</th>
-              <th className="border px-2 py-1">Termina Carga</th>
-              <th className="border px-2 py-1">Salida Punto</th>
-
-              {/* Tercer Proceso */}
-              <th className="border px-2 py-1">Pesador Salida</th>
-              <th className="border px-2 py-1">Báscula Salida</th>
-              <th className="border px-2 py-1">Peso Neto</th>
-
-              <th className="border px-2 py-1">Entrada Báscula</th>
-              <th className="border px-2 py-1">Salida Báscula</th>
-
-              {/* Vueltas */}
-              <th className="border px-2 py-1">Vueltas</th>
-
-              {/* Proceso Final */}
-              <th className="border px-2 py-1">Llegada Terminal</th>
-              <th className="border px-2 py-1">Salida Planta</th>
-
+              <th className="border px-2 py-1">Bascula Salida</th>
+              <th className="border px-2 py-1">Portería Salida</th>
               <th className="border px-2 py-1">Acción</th>
             </tr>
           </thead>
           <tbody>
             {demoras.map((item) => {
-              const d = item.data || {};
-              const p = d.primerProceso || {};
-              const s = d.segundoProceso || {};
-              const t = d.tercerProceso || {};
-              const f = d.procesoFinal || {};
-
-              // Tiempos Primer Proceso
-              const tpPre = p.tiempoPrechequeo || {};
-              const tpScan = p.tiempoScanner || {};
-              const tpAuto = p.tiempoAutorizacion || {};
-              const tpIng = p.tiempoIngresoPlanta || {};
-              const tpEnt = p.tiempoEntradaBascula || {};
-              const tpSal = p.tiempoSalidaBascula || {};
-
-              // Tiempos Segundo Proceso
-              const tsLlegPunto = s.tiempoLlegadaPunto || {};
-              const tsLlegOp = s.tiempoLlegadaOperador || {};
-              const tsLlegEnl = s.tiempoLlegadaEnlonador || {};
-              const tsLlegEq = s.tiempoLlegadaEquipo || {};
-              const tsIni = s.tiempoInicioCarga || {};
-              const tsTerm = s.tiempoTerminaCarga || {};
-              const tsSal = s.tiempoSalidaPunto || {};
-
-              // Tiempos Tercer Proceso
-              const ttEnt = t.tiempoEntradaBascula || {};
-              const ttSal = t.tiempoSalidaBascula || {};
-
-              // Tiempos Proceso Final
-              const tfLleg = f.tiempoLlegadaTerminal || {};
-              const tfSal = f.tiempoSalidaPlanta || {};
-
-              // Calcular "tiempo total" (entre prechequeo y salida de planta)
-              const prechequeoDate = parseHora(tpPre.hora);
-              const salidaPlantaDate = parseHora(tfSal.hora);
-              const tiempoTotal = diffHoras(prechequeoDate, salidaPlantaDate);
-
+              const primer = item.primerProceso || {};
+              const segundo = item.segundoProceso || {};
+              const tercero = item.tercerProceso || {};
+              const final = item.procesoFinal || {};
               return (
-                <tr key={item.id} className="border-b hover:bg-slate-100">
-                  <td className="border px-2 py-1">{d.fechaInicio}</td>
-                  <td className="border px-2 py-1">{tiempoTotal}</td>
-
-                  {/* Primer Proceso */}
-                  <td className="border px-2 py-1">{p.terminal}</td>
-                  <td className="border px-2 py-1">{p.cliente}</td>
-                  <td className="border px-2 py-1">{p.placa}</td>
-                  <td className="border px-2 py-1">{p.remolque}</td>
-                  <td className="border px-2 py-1">{p.ejes}</td>
-                  <td className="border px-2 py-1">{p.pesador}</td>
-                  <td className="border px-2 py-1">{p.pesoInicial}</td>
-                  <td className="border px-2 py-1">{p.tipoProducto}</td>
-                  <td className="border px-2 py-1">{p.puntoDespacho}</td>
-                  <td className="border px-2 py-1">{p.basculaEntrada}</td>
-                  <td className="border px-2 py-1">{p.tipoCarga}</td>
-                  <td className="border px-2 py-1">{p.metodoCarga}</td>
-
-                  <td className="border px-2 py-1">{tpPre.hora}</td>
-                  <td className="border px-2 py-1">{tpScan.hora}</td>
-                  <td className="border px-2 py-1">{tpAuto.hora}</td>
-                  <td className="border px-2 py-1">{tpIng.hora}</td>
-                  <td className="border px-2 py-1">{tpEnt.hora}</td>
-                  <td className="border px-2 py-1">{tpSal.hora}</td>
-
-                  {/* Segundo Proceso */}
-                  <td className="border px-2 py-1">{s.enlonador}</td>
-                  <td className="border px-2 py-1">{s.operador}</td>
-                  <td className="border px-2 py-1">{s.personalAsignado}</td>
-                  <td className="border px-2 py-1">{s.modeloEquipo}</td>
-
-                  <td className="border px-2 py-1">{tsLlegPunto.hora}</td>
-                  <td className="border px-2 py-1">{tsLlegOp.hora}</td>
-                  <td className="border px-2 py-1">{tsLlegEnl.hora}</td>
-                  <td className="border px-2 py-1">{tsLlegEq.hora}</td>
-                  <td className="border px-2 py-1">{tsIni.hora}</td>
-                  <td className="border px-2 py-1">{tsTerm.hora}</td>
-                  <td className="border px-2 py-1">{tsSal.hora}</td>
-
-                  {/* Tercer Proceso */}
-                  <td className="border px-2 py-1">{t.pesadorSalida}</td>
-                  <td className="border px-2 py-1">{t.basculaSalida}</td>
-                  <td className="border px-2 py-1">{t.pesoNeto}</td>
-
-                  <td className="border px-2 py-1">{ttEnt.hora}</td>
-                  <td className="border px-2 py-1">{ttSal.hora}</td>
-
-                  {/* Vueltas */}
-                  <td className="border px-2 py-1 text-center">
-                    {Array.isArray(t.vueltas) && t.vueltas.length > 0 ? (
-                      <span className="bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
-                        {t.vueltas.length}
-                      </span>
-                    ) : (
-                      "0"
-                    )}
+                <tr key={item.id} className="border-b hover:bg-gray-50">
+                  <td className="border px-2 py-1">{item.fechaInicio}</td>
+                  <td className="border px-2 py-1">
+                    {item.tiempoTotal || "-"}
                   </td>
-
-                  {/* Proceso Final */}
-                  <td className="border px-2 py-1">{tfLleg.hora}</td>
-                  <td className="border px-2 py-1">{tfSal.hora}</td>
-
-                  {/* Acción */}
+                  <td className="border px-2 py-1">
+                    {item.userName || "-"}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {primer.numeroTransaccion || "-"}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {primer.metodoCarga || "-"}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {segundo.operador || "-"}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {tercero.basculaSalida || "-"}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {final.porteriaSalida || "-"}
+                  </td>
                   <td className="border px-2 py-1">
                     <button
                       onClick={() => handleOpenModal(item)}
@@ -303,10 +172,10 @@ export default function DemorasPage() {
         </table>
       </div>
 
-      {/* Modal de detalle */}
+      {/* Modal con información completa y análisis */}
       {showModal && selectedDemora && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white w-11/12 max-w-2xl rounded shadow-lg p-6 relative overflow-y-auto max-h-screen">
+          <div className="bg-white w-11/12 max-w-4xl rounded shadow-lg p-6 relative overflow-y-auto max-h-screen">
             <button
               onClick={handleCloseModal}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-xl"
@@ -316,278 +185,395 @@ export default function DemorasPage() {
             <h2 className="text-2xl font-bold mb-4 text-blue-700 text-center">
               Detalle de la Demora
             </h2>
-            {selectedDemora && selectedDemora.data && (() => {
-              const d = selectedDemora.data;
-              const p = d.primerProceso || {};
-              const s = d.segundoProceso || {};
-              const t = d.tercerProceso || {};
-              const f = d.procesoFinal || {};
-
-              const tpPre = p.tiempoPrechequeo || {};
-              const tpScan = p.tiempoScanner || {};
-              const tpAuto = p.tiempoAutorizacion || {};
-              const tpIng = p.tiempoIngresoPlanta || {};
-              const tpEnt = p.tiempoEntradaBascula || {};
-              const tpSal = p.tiempoSalidaBascula || {};
-
-              const tsLlegPunto = s.tiempoLlegadaPunto || {};
-              const tsLlegOp = s.tiempoLlegadaOperador || {};
-              const tsLlegEnl = s.tiempoLlegadaEnlonador || {};
-              const tsLlegEq = s.tiempoLlegadaEquipo || {};
-              const tsIni = s.tiempoInicioCarga || {};
-              const tsTerm = s.tiempoTerminaCarga || {};
-              const tsSal = s.tiempoSalidaPunto || {};
-
-              const ttEnt = t.tiempoEntradaBascula || {};
-              const ttSal = t.tiempoSalidaBascula || {};
-
-              const tfLleg = f.tiempoLlegadaTerminal || {};
-              const tfSal = f.tiempoSalidaPlanta || {};
-
-              // Calcular tiempo total (entre prechequeo y salida de planta)
-              const prechequeoDate = parseHora(tpPre.hora);
-              const salidaPlantaDate = parseHora(tfSal.hora);
-              const tiempoTotal = diffHoras(prechequeoDate, salidaPlantaDate);
-
-              // Calcular intervalos en Primer Proceso
-              const diffPreToScan = diffHoras(parseHora(tpPre.hora), parseHora(tpScan.hora));
-              const diffScanToAuto = diffHoras(parseHora(tpScan.hora), parseHora(tpAuto.hora));
-              const diffAutoToIng = diffHoras(parseHora(tpAuto.hora), parseHora(tpIng.hora));
-              const diffIngToEnt = diffHoras(parseHora(tpIng.hora), parseHora(tpEnt.hora));
-              const diffEntToSal = diffHoras(parseHora(tpEnt.hora), parseHora(tpSal.hora));
-
-              // Calcular intervalos en Segundo Proceso
-              const diffLlegPuntoToOp = diffHoras(parseHora(tsLlegPunto.hora), parseHora(tsLlegOp.hora));
-              const diffOpToEnl = diffHoras(parseHora(tsLlegOp.hora), parseHora(tsLlegEnl.hora));
-              const diffEnlToEq = diffHoras(parseHora(tsLlegEnl.hora), parseHora(tsLlegEq.hora));
-              const diffEqToIni = diffHoras(parseHora(tsLlegEq.hora), parseHora(tsIni.hora));
-              const diffIniToTerm = diffHoras(parseHora(tsIni.hora), parseHora(tsTerm.hora));
-              const diffTermToSal = diffHoras(parseHora(tsTerm.hora), parseHora(tsSal.hora));
-
-              // Calcular intervalo en Tercer Proceso
-              const diffTT = diffHoras(parseHora(ttEnt.hora), parseHora(ttSal.hora));
-
-              // Calcular intervalo en Proceso Final
-              const diffFinal = diffHoras(parseHora(tfLleg.hora), parseHora(tfSal.hora));
-
-              return (
-                <div className="space-y-4 text-sm text-slate-700">
-                  {/* Información General */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-700">Información General</h3>
-                    <p>
-                      <strong>Fecha Inicio:</strong> {d.fechaInicio}
-                    </p>
-                    <p>
-                      <strong>Tiempo Total:</strong> {tiempoTotal}
-                    </p>
-                  </div>
-                  {/* Primer Proceso */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-700">Primer Proceso</h3>
-                    <p>
-                      <strong>Terminal:</strong> {p.terminal}
-                    </p>
-                    <p>
-                      <strong>Cliente:</strong> {p.cliente}
-                    </p>
-                    <p>
-                      <strong>Placa:</strong> {p.placa}
-                    </p>
-                    <p>
-                      <strong>Remolque:</strong> {p.remolque}
-                    </p>
-                    <p>
-                      <strong>Ejes:</strong> {p.ejes}
-                    </p>
-                    <p>
-                      <strong>Pesador:</strong> {p.pesador}
-                    </p>
-                    <p>
-                      <strong>Peso Inicial:</strong> {p.pesoInicial}
-                    </p>
-                    <p>
-                      <strong>Producto:</strong> {p.tipoProducto}
-                    </p>
-                    <p>
-                      <strong>Punto Despacho:</strong> {p.puntoDespacho}
-                    </p>
-                    <p>
-                      <strong>Báscula Entrada:</strong> {p.basculaEntrada}
-                    </p>
-                    <p>
-                      <strong>Tipo Carga:</strong> {p.tipoCarga}
-                    </p>
-                    <p>
-                      <strong>Método Carga:</strong> {p.metodoCarga}
-                    </p>
-                    <div className="mt-2">
-                      <h4 className="font-semibold">Tiempos:</h4>
-                      <p>
-                        <strong>Prechequeo:</strong> {tpPre.hora || "N/A"}{" "}
-                        {tpPre.comentarios && <span>({tpPre.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Scanner:</strong> {tpScan.hora || "N/A"}{" "}
-                        {tpScan.comentarios && <span>({tpScan.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Autorizado:</strong> {tpAuto.hora || "N/A"}{" "}
-                        {tpAuto.comentarios && <span>({tpAuto.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Ingreso Planta:</strong> {tpIng.hora || "N/A"}{" "}
-                        {tpIng.comentarios && <span>({tpIng.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Entrada Báscula:</strong> {tpEnt.hora || "N/A"}{" "}
-                        {tpEnt.comentarios && <span>({tpEnt.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Salida Báscula:</strong> {tpSal.hora || "N/A"}{" "}
-                        {tpSal.comentarios && <span>({tpSal.comentarios})</span>}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Segundo Proceso */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-700">Segundo Proceso</h3>
-                    <p>
-                      <strong>Enlonador:</strong> {s.enlonador}
-                    </p>
-                    <p>
-                      <strong>Operador:</strong> {s.operador}
-                    </p>
-                    <p>
-                      <strong>Personal Asignado:</strong> {s.personalAsignado}
-                    </p>
-                    <p>
-                      <strong>Modelo Equipo:</strong> {s.modeloEquipo}
-                    </p>
-                    <div className="mt-2">
-                      <h4 className="font-semibold">Tiempos:</h4>
-                      <p>
-                        <strong>Llegada Punto:</strong> {tsLlegPunto.hora || "N/A"}{" "}
-                        {tsLlegPunto.comentarios && <span>({tsLlegPunto.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Llegada Operador:</strong> {tsLlegOp.hora || "N/A"}{" "}
-                        {tsLlegOp.comentarios && <span>({tsLlegOp.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Llegada Enlonador:</strong> {tsLlegEnl.hora || "N/A"}{" "}
-                        {tsLlegEnl.comentarios && <span>({tsLlegEnl.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Llegada Equipo:</strong> {tsLlegEq.hora || "N/A"}{" "}
-                        {tsLlegEq.comentarios && <span>({tsLlegEq.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Inicio Carga:</strong> {tsIni.hora || "N/A"}{" "}
-                        {tsIni.comentarios && <span>({tsIni.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Termina Carga:</strong> {tsTerm.hora || "N/A"}{" "}
-                        {tsTerm.comentarios && <span>({tsTerm.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Salida Punto:</strong> {tsSal.hora || "N/A"}{" "}
-                        {tsSal.comentarios && <span>({tsSal.comentarios})</span>}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Tercer Proceso */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-700">Tercer Proceso</h3>
-                    <p>
-                      <strong>Pesador Salida:</strong> {t.pesadorSalida}
-                    </p>
-                    <p>
-                      <strong>Báscula Salida:</strong> {t.basculaSalida}
-                    </p>
-                    <p>
-                      <strong>Peso Neto:</strong> {t.pesoNeto}
-                    </p>
-                    <div className="mt-2">
-                      <h4 className="font-semibold">Tiempos:</h4>
-                      <p>
-                        <strong>Entrada Báscula:</strong> {ttEnt.hora || "N/A"}{" "}
-                        {ttEnt.comentarios && <span>({ttEnt.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Salida Báscula:</strong> {ttSal.hora || "N/A"}{" "}
-                        {ttSal.comentarios && <span>({ttSal.comentarios})</span>}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Vueltas */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-700">Vueltas</h3>
-                    {Array.isArray(t.vueltas) && t.vueltas.length > 0 ? (
-                      <ul className="list-disc list-inside">
-                        {t.vueltas.map((vuelta, index) => (
-                          <li key={index}>{formatVuelta(vuelta)}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>No hay vueltas registradas.</p>
-                    )}
-                  </div>
-                  {/* Proceso Final */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-700">Proceso Final</h3>
-                    <div className="mt-2">
-                      <h4 className="font-semibold">Tiempos:</h4>
-                      <p>
-                        <strong>Llegada Terminal:</strong> {tfLleg.hora || "N/A"}{" "}
-                        {tfLleg.comentarios && <span>({tfLleg.comentarios})</span>}
-                      </p>
-                      <p>
-                        <strong>Salida Planta:</strong> {tfSal.hora || "N/A"}{" "}
-                        {tfSal.comentarios && <span>({tfSal.comentarios})</span>}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Intervalos entre Procesos */}
-                  <div className="p-4 border border-orange-500 bg-orange-50 rounded">
-                    <h3 className="text-lg font-semibold text-orange-600">Intervalos entre Procesos</h3>
-                    <div className="mt-2">
-                      <h4 className="font-semibold text-orange-600">Primer Proceso</h4>
-                      <ul className="list-disc list-inside">
-                        <li><strong>Prechequeo a Scanner:</strong> {diffPreToScan || '-'}</li>
-                        <li><strong>Scanner a Autorizado:</strong> {diffScanToAuto || '-'}</li>
-                        <li><strong>Autorizado a Ingreso Planta:</strong> {diffAutoToIng || '-'}</li>
-                        <li><strong>Ingreso Planta a Entrada Báscula:</strong> {diffIngToEnt || '-'}</li>
-                        <li><strong>Entrada Báscula a Salida Báscula:</strong> {diffEntToSal || '-'}</li>
-                      </ul>
-                    </div>
-                    <div className="mt-2">
-                      <h4 className="font-semibold text-orange-600">Segundo Proceso</h4>
-                      <ul className="list-disc list-inside">
-                        <li><strong>Llegada Punto a Operador:</strong> {diffLlegPuntoToOp || '-'}</li>
-                        <li><strong>Operador a Enlonador:</strong> {diffOpToEnl || '-'}</li>
-                        <li><strong>Enlonador a Equipo:</strong> {diffEnlToEq || '-'}</li>
-                        <li><strong>Equipo a Inicio Carga:</strong> {diffEqToIni || '-'}</li>
-                        <li><strong>Inicio a Termina Carga:</strong> {diffIniToTerm || '-'}</li>
-                        <li><strong>Termina Carga a Salida Punto:</strong> {diffTermToSal || '-'}</li>
-                      </ul>
-                    </div>
-                    <div className="mt-2">
-                      <h4 className="font-semibold text-orange-600">Tercer Proceso</h4>
-                      <ul className="list-disc list-inside">
-                        <li><strong>Entrada a Salida Báscula:</strong> {diffTT || '-'}</li>
-                      </ul>
-                    </div>
-                    <div className="mt-2">
-                      <h4 className="font-semibold text-orange-600">Proceso Final</h4>
-                      <ul className="list-disc list-inside">
-                        <li><strong>Llegada Terminal a Salida Planta:</strong> {diffFinal || '-'}</li>
-                      </ul>
-                    </div>
-                  </div>
+            <div className="space-y-4 text-sm text-gray-700">
+              {/* Información General */}
+              <div>
+                <h3 className="text-lg font-semibold text-blue-700">
+                  Información General
+                </h3>
+                <p>
+                  <strong>Fecha Inicio:</strong> {selectedDemora.fechaInicio}
+                </p>
+                <p>
+                  <strong>Tiempo Total:</strong>{" "}
+                  {selectedDemora.tiempoTotal || "-"}
+                </p>
+                <p>
+                  <strong>Usuario:</strong>{" "}
+                  {selectedDemora.userName || "-"}
+                </p>
+              </div>
+              {/* Primer Proceso */}
+              {selectedDemora.primerProceso && (
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-700">
+                    Primer Proceso
+                  </h3>
+                  <p>
+                    <strong>Número de Transacción:</strong>{" "}
+                    {selectedDemora.primerProceso.numeroTransaccion}
+                  </p>
+                  <p>
+                    <strong>Pesador Entrada:</strong>{" "}
+                    {selectedDemora.primerProceso.pesadorEntrada}
+                  </p>
+                  <p>
+                    <strong>Portería Entrada:</strong>{" "}
+                    {selectedDemora.primerProceso.porteriaEntrada}
+                  </p>
+                  <p>
+                    <strong>Método Carga:</strong>{" "}
+                    {selectedDemora.primerProceso.metodoCarga}
+                  </p>
+                  <p>
+                    <strong>Punto Despacho:</strong>{" "}
+                    {selectedDemora.primerProceso.puntoDespacho}
+                  </p>
+                  <p>
+                    <strong>Báscula Entrada:</strong>{" "}
+                    {selectedDemora.primerProceso.basculaEntrada}
+                  </p>
+                  <p>
+                    <strong>Tiempo Prechequeo:</strong>{" "}
+                    {selectedDemora.primerProceso.tiempoPrechequeo || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Scanner:</strong>{" "}
+                    {selectedDemora.primerProceso.tiempoScanner || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Autorización:</strong>{" "}
+                    {selectedDemora.primerProceso.tiempoAutorizacion || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Ingreso Planta:</strong>{" "}
+                    {selectedDemora.primerProceso.tiempoIngresoPlanta || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Entrada Báscula:</strong>{" "}
+                    {selectedDemora.primerProceso.tiempoEntradaBascula || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Salida Báscula:</strong>{" "}
+                    {selectedDemora.primerProceso.tiempoSalidaBascula || "-"}
+                  </p>
                 </div>
-              );
-            })()}
+              )}
+              {/* Segundo Proceso */}
+              {selectedDemora.segundoProceso && (
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-700">
+                    Segundo Proceso
+                  </h3>
+                  <p>
+                    <strong>Operador:</strong>{" "}
+                    {selectedDemora.segundoProceso.operador}
+                  </p>
+                  <p>
+                    <strong>Enlonador:</strong>{" "}
+                    {selectedDemora.segundoProceso.enlonador}
+                  </p>
+                  <p>
+                    <strong>Modelo Equipo:</strong>{" "}
+                    {selectedDemora.segundoProceso.modeloEquipo}
+                  </p>
+                  <p>
+                    <strong>Personal Asignado:</strong>{" "}
+                    {selectedDemora.segundoProceso.personalAsignado}
+                  </p>
+                  <p>
+                    <strong>Tiempo Llegada Punto:</strong>{" "}
+                    {selectedDemora.segundoProceso.tiempoLlegadaPunto || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Llegada Operador:</strong>{" "}
+                    {selectedDemora.segundoProceso.tiempoLlegadaOperador || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Llegada Enlonador:</strong>{" "}
+                    {selectedDemora.segundoProceso.tiempoLlegadaEnlonador || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Llegada Equipo:</strong>{" "}
+                    {selectedDemora.segundoProceso.tiempoLlegadaEquipo || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Inicio Carga:</strong>{" "}
+                    {selectedDemora.segundoProceso.tiempoInicioCarga || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Termina Carga:</strong>{" "}
+                    {selectedDemora.segundoProceso.tiempoTerminaCarga || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Salida Punto:</strong>{" "}
+                    {selectedDemora.segundoProceso.tiempoSalidaPunto || "-"}
+                  </p>
+                </div>
+              )}
+              {/* Tercer Proceso */}
+              {selectedDemora.tercerProceso && (
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-700">
+                    Tercer Proceso
+                  </h3>
+                  <p>
+                    <strong>Báscula Salida:</strong>{" "}
+                    {selectedDemora.tercerProceso.basculaSalida}
+                  </p>
+                  <p>
+                    <strong>Pesador Salida:</strong>{" "}
+                    {selectedDemora.tercerProceso.pesadorSalida}
+                  </p>
+                  <p>
+                    <strong>Tiempo Llegada Báscula:</strong>{" "}
+                    {selectedDemora.tercerProceso.tiempoLlegadaBascula || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Entrada Báscula:</strong>{" "}
+                    {selectedDemora.tercerProceso.tiempoEntradaBascula || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Salida Báscula:</strong>{" "}
+                    {selectedDemora.tercerProceso.tiempoSalidaBascula || "-"}
+                  </p>
+                  {/* Vueltas */}
+                  {selectedDemora.tercerProceso.vueltas &&
+                    selectedDemora.tercerProceso.vueltas.length > 0 && (
+                      <div className="mt-2">
+                        <h4 className="font-semibold">Vueltas:</h4>
+                        <ul className="list-disc list-inside">
+                          {selectedDemora.tercerProceso.vueltas.map((vuelta) => (
+                            <li key={vuelta.id}>
+                              <p>
+                                <strong>Número:</strong> {vuelta.numeroVuelta}
+                              </p>
+                              <p>
+                                <strong>Tiempo Llegada Punto:</strong>{" "}
+                                {vuelta.tiempoLlegadaPunto || "-"}
+                              </p>
+                              <p>
+                                <strong>Tiempo Salida Punto:</strong>{" "}
+                                {vuelta.tiempoSalidaPunto || "-"}
+                              </p>
+                              <p>
+                                <strong>Tiempo Llegada Báscula:</strong>{" "}
+                                {vuelta.tiempoLlegadaBascula || "-"}
+                              </p>
+                              <p>
+                                <strong>Tiempo Entrada Báscula:</strong>{" "}
+                                {vuelta.tiempoEntradaBascula || "-"}
+                              </p>
+                              <p>
+                                <strong>Tiempo Salida Báscula:</strong>{" "}
+                                {vuelta.tiempoSalidaBascula || "-"}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                </div>
+              )}
+              {/* Proceso Final */}
+              {selectedDemora.procesoFinal && (
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-700">
+                    Proceso Final
+                  </h3>
+                  <p>
+                    <strong>Portería Salida:</strong>{" "}
+                    {selectedDemora.procesoFinal.porteriaSalida}
+                  </p>
+                  <p>
+                    <strong>Tiempo Salida Planta:</strong>{" "}
+                    {selectedDemora.procesoFinal.tiempoSalidaPlanta || "-"}
+                  </p>
+                  <p>
+                    <strong>Tiempo Llegada Portería:</strong>{" "}
+                    {selectedDemora.procesoFinal.tiempoLlegadaPorteria || "-"}
+                  </p>
+                </div>
+              )}
+
+              {/* Análisis de Intervalos entre procesos */}
+              {(() => {
+                // Extraer tiempos del primer proceso
+                const p = selectedDemora.primerProceso || {};
+                const s = selectedDemora.segundoProceso || {};
+                const t = selectedDemora.tercerProceso || {};
+                const f = selectedDemora.procesoFinal || {};
+
+                // Calcular intervalos (se asume que los campos de tiempo usados en los cálculos existen y están en formato "HH:mm:ss")
+                const diffPreToScan = diffHoras(
+                  parseHora(p.tiempoPrechequeo),
+                  parseHora(p.tiempoScanner)
+                );
+                const diffScanToAuto = diffHoras(
+                  parseHora(p.tiempoScanner),
+                  parseHora(p.tiempoAutorizacion)
+                );
+                const diffAutoToIng = diffHoras(
+                  parseHora(p.tiempoAutorizacion),
+                  parseHora(p.tiempoIngresoPlanta)
+                );
+                const diffIngToEnt = diffHoras(
+                  parseHora(p.tiempoIngresoPlanta),
+                  parseHora(p.tiempoEntradaBascula)
+                );
+                const diffEntToSal = diffHoras(
+                  parseHora(p.tiempoEntradaBascula),
+                  parseHora(p.tiempoSalidaBascula)
+                );
+                const diffLlegPuntoToOp = diffHoras(
+                  parseHora(s.tiempoLlegadaPunto),
+                  parseHora(s.tiempoLlegadaOperador)
+                );
+                const diffOpToEnl = diffHoras(
+                  parseHora(s.tiempoLlegadaOperador),
+                  parseHora(s.tiempoLlegadaEnlonador)
+                );
+                const diffEnlToEq = diffHoras(
+                  parseHora(s.tiempoLlegadaEnlonador),
+                  parseHora(s.tiempoLlegadaEquipo)
+                );
+                const diffEqToIni = diffHoras(
+                  parseHora(s.tiempoLlegadaEquipo),
+                  parseHora(s.tiempoInicioCarga)
+                );
+                const diffIniToTerm = diffHoras(
+                  parseHora(s.tiempoInicioCarga),
+                  parseHora(s.tiempoTerminaCarga)
+                );
+                const diffTermToSal = diffHoras(
+                  parseHora(s.tiempoTerminaCarga),
+                  parseHora(s.tiempoSalidaPunto)
+                );
+                const diffTT = diffHoras(
+                  parseHora(t.tiempoEntradaBascula),
+                  parseHora(t.tiempoSalidaBascula)
+                );
+                const diffFinal = diffHoras(
+                  parseHora(f.tiempoLlegadaPorteria),
+                  parseHora(f.tiempoSalidaPlanta)
+                );
+
+                // Arreglo de intervalos con propiedades definidas
+                const intervals = [
+                  {
+                    name: "Prechequeo a Scanner",
+                    timeStr: diffPreToScan,
+                    seconds: timeStrToSeconds(diffPreToScan)
+                  },
+                  {
+                    name: "Scanner a Autorización",
+                    timeStr: diffScanToAuto,
+                    seconds: timeStrToSeconds(diffScanToAuto)
+                  },
+                  {
+                    name: "Autorización a Ingreso Planta",
+                    timeStr: diffAutoToIng,
+                    seconds: timeStrToSeconds(diffAutoToIng)
+                  },
+                  {
+                    name: "Ingreso Planta a Entrada Báscula",
+                    timeStr: diffIngToEnt,
+                    seconds: timeStrToSeconds(diffIngToEnt)
+                  },
+                  {
+                    name: "Entrada Báscula a Salida Báscula (P1)",
+                    timeStr: diffEntToSal,
+                    seconds: timeStrToSeconds(diffEntToSal)
+                  },
+                  {
+                    name: "Llegada Punto a Operador",
+                    timeStr: diffLlegPuntoToOp,
+                    seconds: timeStrToSeconds(diffLlegPuntoToOp)
+                  },
+                  {
+                    name: "Operador a Enlonador",
+                    timeStr: diffOpToEnl,
+                    seconds: timeStrToSeconds(diffOpToEnl)
+                  },
+                  {
+                    name: "Enlonador a Llegada Equipo",
+                    timeStr: diffEnlToEq,
+                    seconds: timeStrToSeconds(diffEnlToEq)
+                  },
+                  {
+                    name: "Llegada Equipo a Inicio Carga",
+                    timeStr: diffEqToIni,
+                    seconds: timeStrToSeconds(diffEqToIni)
+                  },
+                  {
+                    name: "Inicio a Termina Carga",
+                    timeStr: diffIniToTerm,
+                    seconds: timeStrToSeconds(diffIniToTerm)
+                  },
+                  {
+                    name: "Termina Carga a Salida Punto",
+                    timeStr: diffTermToSal,
+                    seconds: timeStrToSeconds(diffTermToSal)
+                  },
+                  {
+                    name: "Entrada a Salida Báscula (P3)",
+                    timeStr: diffTT,
+                    seconds: timeStrToSeconds(diffTT)
+                  },
+                  {
+                    name: "Llegada Portería a Salida Planta",
+                    timeStr: diffFinal,
+                    seconds: timeStrToSeconds(diffFinal)
+                  }
+                ];
+
+                // Sumar todos los segundos de los intervalos
+                const totalIntervalSeconds = intervals.reduce(
+                  (acc, interval) => acc + interval.seconds,
+                  0
+                );
+                const totalIntervalStr = secondsToTimeStr(totalIntervalSeconds);
+
+                // Determinar el intervalo con mayor retraso
+                const maxInterval = intervals.reduce(
+                  (max, interval) =>
+                    interval.seconds > max.seconds ? interval : max,
+                  { name: "", timeStr: "", seconds: 0 }
+                );
+
+                return (
+                  <div className="p-4 border border-orange-500 bg-orange-50 rounded">
+                    <h3 className="text-lg font-semibold text-orange-600">
+                      Intervalos entre Procesos
+                    </h3>
+                    <ul className="list-disc list-inside">
+                      {intervals.map((intv, idx) => (
+                        <li key={idx}>
+                          <strong>{intv.name}:</strong> {intv.timeStr || "-"}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-4">
+                      <h4 className="font-semibold">Análisis de Intervalos</h4>
+                      <p>
+                        <strong>Total acumulado de intervalos:</strong>{" "}
+                        {totalIntervalStr}
+                      </p>
+                      <p>
+                        <strong>Actividad con mayor retraso:</strong>{" "}
+                        {maxInterval.name} con {maxInterval.timeStr}
+                      </p>
+                      <p className="text-sm text-gray-700 mt-2">
+                        Se observa que la actividad{" "}
+                        <strong>{maxInterval.name}</strong> tuvo el mayor
+                        retraso. Se recomienda revisar este proceso para
+                        identificar y corregir posibles cuellos de botella.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}

@@ -65,6 +65,7 @@ export async function POST(request) {
           pesadorEntrada: primerP.pesadorEntrada || "",
           porteriaEntrada: primerP.porteriaEntrada || "",
           metodoCarga: primerP.metodoCarga || "",
+          numeroEjes: primerP.numeroEjes || "",
           puntoDespacho: primerP.puntoDespacho || "",
           basculaEntrada: primerP.basculaEntrada || "",
           tiempoPrechequeo: primerP.tiempoPrechequeo?.hora || "",

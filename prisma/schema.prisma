@@ -72,11 +72,12 @@ model Demora {
 // Primer proceso (con número de transacción)
 model PrimerProceso {
   id                          Int      @id @default(autoincrement()) @map("id")
-  demoraId                   Int      @unique @map("demora_id")
+  demoraId                    Int      @unique @map("demora_id")
   numeroTransaccion           String   @map("numero_transaccion")
   pesadorEntrada              String   @map("pesador_entrada")
   porteriaEntrada             String   @map("porteria_entrada")
   metodoCarga                 String   @map("metodo_carga")
+  numeroEjes                  String   @map("numero_ejes")
   puntoDespacho               String   @map("punto_despacho")
   basculaEntrada              String   @map("bascula_entrada")
 
