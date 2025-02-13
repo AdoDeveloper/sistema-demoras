@@ -1,4 +1,4 @@
-generator client {
+generator client { 
   provider = "prisma-client-js"
 }
 
@@ -7,42 +7,195 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Modelo de usuario
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  password  String?
-  createdAt DateTime @default(now())
+  id        Int      @id @default(autoincrement()) @map("id")
+  username  String   @unique @map("username")
+  email     String?  @unique @map("email")
+  password  String?  @map("password")
+  createdAt DateTime @default(now()) @map("created_at")
 
   accounts  Account[]
   sessions  Session[]
+  demoras   Demora[]
+
+  @@map("users")
 }
 
+// Modelo de autenticación
 model Account {
-  id                String @id @default(uuid())
-  userId            Int
-  type              String
-  provider          String
-  providerAccountId String
-  access_token      String?
-  refresh_token     String?
+  id                String  @id @default(uuid()) @map("id")
+  userId            Int     @map("user_id")
+  type              String  @map("type")
+  provider          String  @map("provider")
+  providerAccountId String  @map("provider_account_id")
+  accessToken       String? @map("access_token")
+  refreshToken      String? @map("refresh_token")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
 }
 
+// Modelo de sesión
 model Session {
-  id           String   @id @default(uuid())
-  sessionToken String   @unique
-  userId       Int
-  expires      DateTime
+  id           String   @id @default(uuid()) @map("id")
+  sessionToken String   @unique @map("session_token")
+  userId       Int      @map("user_id")
+  expires      DateTime @map("expires")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
-// Nuevo modelo para almacenar los datos
+// Modelo de demora
 model Demora {
-  id        Int   @id @default(autoincrement())
-  data      Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement()) @map("id")
+  userId        Int?     @map("user_id")
+  userName      String?   @map("user_name")
+  fechaInicio   String   @map("fecha_inicio")
+  // Campo para almacenar el tiempo total de la operación (calculado en la capa de código)
+  tiempoTotal   String?  @map("tiempo_total")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primerProceso  PrimerProceso?
+  segundoProceso SegundoProceso?
+  tercerProceso  TercerProceso?
+  procesoFinal   ProcesoFinal?
+
+  @@map("demoras")
+}
+
+// Primer proceso (con número de transacción)
+model PrimerProceso {
+  id                          Int      @id @default(autoincrement()) @map("id")
+  demoraId                   Int      @unique @map("demora_id")
+  numeroTransaccion           String   @map("numero_transaccion")
+  pesadorEntrada              String   @map("pesador_entrada")
+  porteriaEntrada             String   @map("porteria_entrada")
+  metodoCarga                 String   @map("metodo_carga")
+  puntoDespacho               String   @map("punto_despacho")
+  basculaEntrada              String   @map("bascula_entrada")
+
+  tiempoScanner               String?  @map("tiempo_scanner")
+  fechaScanner                String?  @map("fecha_scanner")
+  scannerObservaciones        String?  @map("scanner_obs") @db.LongText
+  tiempoPrechequeo            String?  @map("tiempo_prechequeo")
+  fechaPrechequeo             String?  @map("fecha_prechequeo")
+  prechequeoObservaciones     String?  @map("prechequeo_obs") @db.LongText
+  tiempoAutorizacion          String?  @map("tiempo_autorizacion")
+  fechaAutorizacion           String?  @map("fecha_autorizacion")
+  autorizacionObservaciones   String?  @map("autorizacion_obs") @db.LongText
+  tiempoIngresoPlanta         String?  @map("tiempo_ingreso_planta")
+  ingresoPlantaObservaciones  String?  @map("ingreso_obs") @db.LongText
+  tiemporLlegadaBascula       String?  @map("tiempo_llegada_bascula")
+  llegadaBasculaObservaciones String?  @map("llegada_bascula_obs") @db.LongText
+  tiempoEntradaBascula        String?  @map("tiempo_entrada_bascula")
+  entradaBasculaObservaciones String?  @map("entrada_obs") @db.LongText
+  tiempoSalidaBascula         String?  @map("tiempo_salida_bascula")
+  salidaBasculaObservaciones  String?  @map("salida_obs") @db.LongText
+
+  demora                      Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
+
+  createAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  @@map("primer_proceso")
+}
+
+// Segundo proceso
+model SegundoProceso {
+  id                            Int      @id @default(autoincrement()) @map("id")
+  demoraId                     Int      @unique @map("demora_id")
+  operador                    String   @map("operador")
+  enlonador                   String   @map("enlonador")
+  modeloEquipo                String   @map("modelo_equipo")
+  personalAsignado            Int      @map("personal_asignado")
+  personalAsignadoObservaciones String? @map("personal_asignado_obs") @db.LongText
+  
+  tiempoLlegadaPunto          String?  @map("tiempo_llegada_punto")
+  llegadaPuntoObservaciones   String?  @map("llegada_punto_obs") @db.LongText
+  tiempoLlegadaOperador       String?  @map("tiempo_llegada_operador")
+  llegadaOperadorObservaciones String? @map("llegada_operador_obs") @db.LongText
+  tiempoLlegadaEnlonador      String?  @map("tiempo_llegada_enlonador")
+  llegadaEnlonadorObservaciones String? @map("llegada_enlonador_obs") @db.LongText
+  tiempoLlegadaEquipo         String?  @map("tiempo_llegada_equipo")
+  llegadaEquipoObservaciones  String?  @map("llegada_equipo_obs") @db.LongText
+  tiempoInicioCarga           String?  @map("tiempo_inicio_carga")
+  inicioCargaObservaciones    String?  @map("inicio_carga_obs") @db.LongText
+  tiempoTerminaCarga          String?  @map("tiempo_termina_carga")
+  terminaCargaObservaciones   String?  @map("termina_carga_obs") @db.LongText
+  tiempoSalidaPunto           String?  @map("tiempo_salida_punto")
+  salidaPuntoObservaciones    String?  @map("salida_punto_obs") @db.LongText
+
+  demora                      Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
+
+  createAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  @@map("segundo_proceso")
+}
+
+// Tercer proceso
+model TercerProceso {
+  id                          Int      @id @default(autoincrement()) @map("id")
+  demoraId                   Int      @unique @map("demora_id")
+  basculaSalida             String   @map("bascula_salida")
+  pesadorSalida             String   @map("pesador_salida")
+
+  tiempoLlegadaBascula      String?  @map("tiempo_llegada_bascula")
+  llegadaBasculaObservaciones String? @map("llegada_bascula_obs") @db.LongText
+  tiempoEntradaBascula       String?  @map("tiempo_entrada_bascula")
+  entradaBasculaObservaciones String?  @map("entrada_obs") @db.LongText
+  tiempoSalidaBascula        String?  @map("tiempo_salida_bascula")
+  salidaBasculaObservaciones String?  @map("salida_obs") @db.LongText
+
+  demora                     Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
+  vueltas                   Vueltas[]
+
+  createAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  @@map("tercer_proceso")
+}
+
+// Modelo de vueltas
+model Vueltas {
+  id                          Int      @id @default(autoincrement()) @map("id")
+  tercerProcesoId            Int      @map("tercer_proceso_id")
+  numeroVuelta               Int      @map("numero_vuelta")
+
+  tiempoLlegadaPunto         String?  @map("tiempo_llegada_punto")
+  llegadaPuntoObservaciones  String?  @map("llegada_punto_obs") @db.LongText
+  tiempoSalidaPunto          String?  @map("tiempo_salida_punto")
+  salidaPuntoObservaciones   String?  @map("salida_punto_obs") @db.LongText
+  tiempoLlegadaBascula       String?  @map("tiempo_llegada_bascula")
+  llegadaBasculaObservaciones String? @map("llegada_bascula_obs") @db.LongText
+  tiempoEntradaBascula       String?  @map("tiempo_entrada_bascula")
+  entradaBasculaObservaciones String?  @map("entrada_bascula_obs") @db.LongText
+  tiempoSalidaBascula        String?  @map("tiempo_salida_bascula")
+  salidaBasculaObservaciones String?  @map("salida_bascula_obs") @db.LongText
+
+  tercerProceso              TercerProceso @relation(fields: [tercerProcesoId], references: [id], onDelete: Cascade)
+
+  createAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")  
+  @@map("vueltas")
+}
+
+// Proceso final
+model ProcesoFinal {
+  id                           Int      @id @default(autoincrement()) @map("id")
+  demoraId                    Int      @unique @map("demora_id")
+  tiempoSalidaPlanta           String?  @map("tiempo_salida_planta")
+  salidaPlantaObservaciones    String?  @map("salida_planta_obs") @db.LongText
+  porteriaSalida               String   @map("porteria_salida")
+  tiempoLlegadaPorteria        String?  @map("tiempo_llegada_porteria")
+  llegadaPorteriaObservaciones String?  @map("llegada_porteria_obs") @db.LongText
+
+  demora                      Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
+  
+  createAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  @@map("proceso_final")
 }

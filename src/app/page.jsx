@@ -82,6 +82,10 @@ export default function Dashboard() {
                 className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-md shadow-xl transform transition duration-200 hover:-translate-y-1 active:translate-y-0"
                 onClick={() => {
                   sessionStorage.removeItem("user");
+                  localStorage.removeItem("userId");
+                  localStorage.removeItem("userName");
+                  localStorage.removeItem("demorasProcess");
+                  localStorage.removeItem("nextauth.message");
                   signOut();
                 }}
               >

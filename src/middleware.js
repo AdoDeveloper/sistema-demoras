@@ -3,19 +3,28 @@ import { getToken } from "next-auth/jwt";
 
 export async function middleware(req) {
   const path = req.nextUrl.pathname;
-  const protectedRoutes = ["/"]; // Rutas protegidas (puedes agregar más)
+  
+  // Definir rutas protegidas
+  const protectedRoutes = ["/", "/proceso/consultar", "/api/demoras"];
 
-  // Obtener el token de sesión de NextAuth
-  const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  // Permitir acceso sin autenticación a la ruta de autenticación y login
+  if (path.startsWith("/api/auth") || path === "/login") {
+    return NextResponse.next();
+  }
 
-  // Si el usuario no tiene sesión y está intentando acceder a una ruta protegida, redirigir al login
-  if (!session && protectedRoutes.includes(path)) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  // Solo ejecutar autenticación si se accede a rutas protegidas
+  if (protectedRoutes.some(route => path.startsWith(route))) {
+    const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+    if (!session) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
   }
 
   return NextResponse.next();
 }
 
+// Configuración para que el middleware actúe en estas rutas
 export const config = {
-  matcher: ["/", "/consultar/:path*", "/iniciar/:path*"],
+  matcher: ["/", "/proceso/consultar", "/api/demoras", "/api/auth/session"],
 };

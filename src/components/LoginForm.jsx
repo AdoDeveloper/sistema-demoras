@@ -12,12 +12,20 @@ export default function LoginForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Si ya hay una sesión activa, redirigir al dashboard
+  // Redirigir si ya hay una sesión activa
   useEffect(() => {
     if (status === "authenticated") {
       router.push("/");
     }
   }, [status, router]);
+
+  // Guardar en localStorage el id y username del usuario cuando se inicie sesión
+  useEffect(() => {
+    if (session?.user) {
+      localStorage.setItem("userId", session.user.id);
+      localStorage.setItem("userName", session.user.username);
+    }
+  }, [session]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,13 +38,13 @@ export default function LoginForm() {
     });
 
     if (result?.error) {
-      setError("⚠️ Usuario o contraseña incorrectos");
+      setError("Usuario o contraseña incorrectos");
     } else {
       router.push("/");
     }
   };
 
-  // Mientras se verifica la sesión, mostrar un loader
+  // Mostrar loader mientras se verifica la sesión
   if (status === "loading") {
     return <p className="text-center text-gray-500">Cargando...</p>;
   }
@@ -45,7 +53,7 @@ export default function LoginForm() {
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
       <div className="bg-white p-8 rounded-3xl shadow-2xl w-96 border-t-8 border-orange-500">
         
-        {/* Logo sin sombra */}
+        {/* Logo */}
         <div className="flex justify-center mb-6">
           <Image src="/logo.png" alt="Almapac Logo" width={300} height={150} />
         </div>
@@ -90,7 +98,7 @@ export default function LoginForm() {
             type="submit"
             className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg shadow-md transform active:translate-y-1 active:shadow-sm transition-all hover:bg-orange-600"
           >
-             Iniciar Sesión
+            Iniciar Sesión
           </button>
         </form>
       </div>

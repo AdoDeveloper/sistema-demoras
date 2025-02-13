@@ -13,62 +13,14 @@ interface OptionType {
   label: string;
 }
 
-// Opciones para los selects con búsqueda
-const terminalOptions: OptionType[] = [
-  { value: "Terminal 1", label: "Terminal 1" },
-  { value: "Terminal 2", label: "Terminal 2" },
-];
-
-const clienteOptions: OptionType[] = [
-  { value: "ADM EL SALVADOR LTDA DE C.V.", label: "ADM EL SALVADOR LTDA DE C.V." },
-  { value: "AGROINDUSTRIAS BUENAVISTA, S.A. DE C.V.", label: "AGROINDUSTRIAS BUENAVISTA, S.A. DE C.V." },
-  { value: "AGROPECUARIA DEL VALLE, S.A. DE C.V.", label: "AGROPECUARIA DEL VALLE, S.A. DE C.V." },
-  { value: "ARROCERA OMOA, S.A. DE C.V.", label: "ARROCERA OMOA, S.A. DE C.V." },
-  { value: "AVICOLA CAMPESTRE, S.A. DE C.V.", label: "AVICOLA CAMPESTRE, S.A. DE C.V." },
-  { value: "AVICOLA DEL SUR/PROSALCO", label: "AVICOLA DEL SUR" },
-  { value: "AVICOLA SALAZAR", label: "AVICOLA SALAZAR" },
-  { value: "AVICOLA SAN BENITO, S.A. DE C.V.", label: "AVICOLA SAN BENITO, S.A. DE C.V." },
-  { value: "AVICULTOR Y PORCINOCULTORES S.A. DE C.V.", label: "AVICULTOR Y PORCINOCULTORES S.A. DE C.V." },
-  { value: "COOP. GANADERA DE SONSONATE", label: "COOP. GANADERA DE SONSONATE" },
-  { value: "EL GRANJERO, S.A. DE C.V.", label: "EL GRANJERO, S.A. DE C.V." },
-  { value: "GRANJA CATALANA, S.A. DE C.V.", label: "GRANJA CATALANA, S.A. DE C.V." },
-  { value: "IMPORTADORES AGROPECUARIOS", label: "IMPORTADORES AGROPECUARIOS" },
-  { value: "IMPORTADORES AGROPECUARIOS, S.A. DE C.V.", label: "IMPORTADORES AGROPECUARIOS, S.A. DE C.V." },
-  { value: "MARTIR VICTOR ANTONIO DERAS FLORES", label: "MARTIR VICTOR ANTONIO DERAS FLORES" },
-  { value: "MONICA GROSS", label: "MONICA GROSS" },
-  { value: "PRODUCTOS ALIMENTICIOS BOCADELI, S.A. DE C.V.", label: "PRODUCTOS ALIMENTICIOS BOCADELI, S.A. DE C.V." },
-  { value: "PRODUCTOS ALIMENTICIOS DIANA, S.A.", label: "PRODUCTOS ALIMENTICIOS DIANA, S.A." },
-  { value: "PRODUCTOS ALIMENTICIOS SELLO DE ORO, S.A. DE C.V.", label: "PRODUCTOS ALIMENTICIOS SELLO DE ORO, S.A. DE C.V." },
-  { value: "PROSALCO", label: "PROSALCO" },
-  { value: "RAFAEL ANDRES JOVEL MIRANDA", label: "RAFAEL ANDRES JOVEL MIRANDA" },
-  { value: "SALOMON GROSS", label: "SALOMON GROSS" },
-  { value: "SARAM", label: "SARAM" },
-  { value: "TECNICA EN NUTRICION ANIMAL S.A. DE C.V.", label: "TECNICA EN NUTRICION ANIMAL S.A. DE C.V." },
-  { value: "TIERRA FERTIL", label: "TIERRA FERTIL" },
-  { value: "WALTER HERNANDEZ", label: "WALTER HERNANDEZ" },
-];
-
-const ejesOptions: OptionType[] = [
-  { value: "", label: "Seleccione Ejes" },
-  { value: "Camión", label: "Camión" },
-  { value: "2", label: "2" },
-  { value: "3", label: "3" },
-];
-
-const tipoProductoOptions: OptionType[] = [
-  { value: "ACEITE ACIDULADO DE SOYA", label: "ACEITE ACIDULADO DE SOYA" },
-  { value: "ACEITE DE SOYA", label: "ACEITE DE SOYA" },
-  { value: "ACEITE DESGOMADO", label: "ACEITE DESGOMADO" },
-  { value: "AFRECHO", label: "AFRECHO" },
-  { value: "ARROZ EN GRANZA", label: "ARROZ EN GRANZA" },
-  { value: "CASCARILLA DE SOYA", label: "CASCARILLA DE SOYA" },
-  { value: "HARINA DE SOYA", label: "HARINA DE SOYA" },
-  { value: "MAIZ AMARILLO", label: "MAIZ AMARILLO" },
-  { value: "MAIZ AMARILLO BRASILEÑO", label: "MAIZ AMARILLO BRASILEÑO" },
-  { value: "MAIZ BLANCO", label: "MAIZ BLANCO" },
-  { value: "MAIZ DESTILADO", label: "MAIZ DESTILADO" },
-  { value: "MALTA", label: "MALTA" },
-  { value: "TRIGO", label: "TRIGO" },
+// Opciones para los selects
+const porteriaOptions: OptionType[] = [
+  { value: "Porteria 1", label: "Porteria 1" },
+  { value: "Porteria 2", label: "Porteria 2" },
+  { value: "Porteria 3", label: "Porteria 3" },
+  { value: "Porteria 4", label: "Porteria 4" },
+  { value: "Porteria 5", label: "Porteria 5" },
+  { value: "Porteria 6", label: "Porteria 6" },
 ];
 
 const puntoDespachoOptions = [
@@ -122,6 +74,14 @@ const puntoDespachoOptions = [
       { value: "SILO 17 SISTEMA", label: "SILO 17 SISTEMA" },
     ],
   },
+  {
+    label: "Modulos",
+    options: [
+      { value: "MODULO 1", label: "MODULO 1" },
+      { value: "MODULO 2", label: "MODULO 2" },
+      { value: "MODULO 3", label: "MODULO 3" },
+    ],
+  },
 ];
 
 const basculaEntradaOptions: OptionType[] = [
@@ -132,11 +92,6 @@ const basculaEntradaOptions: OptionType[] = [
   { value: "Báscula 4", label: "Báscula 4" },
   { value: "Báscula 5", label: "Báscula 5" },
   { value: "Báscula 6", label: "Báscula 6" },
-];
-
-const tipoCargaOptions: OptionType[] = [
-  { value: "Granel", label: "Granel" },
-  { value: "Envasado", label: "Envasado" },
 ];
 
 const metodoCargaOptions: OptionType[] = [
@@ -157,45 +112,34 @@ const handleSetNowDate = (setter: Function) => {
 export default function PrimerProceso() {
   const router = useRouter();
 
-  // ----- Campos principales -----
-  const [terminal, setTerminal] = useState("");
-  const [cliente, setCliente] = useState("");
-  const [placa, setPlaca] = useState("");
-  const [remolque, setRemolque] = useState("");
-  const [ejes, setEjes] = useState("");
-  const [pesador, setPesador] = useState("");
-  const [pesoInicial, setPesoInicial] = useState("");
-  const [tipoProducto, setTipoProducto] = useState("");
+  // Estados para campos principales (según el nuevo modelo)
+  const [numeroTransaccion, setNumeroTransaccion] = useState("");
+  const [pesadorEntrada, setPesadorEntrada] = useState("");
+  const [porteriaEntrada, setPorteriaEntrada] = useState("");
   const [puntoDespacho, setPuntoDespacho] = useState("");
   const [basculaEntrada, setBasculaEntrada] = useState("");
-  const [tipoCarga, setTipoCarga] = useState("");
   const [metodoCarga, setMetodoCarga] = useState("");
-  // const [tipoSistema, setTipoSistema] = useState("");
 
-  // ----- Tiempos -----
-  // Para Prechequeo, Scanner y Autorización se incluye fecha, hora y comentarios.
+  // Estados para los tiempos
   const [tiempoPrechequeo, setTiempoPrechequeo] = useState({ fecha: "", hora: "", comentarios: "" });
   const [tiempoScanner, setTiempoScanner] = useState({ fecha: "", hora: "", comentarios: "" });
   const [tiempoAutorizacion, setTiempoAutorizacion] = useState({ fecha: "", hora: "", comentarios: "" });
-  // Los otros tiempos se mantienen sin fecha.
   const [tiempoIngresoPlanta, setTiempoIngresoPlanta] = useState({ hora: "", comentarios: "" });
+  const [tiempoLlegadaBascula, setTiempoLlegadaBascula] = useState({ hora: "", comentarios: "" });
   const [tiempoEntradaBascula, setTiempoEntradaBascula] = useState({ hora: "", comentarios: "" });
   const [tiempoSalidaBascula, setTiempoSalidaBascula] = useState({ hora: "", comentarios: "" });
 
-  // ----------------------------------------------------------------
-  // useEffect: Cargar/crear "demorasProcess" en localStorage
-  // ----------------------------------------------------------------
   useEffect(() => {
     cargarDatosDeLocalStorage();
   }, []);
 
-  function cargarDatosDeLocalStorage(){
+  function cargarDatosDeLocalStorage() {
     let stored = localStorage.getItem("demorasProcess");
     if (!stored) {
       const initialData = {
-        fechaInicio: new Date().toLocaleString("en-GB", {
-          timeZone: "America/El_Salvador",
-        }),
+        fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
+        userId:localStorage.getItem("userId"),
+        userName:localStorage.getItem("userName"),
         primerProceso: {},
         segundoProceso: {},
         tercerProceso: {},
@@ -204,37 +148,28 @@ export default function PrimerProceso() {
       localStorage.setItem("demorasProcess", JSON.stringify(initialData));
       stored = localStorage.getItem("demorasProcess");
     }
-
     if (stored) {
       const parsed = JSON.parse(stored);
       if (parsed.primerProceso) {
         const p = parsed.primerProceso;
-        setTerminal(p.terminal || "");
-        setCliente(p.cliente || "");
-        setPlaca(p.placa || "");
-        setRemolque(p.remolque || "");
-        setEjes(p.ejes || "");
-        setPesador(p.pesador || "");
-        setPesoInicial(p.pesoInicial || "");
-        setTipoProducto(p.tipoProducto || "");
+        setNumeroTransaccion(p.numeroTransaccion || "");
+        setPesadorEntrada(p.pesadorEntrada || "");
+        setPorteriaEntrada(p.porteriaEntrada || "");
         setPuntoDespacho(p.puntoDespacho || "");
         setBasculaEntrada(p.basculaEntrada || "");
-        setTipoCarga(p.tipoCarga || "");
         setMetodoCarga(p.metodoCarga || "");
-        // setTipoSistema(p.tipoSistema || "");
-
         setTiempoPrechequeo(p.tiempoPrechequeo || { fecha: "", hora: "", comentarios: "" });
         setTiempoScanner(p.tiempoScanner || { fecha: "", hora: "", comentarios: "" });
         setTiempoAutorizacion(p.tiempoAutorizacion || { fecha: "", hora: "", comentarios: "" });
         setTiempoIngresoPlanta(p.tiempoIngresoPlanta || { hora: "", comentarios: "" });
+        setTiempoLlegadaBascula(p.tiempoLlegadaBascula || { hora: "", comentarios: "" });
         setTiempoEntradaBascula(p.tiempoEntradaBascula || { hora: "", comentarios: "" });
         setTiempoSalidaBascula(p.tiempoSalidaBascula || { hora: "", comentarios: "" });
       }
     }
   }
-  // ----------------------------------------------------------------
+
   // Helper: Asignar "Ahora" a un campo de tiempo (formato HH:mm:ss)
-  // ----------------------------------------------------------------
   const handleSetNow = (setter: Function) => {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, "0");
@@ -244,47 +179,32 @@ export default function PrimerProceso() {
     setter((prev: any) => ({ ...prev, hora }));
   };
 
-  // ----------------------------------------------------------------
-  // Guardar y Continuar
-  // ----------------------------------------------------------------
+  // Guardar y continuar
   const handleGuardarYContinuar = () => {
     const stored = localStorage.getItem("demorasProcess");
     if (stored) {
       const parsed = JSON.parse(stored);
-
-      // Insertamos/actualizamos primerProceso
       parsed.primerProceso = {
-        terminal,
-        cliente,
-        placa,
-        remolque,
-        ejes,
-        pesador,
-        pesoInicial,
-        tipoProducto,
+        numeroTransaccion,
+        pesadorEntrada,
+        porteriaEntrada,
         puntoDespacho,
         basculaEntrada,
-        tipoCarga,
         metodoCarga,
-        // tipoSistema,
-
         tiempoPrechequeo,
         tiempoScanner,
         tiempoAutorizacion,
         tiempoIngresoPlanta,
+        tiempoLlegadaBascula,
         tiempoEntradaBascula,
         tiempoSalidaBascula,
       };
-
       localStorage.setItem("demorasProcess", JSON.stringify(parsed));
     }
-
     router.push("/proceso/iniciar/step2");
   };
 
-  // ----------------------------------------------------------------
-  // Cancelar (elimina localStorage y regresa Home)
-  // ----------------------------------------------------------------
+  // Cancelar y regresar a Home
   const handleCancelar = () => {
     localStorage.removeItem("demorasProcess");
     router.push("/");
@@ -305,108 +225,45 @@ export default function PrimerProceso() {
 
         {/* Campos Principales */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Terminal */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Terminal</label>
-            <Select
-              className="react-select-container"
-              classNamePrefix="react-select"
-              options={terminalOptions}
-              placeholder="Seleccione Terminal"
-              value={terminal ? { value: terminal, label: terminal } : null}
-              onChange={(option: OptionType | null) =>
-                setTerminal(option ? option.value : "")
-              }
-            />
-          </div>
-
-          {/* Cliente */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Cliente</label>
-            <Select
-              className="react-select-container"
-              classNamePrefix="react-select"
-              options={clienteOptions}
-              placeholder="Seleccione Cliente"
-              value={cliente ? { value: cliente, label: cliente } : null}
-              onChange={(option: OptionType | null) =>
-                setCliente(option ? option.value : "")
-              }
-            />
-          </div>
-
-          {/* Placa */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Placa</label>
-            <input
-              className="border w-full p-2 text-sm sm:text-base"
-              type="text"
-              value={placa}
-              onChange={(e) => setPlaca(e.target.value)}
-            />
-          </div>
-
-          {/* Remolque */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Remolque</label>
-            <input
-              className="border w-full p-2 text-sm sm:text-base"
-              type="text"
-              value={remolque}
-              onChange={(e) => setRemolque(e.target.value)}
-            />
-          </div>
-
-          {/* Ejes */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Ejes</label>
-            <Select
-              className="react-select-container"
-              classNamePrefix="react-select"
-              options={ejesOptions}
-              placeholder="Seleccione Ejes"
-              value={ejes ? { value: ejes, label: ejes } : null}
-              onChange={(option: OptionType | null) =>
-                setEjes(option ? option.value : "")
-              }
-            />
-          </div>
-
-          {/* Pesador */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Pesador</label>
-            <input
-              className="border w-full p-2 text-sm sm:text-base"
-              type="text"
-              value={pesador}
-              onChange={(e) => setPesador(e.target.value)}
-            />
-          </div>
-
-          {/* Peso Inicial */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">Peso Inicial</label>
-            <input
-              className="border w-full p-2 text-sm sm:text-base"
-              type="number"
-              value={pesoInicial}
-              onChange={(e) => setPesoInicial(e.target.value)}
-            />
-          </div>
-
-          {/* Tipo de Producto */}
+          {/* Número de Transacción */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
-              Tipo de Producto
+              Número de Transacción
+            </label>
+            <input
+              type="text"
+              className="border w-full p-2 text-sm sm:text-base"
+              value={numeroTransaccion}
+              onChange={(e) => setNumeroTransaccion(e.target.value)}
+            />
+          </div>
+
+          {/* Pesador Entrada */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Pesador Entrada
+            </label>
+            <input
+              type="text"
+              className="border w-full p-2 text-sm sm:text-base"
+              value={pesadorEntrada}
+              onChange={(e) => setPesadorEntrada(e.target.value)}
+            />
+          </div>
+
+          {/* Portería Entrada */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Portería Entrada
             </label>
             <Select
               className="react-select-container"
               classNamePrefix="react-select"
-              options={tipoProductoOptions}
-              placeholder="Seleccione Producto"
-              value={tipoProducto ? { value: tipoProducto, label: tipoProducto } : null}
+              options={porteriaOptions}
+              placeholder="Seleccione Portería"
+              value={porteriaEntrada ? { value: porteriaEntrada, label: porteriaEntrada } : null}
               onChange={(option: OptionType | null) =>
-                setTipoProducto(option ? option.value : "")
+                setPorteriaEntrada(option ? option.value : "")
               }
             />
           </div>
@@ -445,23 +302,6 @@ export default function PrimerProceso() {
             />
           </div>
 
-          {/* Tipo de Carga */}
-          <div>
-            <label className="block font-semibold mb-1 text-sm sm:text-base">
-              Tipo de Carga
-            </label>
-            <Select
-              className="react-select-container"
-              classNamePrefix="react-select"
-              options={tipoCargaOptions}
-              placeholder="Seleccione Tipo"
-              value={tipoCarga ? { value: tipoCarga, label: tipoCarga } : null}
-              onChange={(option: OptionType | null) =>
-                setTipoCarga(option ? option.value : "")
-              }
-            />
-          </div>
-
           {/* Método de Carga */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
@@ -486,11 +326,8 @@ export default function PrimerProceso() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Prechequeo */}
             <div className="border rounded p-2">
-              <label className="block font-semibold text-sm sm:text-base">
-                Prechequeo
-              </label>
+              <label className="block font-semibold text-sm sm:text-base">Prechequeo</label>
               <div className="flex flex-col gap-2 mt-1">
-                {/* Campo de Fecha */}
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -507,7 +344,6 @@ export default function PrimerProceso() {
                     Ahora
                   </button>
                 </div>
-                {/* Campo de Hora */}
                 <div className="flex gap-2">
                   <input
                     type="time"
@@ -540,7 +376,6 @@ export default function PrimerProceso() {
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">Scanner</label>
               <div className="flex flex-col gap-2 mt-1">
-                {/* Campo de Fecha */}
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -557,7 +392,6 @@ export default function PrimerProceso() {
                     Ahora
                   </button>
                 </div>
-                {/* Campo de Hora */}
                 <div className="flex gap-2">
                   <input
                     type="time"
@@ -588,11 +422,8 @@ export default function PrimerProceso() {
 
             {/* Autorización */}
             <div className="border rounded p-2">
-              <label className="block font-semibold text-sm sm:text-base">
-                Autorización
-              </label>
+              <label className="block font-semibold text-sm sm:text-base">Autorización</label>
               <div className="flex flex-col gap-2 mt-1">
-                {/* Campo de Fecha */}
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -609,7 +440,6 @@ export default function PrimerProceso() {
                     Ahora
                   </button>
                 </div>
-                {/* Campo de Hora */}
                 <div className="flex gap-2">
                   <input
                     type="time"
@@ -638,11 +468,9 @@ export default function PrimerProceso() {
               </div>
             </div>
 
-            {/* Ingreso Planta */}
+            {/* Ingreso de Planta */}
             <div className="border rounded p-2">
-              <label className="block font-semibold text-sm sm:text-base">
-                Ingreso de Planta
-              </label>
+              <label className="block font-semibold text-sm sm:text-base">Ingreso de Planta</label>
               <div className="flex gap-2 mt-1">
                 <input
                   type="time"
@@ -670,11 +498,39 @@ export default function PrimerProceso() {
               />
             </div>
 
+            {/* Llegada Báscula */}
+            <div className="border rounded p-2">
+              <label className="block font-semibold text-sm sm:text-base">Llegada a la Báscula</label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="time"
+                  step="1"
+                  className="border p-1 w-full text-sm sm:text-base"
+                  value={tiempoLlegadaBascula.hora}
+                  onChange={(e) =>
+                    setTiempoLlegadaBascula((prev) => ({ ...prev, hora: e.target.value }))
+                  }
+                />
+                <button
+                  className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
+                  onClick={() => handleSetNow(setTiempoLlegadaBascula)}
+                >
+                  Ahora
+                </button>
+              </div>
+              <textarea
+                className="border w-full mt-1 p-1 text-xs sm:text-sm"
+                placeholder="Comentarios..."
+                value={tiempoLlegadaBascula.comentarios}
+                onChange={(e) =>
+                  setTiempoLlegadaBascula((prev) => ({ ...prev, comentarios: e.target.value }))
+                }
+              />
+            </div>
+
             {/* Entrada Báscula */}
             <div className="border rounded p-2">
-              <label className="block font-semibold text-sm sm:text-base">
-                Entrada Báscula
-              </label>
+              <label className="block font-semibold text-sm sm:text-base">Entrada Báscula</label>
               <div className="flex gap-2 mt-1">
                 <input
                   type="time"
@@ -704,9 +560,7 @@ export default function PrimerProceso() {
 
             {/* Salida Báscula */}
             <div className="border rounded p-2">
-              <label className="block font-semibold text-sm sm:text-base">
-                Salida Báscula
-              </label>
+              <label className="block font-semibold text-sm sm:text-base">Salida Báscula</label>
               <div className="flex gap-2 mt-1">
                 <input
                   type="time"
@@ -738,16 +592,10 @@ export default function PrimerProceso() {
 
         {/* Botones de Navegación */}
         <div className="mt-6 flex justify-between">
-          <button
-            className="bg-red-500 text-white px-4 py-2 rounded"
-            onClick={handleCancelar}
-          >
+          <button className="bg-red-500 text-white px-4 py-2 rounded" onClick={handleCancelar}>
             Cancelar
           </button>
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={handleGuardarYContinuar}
-          >
+          <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={handleGuardarYContinuar}>
             Siguiente
           </button>
         </div>
