@@ -26,10 +26,8 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    // Leer y depurar el body recibido
     const body = await request.json();
-    console.log(">>> [API Debug] BODY RECIBIDO");
-    // debugger; // Descomenta para pausar la ejecución en modo debug
+    console.log(">>> [API Debug] BODY RECIBIDO:", body);
 
     const { demorasProcess } = body;
     if (!demorasProcess) {
@@ -65,6 +63,7 @@ export async function POST(request) {
           pesadorEntrada: primerP.pesadorEntrada || "",
           porteriaEntrada: primerP.porteriaEntrada || "",
           metodoCarga: primerP.metodoCarga || "",
+          // Si tienes un campo "numeroEjes" en la BD, asegúrate de mapearlo
           numeroEjes: primerP.numeroEjes || "",
           puntoDespacho: primerP.puntoDespacho || "",
           basculaEntrada: primerP.basculaEntrada || "",
@@ -145,11 +144,13 @@ export async function POST(request) {
       console.log(">>> [API Debug] Tercer proceso creado con ID:", terceroCreado.id);
       if (Array.isArray(tercerP.vueltas)) {
         console.log(">>> [API Debug] Vueltas a crear:", JSON.stringify(tercerP.vueltas, null, 2));
-        for (const unaVuelta of tercerP.vueltas) {
+        for (let i = 0; i < tercerP.vueltas.length; i++) {
+          const unaVuelta = tercerP.vueltas[i];
+          console.log(`>>> [API Debug] Creando vuelta ${i + 1}:`, unaVuelta);
           await prisma.vueltas.create({
             data: {
               tercerProcesoId: terceroCreado.id,
-              numeroVuelta: unaVuelta.numeroVuelta || 1,
+              numeroVuelta: unaVuelta.numeroVuelta, // se usa el valor enviado
               tiempoLlegadaPunto: unaVuelta.llegadaPunto?.hora || "",
               llegadaPuntoObservaciones: unaVuelta.llegadaPunto?.comentarios || "",
               tiempoSalidaPunto: unaVuelta.salidaPunto?.hora || "",
