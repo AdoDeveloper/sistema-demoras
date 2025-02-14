@@ -30,6 +30,13 @@ const ejesOptions: OptionType[] = [
   { value: "3", label: "3" },
 ];
 
+const condicionOptions: OptionType[] = [
+{ value: "NORMAL", label: "NORMAL" },
+{ value: "LLUVIA", label: "LLUVIA" },
+{ value: "RECEPECION DE MELAZA", label: "RECEPECION DE MELAZA" },
+{ value: "RECEPECION DE CEREALES/BARCO", label: "RECEPECION DE CEREALES/BARCO" },
+];
+
 const puntoDespachoOptions = [
   {
     label: "Bodegas",
@@ -127,6 +134,7 @@ export default function PrimerProceso() {
   const [basculaEntrada, setBasculaEntrada] = useState("");
   const [metodoCarga, setMetodoCarga] = useState("");
   const [numeroEjes, setNumeroEjes] = useState("");
+  const [condicion, setCondicion] = useState("");
 
   // Estados para los tiempos
   const [tiempoPrechequeo, setTiempoPrechequeo] = useState({ fecha: "", hora: "", comentarios: "" });
@@ -167,6 +175,7 @@ export default function PrimerProceso() {
         setBasculaEntrada(p.basculaEntrada || "");
         setMetodoCarga(p.metodoCarga || "");
         setNumeroEjes(p.numeroEjes || "");
+        setCondicion(p.condicion || "");
         setTiempoPrechequeo(p.tiempoPrechequeo || { fecha: "", hora: "", comentarios: "" });
         setTiempoScanner(p.tiempoScanner || { fecha: "", hora: "", comentarios: "" });
         setTiempoAutorizacion(p.tiempoAutorizacion || { fecha: "", hora: "", comentarios: "" });
@@ -201,6 +210,7 @@ export default function PrimerProceso() {
         basculaEntrada,
         metodoCarga,
         numeroEjes,
+        condicion,
         tiempoPrechequeo,
         tiempoScanner,
         tiempoAutorizacion,
@@ -342,6 +352,23 @@ export default function PrimerProceso() {
               value={numeroEjes ? { value: numeroEjes, label: numeroEjes } : null}
               onChange={(option: OptionType | null) =>
                 setNumeroEjes(option ? option.value : "")
+              }
+            />
+          </div>
+
+          {/* Condicion */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Condicion
+            </label>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={condicionOptions}
+              placeholder="Seleccione Condicion"
+              value={condicion ? { value: condicion, label: condicion } : null}
+              onChange={(option: OptionType | null) =>
+                setCondicion(option ? option.value : "")
               }
             />
           </div>

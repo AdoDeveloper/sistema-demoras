@@ -73,6 +73,7 @@ model PrimerProceso {
   numeroEjes                  String   @map("numero_ejes")
   puntoDespacho               String   @map("punto_despacho")
   basculaEntrada              String   @map("bascula_entrada")
+  condicion                   String?  @map("condicion")
   tiempoScanner               String?  @map("tiempo_scanner")
   fechaScanner                String?  @map("fecha_scanner")
   scannerObservaciones        String?  @map("scanner_obs") @db.LongText

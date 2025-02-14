@@ -341,6 +341,7 @@ export default function DemorasPage() {
               <th className="border px-1 py-1">Fecha Inicio</th>
               <th className="border px-1 py-1">Tiempo Total</th>
               <th className="border px-1 py-1">Nº Transacción</th>
+              <th className="border px-1 py-1">Condicion</th>
               <th className="border px-1 py-1">Pesador Entrada</th>
               <th className="border px-1 py-1">Portería Entrada</th>
               <th className="border px-1 py-1">Método Carga</th>
@@ -353,6 +354,7 @@ export default function DemorasPage() {
               <th className="border px-1 py-1">Tiempo Scanner</th>
               <th className="border px-1 py-1">Fecha Scanner</th>
               <th className="border px-1 py-1">Obs Scanner</th>
+              <th className="border px-1 py-1">Fecha Autorizacion</th>
               <th className="border px-1 py-1">Tiempo Autorizac.</th>
               <th className="border px-1 py-1">Fecha Autorizac.</th>
               <th className="border px-1 py-1">Obs Autorizac.</th>
@@ -428,6 +430,7 @@ export default function DemorasPage() {
                   <td className="border px-1 py-1 whitespace-nowrap">{item.fechaInicio}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{item.tiempoTotal || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.numeroTransaccion || "-"}</td>
+                  <td className="border px-1 py-1 whitespace-nowrap">{primer.condicion || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.pesadorEntrada || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.porteriaEntrada || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.metodoCarga || "-"}</td>
@@ -440,6 +443,7 @@ export default function DemorasPage() {
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.tiempoScanner || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.fechaScanner || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.scannerObservaciones || "-"}</td>
+                  <td className="border px-1 py-1 whitespace-nowrap">{primer.fechaAutorizacion || "-"} {primer.tiempoAutorizacion || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.tiempoAutorizacion || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.fechaAutorizacion || "-"}</td>
                   <td className="border px-1 py-1 whitespace-nowrap">{primer.autorizacionObservaciones || "-"}</td>

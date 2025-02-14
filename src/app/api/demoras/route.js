@@ -92,6 +92,7 @@ export async function POST(request) {
             numeroEjes: primerP.numeroEjes || "",
             puntoDespacho: primerP.puntoDespacho || "",
             basculaEntrada: primerP.basculaEntrada || "",
+            condicion: primerP.condicion || "",
             tiempoPrechequeo: primerP.tiempoPrechequeo?.hora || "",
             fechaPrechequeo: primerP.tiempoPrechequeo?.fecha || "",
             prechequeoObservaciones: primerP.tiempoPrechequeo?.comentarios || "",
