@@ -169,9 +169,9 @@ export default function ProcesoFinal() {
     note += `  Número de Ejes: ${primer.numeroEjes || "N/A"}\n\n`;
 
     note += "  Tiempos:\n";
-    note += `    Prechequeo: ${primer.tiempoPrechequeo?.hora || "N/A"} - ${primer.tiempoPrechequeo?.comentarios || ""}\n`;
-    note += `    Scanner: ${primer.tiempoScanner?.hora || "N/A"} - ${primer.tiempoScanner?.comentarios || ""}\n`;
-    note += `    Autorización: ${primer.tiempoAutorizacion?.hora || "N/A"} - ${primer.tiempoAutorizacion?.comentarios || ""}\n`;
+    note += `    Prechequeo: ${primer.tiempoPrechequeo?.fecha || "N/A"} ${primer.tiempoPrechequeo?.hora || "N/A"} - ${primer.tiempoPrechequeo?.comentarios || ""}\n`;
+    note += `    Scanner: ${primer.tiempoScanner?.fecha || "N/A"} - ${primer.tiempoScanner?.hora || "N/A"} - ${primer.tiempoScanner?.comentarios || ""}\n`;
+    note += `    Autorización: ${primer.tiempoAutorizacion?.fecha || "N/A"} - ${primer.tiempoAutorizacion?.hora || "N/A"} - ${primer.tiempoAutorizacion?.comentarios || ""}\n`;
     note += `    Ingreso Planta: ${primer.tiempoIngresoPlanta?.hora || "N/A"} - ${primer.tiempoIngresoPlanta?.comentarios || ""}\n`;
     note += `    Llegada a Báscula: ${primer.tiempoLlegadaBascula?.hora || "N/A"} - ${primer.tiempoLlegadaBascula?.comentarios || ""}\n`;
     note += `    Entrada Báscula: ${primer.tiempoEntradaBascula?.hora || "N/A"} - ${primer.tiempoEntradaBascula?.comentarios || ""}\n`;
