@@ -190,11 +190,32 @@ export async function POST(request) {
             const unaVuelta = tercerP.vueltas[i];
             console.log(`>>> [API Debug] Procesando vuelta ${i + 1}:`, unaVuelta);
             
+            // Validar si es la vuelta 1
+            if (Number(unaVuelta.numeroVuelta) === 1) {
+              const horaLlegadaPunto = unaVuelta.llegadaPunto?.hora || "";
+              const horaSalidaPunto = unaVuelta.salidaPunto?.hora || "";
+              const horaLlegadaBascula = unaVuelta.llegadaBascula?.hora || "";
+              const horaEntradaBascula = unaVuelta.entradaBascula?.hora || "";
+              const horaSalidaBascula = unaVuelta.salidaBascula?.hora || "";
+              
+              if (
+                !horaLlegadaPunto.trim() ||
+                !horaSalidaPunto.trim() ||
+                !horaLlegadaBascula.trim() ||
+                !horaEntradaBascula.trim() ||
+                !horaSalidaBascula.trim()
+              ) {
+                const errorMsg = "Error: Faltan horas obligatorias en la vuelta 1. Se revierte la transacción.";
+                console.error(">>> [API Debug]", errorMsg);
+                throw new Error(errorMsg);
+              }
+            }
+            
             try {
               await tx.vueltas.create({
                 data: {
                   tercerProcesoId: terceroCreado.id,
-                  numeroVuelta: unaVuelta.numeroVuelta || (i + 1), // Fallback al índice + 1 si no viene numeroVuelta
+                  numeroVuelta: unaVuelta.numeroVuelta || (i + 1),
                   tiempoLlegadaPunto: unaVuelta.llegadaPunto?.hora || "",
                   llegadaPuntoObservaciones: unaVuelta.llegadaPunto?.comentarios || "",
                   tiempoSalidaPunto: unaVuelta.salidaPunto?.hora || "",
@@ -210,7 +231,7 @@ export async function POST(request) {
               console.log(`>>> [API Debug] Vuelta ${i + 1} creada exitosamente`);
             } catch (error) {
               console.error(`>>> [API Debug] Error al crear vuelta ${i + 1}:`, error);
-              throw error; // Re-lanzar el error para que la transacción se revierta
+              throw error;
             }
           }
         } else {
