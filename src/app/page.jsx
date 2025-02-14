@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Loader from "../components/Loader"; // Ajusta la ruta según la ubicación de tu Loader.jsx
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -25,7 +26,11 @@ export default function Dashboard() {
   }, [status, session, router]);
 
   if (status === "loading") {
-    return <p className="text-center text-gray-500">Cargando...</p>;
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
+        <Loader />
+      </div>
+    );
   }
 
   return (

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Loader from "./Loader"; // Ajusta la ruta según la ubicación de tu Loader.jsx
 
 export default function LoginForm() {
   const [username, setUsername] = useState("");
@@ -44,22 +45,36 @@ export default function LoginForm() {
     }
   };
 
-  // Mostrar loader mientras se verifica la sesión
+  // Mientras se verifica la sesión, mostramos el Loader a pantalla completa
   if (status === "loading") {
-    return <p className="text-center text-gray-500">Cargando...</p>;
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
+        <Loader />
+      </div>
+    );
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
-      <div className="bg-white p-8 rounded-3xl shadow-2xl w-96 border-t-8 border-orange-500">
-        
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-r p-4">
+      <div className="bg-white p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md border-t-8 border-orange-500">
         {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <Image src="/logo.png" alt="Almapac Logo" width={300} height={150} />
+        <div className="flex justify-center mb-4">
+          <Image
+            src="/logo.png"
+            alt="Almapac Logo"
+            width={250}
+            height={120}
+            className="object-contain"
+          />
+        </div>
+
+        {/* Loader decorativo integrado en el login */}
+        <div className="flex justify-center mb-4">
+          <Loader />
         </div>
 
         {/* Título */}
-        <h2 className="text-2xl font-extrabold text-center mb-4 text-cyan-700">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 text-cyan-700">
           Control de Tiempos
         </h2>
 
