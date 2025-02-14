@@ -48,6 +48,9 @@ export default function ProcesoFinal() {
     total: string;
   } | null>(null);
 
+  // Estado para habilitar el botón Guardar Nota
+  const [notaHabilitada, setNotaHabilitada] = useState(false);
+
   // Control de acordeones
   const [accordionOpen, setAccordionOpen] = useState({
     primerProceso: false,
@@ -78,9 +81,11 @@ export default function ProcesoFinal() {
     let stored = localStorage.getItem("demorasProcess");
     if (!stored) {
       const initialData = {
-        fechaInicio: new Date().toLocaleString("en-GB", {timeZone: "America/El_Salvador"}),
-        userId:localStorage.getItem("userId"),
-        userName:localStorage.getItem("userName"),
+        fechaInicio: new Date().toLocaleString("en-GB", {
+          timeZone: "America/El_Salvador",
+        }),
+        userId: localStorage.getItem("userId"),
+        userName: localStorage.getItem("userName"),
         primerProceso: {},
         segundoProceso: {},
         tercerProceso: {},
@@ -146,6 +151,81 @@ export default function ProcesoFinal() {
     }
   };
 
+  // Función para generar el contenido legible del TXT
+  const generateReadableNote = (data: any): string => {
+    let note = "";
+    note += "=== Resumen del Proceso ===\n\n";
+    note += `Fecha de Inicio: ${data.fechaInicio}\n`;
+    note += `Usuario: ${data.userName} (ID: ${data.userId})\n\n`;
+
+    note += ">> Primer Proceso:\n";
+    const primer = data.primerProceso;
+    note += `  Número de Transacción: ${primer.numeroTransaccion || "N/A"}\n`;
+    note += `  Pesador Entrada: ${primer.pesadorEntrada || "N/A"}\n`;
+    note += `  Portería Entrada: ${primer.porteriaEntrada || "N/A"}\n`;
+    note += `  Punto Despacho: ${primer.puntoDespacho || "N/A"}\n`;
+    note += `  Báscula Entrada: ${primer.basculaEntrada || "N/A"}\n`;
+    note += `  Método de Carga: ${primer.metodoCarga || "N/A"}\n`;
+    note += `  Número de Ejes: ${primer.numeroEjes || "N/A"}\n\n`;
+
+    note += "  Tiempos:\n";
+    note += `    Prechequeo: ${primer.tiempoPrechequeo?.hora || "N/A"} - ${primer.tiempoPrechequeo?.comentarios || ""}\n`;
+    note += `    Scanner: ${primer.tiempoScanner?.hora || "N/A"} - ${primer.tiempoScanner?.comentarios || ""}\n`;
+    note += `    Autorización: ${primer.tiempoAutorizacion?.hora || "N/A"} - ${primer.tiempoAutorizacion?.comentarios || ""}\n`;
+    note += `    Ingreso Planta: ${primer.tiempoIngresoPlanta?.hora || "N/A"} - ${primer.tiempoIngresoPlanta?.comentarios || ""}\n`;
+    note += `    Llegada a Báscula: ${primer.tiempoLlegadaBascula?.hora || "N/A"} - ${primer.tiempoLlegadaBascula?.comentarios || ""}\n`;
+    note += `    Entrada Báscula: ${primer.tiempoEntradaBascula?.hora || "N/A"} - ${primer.tiempoEntradaBascula?.comentarios || ""}\n`;
+    note += `    Salida Báscula: ${primer.tiempoSalidaBascula?.hora || "N/A"} - ${primer.tiempoSalidaBascula?.comentarios || ""}\n\n`;
+
+    note += ">> Segundo Proceso:\n";
+    const segundo = data.segundoProceso;
+    note += `  Enlonador: ${segundo.enlonador || "N/A"}\n`;
+    note += `  Operador: ${segundo.operador || "N/A"}\n`;
+    note += `  Personal Asignado: ${segundo.personalAsignado || "N/A"}\n`;
+    note += `  Observaciones: ${segundo.personalAsignadoObservaciones || "N/A"}\n`;
+    note += `  Modelo Equipo: ${segundo.modeloEquipo || "N/A"}\n\n`;
+
+    note += "  Tiempos:\n";
+    note += `    Llegada al Punto: ${segundo.tiempoLlegadaPunto?.hora || "N/A"} - ${segundo.tiempoLlegadaPunto?.comentarios || ""}\n`;
+    note += `    Llegada del Operador: ${segundo.tiempoLlegadaOperador?.hora || "N/A"} - ${segundo.tiempoLlegadaOperador?.comentarios || ""}\n`;
+    note += `    Llegada del Enlonador: ${segundo.tiempoLlegadaEnlonador?.hora || "N/A"} - ${segundo.tiempoLlegadaEnlonador?.comentarios || ""}\n`;
+    note += `    Llegada del Equipo: ${segundo.tiempoLlegadaEquipo?.hora || "N/A"} - ${segundo.tiempoLlegadaEquipo?.comentarios || ""}\n`;
+    note += `    Inicio de Carga: ${segundo.tiempoInicioCarga?.hora || "N/A"} - ${segundo.tiempoInicioCarga?.comentarios || ""}\n`;
+    note += `    Termina Carga: ${segundo.tiempoTerminaCarga?.hora || "N/A"} - ${segundo.tiempoTerminaCarga?.comentarios || ""}\n`;
+    note += `    Salida del Punto: ${segundo.tiempoSalidaPunto?.hora || "N/A"} - ${segundo.tiempoSalidaPunto?.comentarios || ""}\n\n`;
+
+    note += ">> Tercer Proceso:\n";
+    const tercer = data.tercerProceso;
+    note += `  Pesador Salida: ${tercer.pesadorSalida || "N/A"}\n`;
+    note += `  Báscula Salida: ${tercer.basculaSalida || "N/A"}\n\n`;
+    note += "  Tiempos Báscula:\n";
+    note += `    Llegada a Báscula: ${tercer.tiempoLlegadaBascula?.hora || "N/A"} - ${tercer.tiempoLlegadaBascula?.comentarios || ""}\n`;
+    note += `    Entrada a Báscula: ${tercer.tiempoEntradaBascula?.hora || "N/A"} - ${tercer.tiempoEntradaBascula?.comentarios || ""}\n`;
+    note += `    Salida de Báscula: ${tercer.tiempoSalidaBascula?.hora || "N/A"} - ${tercer.tiempoSalidaBascula?.comentarios || ""}\n\n`;
+
+    if (Array.isArray(tercer.vueltas)) {
+      note += "  Registro de Vueltas:\n";
+      tercer.vueltas.forEach((v, idx) => {
+        note += `    Vuelta ${v.numeroVuelta}:\n`;
+        note += `      Llegada al Punto: ${v.llegadaPunto?.hora || "N/A"} - ${v.llegadaPunto?.comentarios || ""}\n`;
+        note += `      Salida del Punto: ${v.salidaPunto?.hora || "N/A"} - ${v.salidaPunto?.comentarios || ""}\n`;
+        note += `      Llegada a Báscula: ${v.llegadaBascula?.hora || "N/A"} - ${v.llegadaBascula?.comentarios || ""}\n`;
+        note += `      Entrada a Báscula: ${v.entradaBascula?.hora || "N/A"} - ${v.entradaBascula?.comentarios || ""}\n`;
+        note += `      Salida de Báscula: ${v.salidaBascula?.hora || "N/A"} - ${v.salidaBascula?.comentarios || ""}\n\n`;
+      });
+    }
+
+    note += ">> Proceso Final:\n";
+    const final = data.procesoFinal;
+    note += `  Llegada a Portería: ${final.tiempoLlegadaPorteria?.hora || "N/A"} - ${final.tiempoLlegadaPorteria?.comentarios || ""}\n`;
+    note += `  Salida de Planta: ${final.tiempoSalidaPlanta?.hora || "N/A"} - ${final.tiempoSalidaPlanta?.comentarios || ""}\n`;
+    note += `  Portería Salida: ${final.porteriaSalida || "N/A"}\n\n`;
+
+    note += `Tiempo Total: ${data.tiempoTotal || "N/A"}\n`;
+
+    return note;
+  };
+
   // Botón "Guardar"
   const handleGuardarLocal = () => {
     const stored = localStorage.getItem("demorasProcess");
@@ -183,11 +263,43 @@ export default function ProcesoFinal() {
       });
     }
     cargarDatosDeLocalStorage();
+    // Se activa la opción para Guardar Nota
+    setNotaHabilitada(true);
     Swal.fire(
       "Guardado",
-      `Los datos finales se han guardado en cache. Tiempo Total: ${tiempoTotal || "No calculado"}`,
+      `Los datos finales se han guardado en caché. Tiempo Total: ${tiempoTotal || "No calculado"}`,
       "success"
     );
+  };
+
+  // Función para guardar en un archivo txt la información de caché en formato legible
+  const handleGuardarNota = () => {
+    const stored = localStorage.getItem("demorasProcess");
+    if (!stored) {
+      Swal.fire("Error", "No se encontró demorasProcess en localStorage", "error");
+      return;
+    }
+    const parsed = JSON.parse(stored);
+    const content = generateReadableNote(parsed);
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    // Generar nombre de archivo: <userName>-YYYY-MM-DD-HH-MM-SS.txt
+    const userName = parsed.userName || "usuario";
+    const now = new Date();
+    const formattedDate = now.toISOString().slice(0, 10);
+    const formattedTime = now
+      .toTimeString()
+      .slice(0, 8)
+      .replace(/:/g, "-");
+    const fileName = `${userName}-${formattedDate}-${formattedTime}.txt`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    Swal.fire("Nota guardada", "La información de caché se ha descargado en un archivo TXT legible.", "success");
   };
 
   // Validación de procesos
@@ -249,7 +361,7 @@ export default function ProcesoFinal() {
         const parsed = JSON.parse(stored);
         if (!parsed || typeof parsed !== "object") {
           Swal.close();
-          Swal.fire("Error", "Datos en cache inválidos.", "error");
+          Swal.fire("Error", "Datos en caché inválidos.", "error");
           return;
         }
         parsed.procesoFinal = {
@@ -272,7 +384,6 @@ export default function ProcesoFinal() {
 
         // Debug: imprimir el payload a enviar
         console.log("Payload a enviar:", JSON.stringify({ demorasProcess: parsed }, null, 2));
-        // debugger; // Descomenta para pausar el código y depurar
 
         const res = await fetch("/api/demoras", {
           method: "POST",
@@ -522,7 +633,7 @@ export default function ProcesoFinal() {
                     <ul className="list-disc list-inside space-y-1 mt-1">
                       {tercerProceso.vueltas.map((v, idx) => (
                         <li key={idx}>
-                          <strong>Vuelta {v.numeroVuelta}:</strong> {v.hora} | <em>{v.comentarios}</em>
+                          <strong>Vuelta {v.numeroVuelta}:</strong> {v.llegadaPunto?.hora || "N/A"} | <em>{v.llegadaPunto?.comentarios || ""}</em>
                         </li>
                       ))}
                     </ul>
@@ -685,6 +796,14 @@ export default function ProcesoFinal() {
             >
               Guardar
             </button>
+            {notaHabilitada && (
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded text-sm hover:bg-green-600"
+                onClick={handleGuardarNota}
+              >
+                Guardar Nota
+              </button>
+            )}
           </div>
           <button
             className={`px-4 py-2 rounded text-sm text-white ${
