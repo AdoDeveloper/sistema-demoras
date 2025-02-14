@@ -183,7 +183,7 @@ model ProcesoFinal {
   tiempoLlegadaPorteria        String?  @map("tiempo_llegada_porteria")
   llegadaPorteriaObservaciones String?  @map("llegada_porteria_obs") @db.LongText
 
-  createAt                     DateTime @default(now()) @map("created_at")
+  createdAt                    DateTime @default(now()) @map("created_at")
   updatedAt                    DateTime @updatedAt @map("updated_at")
   demora                       Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
   @@map("proceso_final")

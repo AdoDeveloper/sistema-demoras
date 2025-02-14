@@ -68,11 +68,6 @@ export default function LoginForm() {
           />
         </div>
 
-        {/* Loader decorativo integrado en el login */}
-        <div className="flex justify-center mb-4">
-          <Loader />
-        </div>
-
         {/* Título */}
         <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 text-cyan-700">
           Control de Tiempos
