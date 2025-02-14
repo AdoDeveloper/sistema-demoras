@@ -1,4 +1,4 @@
-generator client { 
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -7,22 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modelo de usuario
 model User {
-  id        Int      @id @default(autoincrement()) @map("id")
-  username  String   @unique @map("username")
-  email     String?  @unique @map("email")
-  password  String?  @map("password")
-  createdAt DateTime @default(now()) @map("created_at")
-
+  id        Int       @id @default(autoincrement()) @map("id")
+  username  String    @unique @map("username")
+  email     String?   @unique @map("email")
+  password  String?   @map("password")
+  createdAt DateTime  @default(now()) @map("created_at")
   accounts  Account[]
-  sessions  Session[]
   demoras   Demora[]
+  sessions  Session[]
 
   @@map("users")
 }
 
-// Modelo de autenticación
 model Account {
   id                String  @id @default(uuid()) @map("id")
   userId            Int     @map("user_id")
@@ -31,56 +28,51 @@ model Account {
   providerAccountId String  @map("provider_account_id")
   accessToken       String? @map("access_token")
   refreshToken      String? @map("refresh_token")
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  @@index([userId], map: "accounts_user_id_fkey")
   @@map("accounts")
 }
 
-// Modelo de sesión
 model Session {
   id           String   @id @default(uuid()) @map("id")
   sessionToken String   @unique @map("session_token")
   userId       Int      @map("user_id")
   expires      DateTime @map("expires")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  @@index([userId], map: "sessions_user_id_fkey")
   @@map("sessions")
 }
 
-// Modelo de demora
 model Demora {
-  id            Int      @id @default(autoincrement()) @map("id")
-  userId        Int?     @map("user_id")
-  userName      String?   @map("user_name")
-  fechaInicio   String   @map("fecha_inicio")
-  // Campo para almacenar el tiempo total de la operación (calculado en la capa de código)
-  tiempoTotal   String?  @map("tiempo_total")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
+  id             Int             @id @default(autoincrement()) @map("id")
+  userId         Int?            @map("user_id")
+  userName       String?         @map("user_name")
+  fechaInicio    String          @map("fecha_inicio")
+  tiempoTotal    String?         @map("tiempo_total")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
   user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   primerProceso  PrimerProceso?
+  procesoFinal   ProcesoFinal?
   segundoProceso SegundoProceso?
   tercerProceso  TercerProceso?
-  procesoFinal   ProcesoFinal?
 
+  @@index([userId], map: "demoras_user_id_fkey")
   @@map("demoras")
 }
 
-// Primer proceso (con número de transacción)
 model PrimerProceso {
   id                          Int      @id @default(autoincrement()) @map("id")
   demoraId                    Int      @unique @map("demora_id")
-  numeroTransaccion           String   @map("numero_transaccion")
+  numeroTransaccion           String   @unique   @map("numero_transaccion")
   pesadorEntrada              String   @map("pesador_entrada")
   porteriaEntrada             String   @map("porteria_entrada")
   metodoCarga                 String   @map("metodo_carga")
   numeroEjes                  String   @map("numero_ejes")
   puntoDespacho               String   @map("punto_despacho")
   basculaEntrada              String   @map("bascula_entrada")
-
   tiempoScanner               String?  @map("tiempo_scanner")
   fechaScanner                String?  @map("fecha_scanner")
   scannerObservaciones        String?  @map("scanner_obs") @db.LongText
@@ -101,12 +93,11 @@ model PrimerProceso {
 
   demora                      Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
 
-  createAt                   DateTime @default(now()) @map("created_at")
-  updatedAt                  DateTime @updatedAt @map("updated_at")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
   @@map("primer_proceso")
 }
 
-// Segundo proceso
 model SegundoProceso {
   id                            Int      @id @default(autoincrement()) @map("id")
   demoraId                     Int      @unique @map("demora_id")
@@ -133,12 +124,11 @@ model SegundoProceso {
 
   demora                      Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
 
-  createAt                   DateTime @default(now()) @map("created_at")
-  updatedAt                  DateTime @updatedAt @map("updated_at")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
   @@map("segundo_proceso")
 }
 
-// Tercer proceso
 model TercerProceso {
   id                          Int      @id @default(autoincrement()) @map("id")
   demoraId                   Int      @unique @map("demora_id")
@@ -155,12 +145,11 @@ model TercerProceso {
   demora                     Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
   vueltas                   Vueltas[]
 
-  createAt                   DateTime @default(now()) @map("created_at")
+  createdAt                  DateTime @default(now()) @map("created_at")
   updatedAt                  DateTime @updatedAt @map("updated_at")
   @@map("tercer_proceso")
 }
 
-// Modelo de vueltas
 model Vueltas {
   id                          Int      @id @default(autoincrement()) @map("id")
   tercerProcesoId            Int      @map("tercer_proceso_id")
@@ -179,24 +168,23 @@ model Vueltas {
 
   tercerProceso              TercerProceso @relation(fields: [tercerProcesoId], references: [id], onDelete: Cascade)
 
-  createAt                   DateTime @default(now()) @map("created_at")
-  updatedAt                  DateTime @updatedAt @map("updated_at")  
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  @@index([tercerProcesoId], map: "vueltas_tercer_proceso_id_fkey")
   @@map("vueltas")
 }
 
-// Proceso final
 model ProcesoFinal {
   id                           Int      @id @default(autoincrement()) @map("id")
-  demoraId                    Int      @unique @map("demora_id")
+  demoraId                     Int      @unique @map("demora_id")
   tiempoSalidaPlanta           String?  @map("tiempo_salida_planta")
   salidaPlantaObservaciones    String?  @map("salida_planta_obs") @db.LongText
   porteriaSalida               String   @map("porteria_salida")
   tiempoLlegadaPorteria        String?  @map("tiempo_llegada_porteria")
   llegadaPorteriaObservaciones String?  @map("llegada_porteria_obs") @db.LongText
 
-  demora                      Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
-  
-  createAt                   DateTime @default(now()) @map("created_at")
-  updatedAt                  DateTime @updatedAt @map("updated_at")
+  createAt                     DateTime @default(now()) @map("created_at")
+  updatedAt                    DateTime @updatedAt @map("updated_at")
+  demora                       Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
   @@map("proceso_final")
 }

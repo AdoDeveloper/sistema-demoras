@@ -32,7 +32,10 @@ export async function POST(request) {
     const { demorasProcess } = body;
     if (!demorasProcess) {
       console.warn(">>> [API Debug] demorasProcess es undefined o null.");
-      return NextResponse.json({ error: "Faltan datos en el body" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Faltan datos en el body" },
+        { status: 400 }
+      );
     }
 
     // 1) Extraer datos generales
@@ -41,160 +44,213 @@ export async function POST(request) {
     console.log(">>> [API Debug] userId:", demorasProcess.userId);
     console.log(">>> [API Debug] userName:", demorasProcess.userName);
 
-    // 2) Crear la Demora principal
-    const demoraCreada = await prisma.demora.create({
-      data: {
-        userId: parseInt(demorasProcess.userId, 10) || null,
-        userName: demorasProcess.userName || "",
-        fechaInicio: fechaInicioStr,
-        tiempoTotal: demorasProcess.tiempoTotal || null,
-      },
-    });
-    console.log(">>> [API Debug] Demora creada con ID:", demoraCreada.id);
-
-    // 3) Crear Primer Proceso
+    // Extraer los procesos
     const primerP = demorasProcess.primerProceso || {};
-    console.log(">>> [API Debug] primerProceso:", primerP);
-    if (Object.keys(primerP).length > 0) {
-      await prisma.primerProceso.create({
-        data: {
-          demoraId: demoraCreada.id,
-          numeroTransaccion: primerP.numeroTransaccion || "",
-          pesadorEntrada: primerP.pesadorEntrada || "",
-          porteriaEntrada: primerP.porteriaEntrada || "",
-          metodoCarga: primerP.metodoCarga || "",
-          // Si tienes un campo "numeroEjes" en la BD, asegúrate de mapearlo
-          numeroEjes: primerP.numeroEjes || "",
-          puntoDespacho: primerP.puntoDespacho || "",
-          basculaEntrada: primerP.basculaEntrada || "",
-          tiempoPrechequeo: primerP.tiempoPrechequeo?.hora || "",
-          fechaPrechequeo: primerP.tiempoPrechequeo?.fecha || "",
-          prechequeoObservaciones: primerP.tiempoPrechequeo?.comentarios || "",
-          tiempoScanner: primerP.tiempoScanner?.hora || "",
-          fechaScanner: primerP.tiempoScanner?.fecha || "",
-          scannerObservaciones: primerP.tiempoScanner?.comentarios || "",
-          tiempoAutorizacion: primerP.tiempoAutorizacion?.hora || "",
-          fechaAutorizacion: primerP.tiempoAutorizacion?.fecha || "",
-          autorizacionObservaciones: primerP.tiempoAutorizacion?.comentarios || "",
-          tiempoIngresoPlanta: primerP.tiempoIngresoPlanta?.hora || "",
-          ingresoPlantaObservaciones: primerP.tiempoIngresoPlanta?.comentarios || "",
-          tiemporLlegadaBascula: primerP.tiempoLlegadaBascula?.hora || "",
-          llegadaBasculaObservaciones: primerP.tiempoLlegadaBascula?.comentarios || "",
-          tiempoEntradaBascula: primerP.tiempoEntradaBascula?.hora || "",
-          entradaBasculaObservaciones: primerP.tiempoEntradaBascula?.comentarios || "",
-          tiempoSalidaBascula: primerP.tiempoSalidaBascula?.hora || "",
-          salidaBasculaObservaciones: primerP.tiempoSalidaBascula?.comentarios || "",
-        },
-      });
-      console.log(">>> [API Debug] Primer proceso creado con éxito.");
-    } else {
-      console.log(">>> [API Debug] primerProceso vacío, no se crea registro.");
-    }
-
-    // 4) Crear Segundo Proceso
     const segundoP = demorasProcess.segundoProceso || {};
-    console.log(">>> [API Debug] segundoProceso:", segundoP);
-    if (Object.keys(segundoP).length > 0) {
-      await prisma.segundoProceso.create({
-        data: {
-          demoraId: demoraCreada.id,
-          operador: segundoP.operador || "",
-          enlonador: segundoP.enlonador || "",
-          modeloEquipo: segundoP.modeloEquipo || "",
-          personalAsignado: parseInt(segundoP.personalAsignado, 10) || 0,
-          personalAsignadoObservaciones: segundoP.personalAsignadoObservaciones || "",
-          tiempoLlegadaPunto: segundoP.tiempoLlegadaPunto?.hora || "",
-          llegadaPuntoObservaciones: segundoP.tiempoLlegadaPunto?.comentarios || "",
-          tiempoLlegadaOperador: segundoP.tiempoLlegadaOperador?.hora || "",
-          llegadaOperadorObservaciones: segundoP.tiempoLlegadaOperador?.comentarios || "",
-          tiempoLlegadaEnlonador: segundoP.tiempoLlegadaEnlonador?.hora || "",
-          llegadaEnlonadorObservaciones: segundoP.tiempoLlegadaEnlonador?.comentarios || "",
-          tiempoLlegadaEquipo: segundoP.tiempoLlegadaEquipo?.hora || "",
-          llegadaEquipoObservaciones: segundoP.tiempoLlegadaEquipo?.comentarios || "",
-          tiempoInicioCarga: segundoP.tiempoInicioCarga?.hora || "",
-          inicioCargaObservaciones: segundoP.tiempoInicioCarga?.comentarios || "",
-          tiempoTerminaCarga: segundoP.tiempoTerminaCarga?.hora || "",
-          terminaCargaObservaciones: segundoP.tiempoTerminaCarga?.comentarios || "",
-          tiempoSalidaPunto: segundoP.tiempoSalidaPunto?.hora || "",
-          salidaPuntoObservaciones: segundoP.tiempoSalidaPunto?.comentarios || "",
-        },
-      });
-      console.log(">>> [API Debug] Segundo proceso creado con éxito.");
-    } else {
-      console.log(">>> [API Debug] segundoProceso vacío, no se crea registro.");
-    }
-
-    // 5) Crear Tercer Proceso y sus Vueltas
     const tercerP = demorasProcess.tercerProceso || {};
-    console.log(">>> [API Debug] tercerProceso:", tercerP);
-    if (Object.keys(tercerP).length > 0) {
-      const terceroCreado = await prisma.tercerProceso.create({
-        data: {
-          demoraId: demoraCreada.id,
-          basculaSalida: tercerP.basculaSalida || "",
-          pesadorSalida: tercerP.pesadorSalida || "",
-          tiempoLlegadaBascula: tercerP.tiempoLlegadaBascula?.hora || "",
-          llegadaBasculaObservaciones: tercerP.tiempoLlegadaBascula?.comentarios || "",
-          tiempoEntradaBascula: tercerP.tiempoEntradaBascula?.hora || "",
-          entradaBasculaObservaciones: tercerP.tiempoEntradaBascula?.comentarios || "",
-          tiempoSalidaBascula: tercerP.tiempoSalidaBascula?.hora || "",
-          salidaBasculaObservaciones: tercerP.tiempoSalidaBascula?.comentarios || "",
-        },
+    const finalP = demorasProcess.procesoFinal || {};
+
+    // 2) Validar duplicidad en el Primer Proceso (por ejemplo, con el campo numeroTransaccion)
+    if (primerP.numeroTransaccion) {
+      const transaccionExistente = await prisma.primerProceso.findFirst({
+        where: { numeroTransaccion: primerP.numeroTransaccion },
       });
-      console.log(">>> [API Debug] Tercer proceso creado con ID:", terceroCreado.id);
-      if (Array.isArray(tercerP.vueltas)) {
-        console.log(">>> [API Debug] Vueltas a crear:", JSON.stringify(tercerP.vueltas, null, 2));
-        for (let i = 0; i < tercerP.vueltas.length; i++) {
-          const unaVuelta = tercerP.vueltas[i];
-          console.log(`>>> [API Debug] Creando vuelta ${i + 1}:`, unaVuelta);
-          await prisma.vueltas.create({
-            data: {
-              tercerProcesoId: terceroCreado.id,
-              numeroVuelta: unaVuelta.numeroVuelta, // se usa el valor enviado
-              tiempoLlegadaPunto: unaVuelta.llegadaPunto?.hora || "",
-              llegadaPuntoObservaciones: unaVuelta.llegadaPunto?.comentarios || "",
-              tiempoSalidaPunto: unaVuelta.salidaPunto?.hora || "",
-              salidaPuntoObservaciones: unaVuelta.salidaPunto?.comentarios || "",
-              tiempoLlegadaBascula: unaVuelta.llegadaBascula?.hora || "",
-              llegadaBasculaObservaciones: unaVuelta.llegadaBascula?.comentarios || "",
-              tiempoEntradaBascula: unaVuelta.entradaBascula?.hora || "",
-              entradaBasculaObservaciones: unaVuelta.entradaBascula?.comentarios || "",
-              tiempoSalidaBascula: unaVuelta.salidaBascula?.hora || "",
-              salidaBasculaObservaciones: unaVuelta.salidaBascula?.comentarios || "",
-            },
-          });
-        }
-        console.log(">>> [API Debug] Vueltas creadas satisfactoriamente.");
-      } else {
-        console.log(">>> [API Debug] No se encontró array de vueltas.");
+      if (transaccionExistente) {
+        console.warn(
+          ">>> [API Debug] Transacción ya existe:",
+          primerP.numeroTransaccion
+        );
+        return NextResponse.json(
+          { error: "La transacción ya existe" },
+          { status: 400 }
+        );
       }
-    } else {
-      console.log(">>> [API Debug] tercerProceso vacío, no se crea registro.");
     }
 
-    // 6) Crear Proceso Final
-    const finalP = demorasProcess.procesoFinal || {};
-    console.log(">>> [API Debug] procesoFinal:", finalP);
-    if (Object.keys(finalP).length > 0) {
-      await prisma.procesoFinal.create({
+    // 3) Ejecutar todas las operaciones en una transacción
+    const createdData = await prisma.$transaction(async (tx) => {
+      // Crear la Demora principal
+      const demoraCreada = await tx.demora.create({
         data: {
-          demoraId: demoraCreada.id,
-          tiempoSalidaPlanta: finalP.tiempoSalidaPlanta?.hora || "",
-          salidaPlantaObservaciones: finalP.tiempoSalidaPlanta?.comentarios || "",
-          porteriaSalida: finalP.porteriaSalida || "",
-          tiempoLlegadaPorteria: finalP.tiempoLlegadaPorteria?.hora || "",
-          llegadaPorteriaObservaciones: finalP.tiempoLlegadaPorteria?.comentarios || "",
+          userId: parseInt(demorasProcess.userId, 10) || null,
+          userName: demorasProcess.userName || "",
+          fechaInicio: fechaInicioStr,
+          tiempoTotal: demorasProcess.tiempoTotal || null,
         },
       });
-      console.log(">>> [API Debug] Proceso final creado con éxito.");
-    } else {
-      console.log(">>> [API Debug] procesoFinal vacío, no se crea registro.");
-    }
+      console.log(">>> [API Debug] Demora creada con ID:", demoraCreada.id);
+
+      // Crear Primer Proceso
+      if (Object.keys(primerP).length > 0) {
+        await tx.primerProceso.create({
+          data: {
+            demoraId: demoraCreada.id,
+            numeroTransaccion: primerP.numeroTransaccion || "",
+            pesadorEntrada: primerP.pesadorEntrada || "",
+            porteriaEntrada: primerP.porteriaEntrada || "",
+            metodoCarga: primerP.metodoCarga || "",
+            numeroEjes: primerP.numeroEjes || "",
+            puntoDespacho: primerP.puntoDespacho || "",
+            basculaEntrada: primerP.basculaEntrada || "",
+            tiempoPrechequeo: primerP.tiempoPrechequeo?.hora || "",
+            fechaPrechequeo: primerP.tiempoPrechequeo?.fecha || "",
+            prechequeoObservaciones: primerP.tiempoPrechequeo?.comentarios || "",
+            tiempoScanner: primerP.tiempoScanner?.hora || "",
+            fechaScanner: primerP.tiempoScanner?.fecha || "",
+            scannerObservaciones: primerP.tiempoScanner?.comentarios || "",
+            tiempoAutorizacion: primerP.tiempoAutorizacion?.hora || "",
+            fechaAutorizacion: primerP.tiempoAutorizacion?.fecha || "",
+            autorizacionObservaciones:
+              primerP.tiempoAutorizacion?.comentarios || "",
+            tiempoIngresoPlanta: primerP.tiempoIngresoPlanta?.hora || "",
+            ingresoPlantaObservaciones:
+              primerP.tiempoIngresoPlanta?.comentarios || "",
+            tiemporLlegadaBascula: primerP.tiempoLlegadaBascula?.hora || "",
+            llegadaBasculaObservaciones:
+              primerP.tiempoLlegadaBascula?.comentarios || "",
+            tiempoEntradaBascula: primerP.tiempoEntradaBascula?.hora || "",
+            entradaBasculaObservaciones:
+              primerP.tiempoEntradaBascula?.comentarios || "",
+            tiempoSalidaBascula: primerP.tiempoSalidaBascula?.hora || "",
+            salidaBasculaObservaciones:
+              primerP.tiempoSalidaBascula?.comentarios || "",
+          },
+        });
+        console.log(">>> [API Debug] Primer proceso creado con éxito.");
+      } else {
+        console.log(">>> [API Debug] primerProceso vacío, no se crea registro.");
+      }
+
+      // Crear Segundo Proceso
+      if (Object.keys(segundoP).length > 0) {
+        await tx.segundoProceso.create({
+          data: {
+            demoraId: demoraCreada.id,
+            operador: segundoP.operador || "",
+            enlonador: segundoP.enlonador || "",
+            modeloEquipo: segundoP.modeloEquipo || "",
+            personalAsignado: parseInt(segundoP.personalAsignado, 10) || 0,
+            personalAsignadoObservaciones:
+              segundoP.personalAsignadoObservaciones || "",
+            tiempoLlegadaPunto: segundoP.tiempoLlegadaPunto?.hora || "",
+            llegadaPuntoObservaciones:
+              segundoP.tiempoLlegadaPunto?.comentarios || "",
+            tiempoLlegadaOperador: segundoP.tiempoLlegadaOperador?.hora || "",
+            llegadaOperadorObservaciones:
+              segundoP.tiempoLlegadaOperador?.comentarios || "",
+            tiempoLlegadaEnlonador: segundoP.tiempoLlegadaEnlonador?.hora || "",
+            llegadaEnlonadorObservaciones:
+              segundoP.tiempoLlegadaEnlonador?.comentarios || "",
+            tiempoLlegadaEquipo: segundoP.tiempoLlegadaEquipo?.hora || "",
+            llegadaEquipoObservaciones:
+              segundoP.tiempoLlegadaEquipo?.comentarios || "",
+            tiempoInicioCarga: segundoP.tiempoInicioCarga?.hora || "",
+            inicioCargaObservaciones:
+              segundoP.tiempoInicioCarga?.comentarios || "",
+            tiempoTerminaCarga: segundoP.tiempoTerminaCarga?.hora || "",
+            terminaCargaObservaciones:
+              segundoP.tiempoTerminaCarga?.comentarios || "",
+            tiempoSalidaPunto: segundoP.tiempoSalidaPunto?.hora || "",
+            salidaPuntoObservaciones:
+              segundoP.tiempoSalidaPunto?.comentarios || "",
+          },
+        });
+        console.log(">>> [API Debug] Segundo proceso creado con éxito.");
+      } else {
+        console.log(">>> [API Debug] segundoProceso vacío, no se crea registro.");
+      }
+
+      // Crear Tercer Proceso y sus Vueltas
+      if (Object.keys(tercerP).length > 0) {
+        const terceroCreado = await tx.tercerProceso.create({
+          data: {
+            demoraId: demoraCreada.id,
+            basculaSalida: tercerP.basculaSalida || "",
+            pesadorSalida: tercerP.pesadorSalida || "",
+            tiempoLlegadaBascula: tercerP.tiempoLlegadaBascula?.hora || "",
+            llegadaBasculaObservaciones:
+              tercerP.tiempoLlegadaBascula?.comentarios || "",
+            tiempoEntradaBascula: tercerP.tiempoEntradaBascula?.hora || "",
+            entradaBasculaObservaciones:
+              tercerP.tiempoEntradaBascula?.comentarios || "",
+            tiempoSalidaBascula: tercerP.tiempoSalidaBascula?.hora || "",
+            salidaBasculaObservaciones:
+              tercerP.tiempoSalidaBascula?.comentarios || "",
+          },
+        });
+        console.log(
+          ">>> [API Debug] Tercer proceso creado con ID:",
+          terceroCreado.id
+        );
+
+        if (Array.isArray(tercerP.vueltas)) {
+          console.log(">>> [API Debug] Procesando vueltas:", tercerP.vueltas);
+          
+          for (let i = 0; i < tercerP.vueltas.length; i++) {
+            const unaVuelta = tercerP.vueltas[i];
+            console.log(`>>> [API Debug] Procesando vuelta ${i + 1}:`, unaVuelta);
+            
+            try {
+              await tx.vueltas.create({
+                data: {
+                  tercerProcesoId: terceroCreado.id,
+                  numeroVuelta: unaVuelta.numeroVuelta || (i + 1), // Fallback al índice + 1 si no viene numeroVuelta
+                  tiempoLlegadaPunto: unaVuelta.llegadaPunto?.hora || "",
+                  llegadaPuntoObservaciones: unaVuelta.llegadaPunto?.comentarios || "",
+                  tiempoSalidaPunto: unaVuelta.salidaPunto?.hora || "",
+                  salidaPuntoObservaciones: unaVuelta.salidaPunto?.comentarios || "",
+                  tiempoLlegadaBascula: unaVuelta.llegadaBascula?.hora || "",
+                  llegadaBasculaObservaciones: unaVuelta.llegadaBascula?.comentarios || "",
+                  tiempoEntradaBascula: unaVuelta.entradaBascula?.hora || "",
+                  entradaBasculaObservaciones: unaVuelta.entradaBascula?.comentarios || "",
+                  tiempoSalidaBascula: unaVuelta.salidaBascula?.hora || "",
+                  salidaBasculaObservaciones: unaVuelta.salidaBascula?.comentarios || "",
+                },
+              });
+              console.log(`>>> [API Debug] Vuelta ${i + 1} creada exitosamente`);
+            } catch (error) {
+              console.error(`>>> [API Debug] Error al crear vuelta ${i + 1}:`, error);
+              throw error; // Re-lanzar el error para que la transacción se revierta
+            }
+          }
+        } else {
+          console.log(">>> [API Debug] No se encontró array de vueltas.");
+        }
+      } else {
+        console.log(">>> [API Debug] tercerProceso vacío, no se crea registro.");
+      }
+
+      // Crear Proceso Final
+      if (Object.keys(finalP).length > 0) {
+        await tx.procesoFinal.create({
+          data: {
+            demoraId: demoraCreada.id,
+            tiempoSalidaPlanta: finalP.tiempoSalidaPlanta?.hora || "",
+            salidaPlantaObservaciones:
+              finalP.tiempoSalidaPlanta?.comentarios || "",
+            porteriaSalida: finalP.porteriaSalida || "",
+            tiempoLlegadaPorteria: finalP.tiempoLlegadaPorteria?.hora || "",
+            llegadaPorteriaObservaciones:
+              finalP.tiempoLlegadaPorteria?.comentarios || "",
+          },
+        });
+        console.log(">>> [API Debug] Proceso final creado con éxito.");
+      } else {
+        console.log(">>> [API Debug] procesoFinal vacío, no se crea registro.");
+      }
+
+      // Retornar la Demora creada (registro principal)
+      return demoraCreada;
+    });
 
     console.log(">>> [API Debug] Todo creado correctamente. Respondiendo con status 201.");
-    return NextResponse.json({ ok: true, id: demoraCreada.id }, { status: 201 });
+    return NextResponse.json({ ok: true, id: createdData.id }, { status: 201 });
   } catch (err) {
     console.error("Error al guardar demoras:", err);
+    // Validar error por duplicidad (por ejemplo, código P2002 de Prisma)
+    if (err.code === "P2002") {
+      return NextResponse.json({ error: "Registro duplicado" }, { status: 400 });
+    }
     return NextResponse.json({ error: "Error al guardar demoras" }, { status: 500 });
   }
 }

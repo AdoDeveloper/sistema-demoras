@@ -335,6 +335,9 @@ export default function SegundoProceso() {
         {/* Tiempos */}
         <div className="mt-6">
           <h3 className="font-bold text-lg mb-2 sm:text-sm">Tiempos</h3>
+          <div className="text-sm sm:text-base text-orange-600 mb-2">
+              <strong>NOTA:</strong> Si no requiere ingresar 6 digitos de 0.
+            </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Llegada al Punto */}
             <div className="border rounded p-2">
@@ -430,13 +433,16 @@ export default function SegundoProceso() {
               <label className="block font-semibold text-sm sm:text-base">Llegada del Equipo</label>
               <div className="flex gap-2 mt-1">
                 <input
-                  type="time"
-                  step="1"
-                  className="border p-1 w-full text-sm sm:text-base"
+                   type="text"
+                   pattern={timePattern}
+                   placeholder="HH:MM:SS"
+                   className="border p-1 w-full text-sm sm:text-base"
+                  // value={tiempoLlegadaEquipo.hora}
+                  // onChange={(e) =>
+                  //   setTiempoLlegadaEquipo((prev) => ({ ...prev, hora: e.target.value }))
+                  // }
                   value={tiempoLlegadaEquipo.hora}
-                  onChange={(e) =>
-                    setTiempoLlegadaEquipo((prev) => ({ ...prev, hora: e.target.value }))
-                  }
+                  onChange={(e) => handleTimeInputChange(e, setTiempoLlegadaEquipo)}
                 />
                 <button
                   className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"

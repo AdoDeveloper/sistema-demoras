@@ -455,9 +455,13 @@ export default function TercerProceso() {
         <div className="mt-6">
           <h3 className="font-bold text-lg mb-2 sm:text-sm">Registro de Vueltas</h3>
           <div className="text-sm sm:text-base text-gray-600 mb-2">
-            <strong>NOTA:</strong> El proceso normal se considera la Vuelta 1.
+            <strong>NOTA:</strong> El proceso normal cuenta como la Vuelta 1.
             <br />
-            Registra cada vez que el camión deba regresar al punto de carga.
+            Cada vez que el camión deba volver a punto de carga o descarga, agrega una nueva vuelta.
+            <div className="mt-1 ml-2 list-disc list-inside">
+              <li>Si el camión no alcanzó la carga requerida y debe regresar.</li>
+              <li>Si el camión lleva peso en exceso y debe regresar.</li>
+            </div>
           </div>
           <button
             className="bg-orange-500 text-white px-4 py-1 rounded text-sm sm:text-base"
