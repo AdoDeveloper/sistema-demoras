@@ -261,7 +261,7 @@ export default function DemorasPage() {
     let entradaBS = null;
     if (tercero.vueltas && tercero.vueltas.length > 0) {
       const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
-      entradaBS = parseHora(lastVuelta.entradaBascula);
+      entradaBS = parseHora(lastVuelta.tiempoEntradaBascula);
     }
     const calc4 = diffHoras(
       parseHora(segundo.tiempoSalidaPunto),
@@ -270,7 +270,8 @@ export default function DemorasPage() {
     let salidaBS = null;
     if (tercero.vueltas && tercero.vueltas.length > 0) {
       const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
-      salidaBS = parseHora(lastVuelta.salidaBascula);
+      //console.log(lastVuelta);
+      salidaBS = parseHora(lastVuelta.tiempoSalidaBascula);
     }
     const calc5 = diffHoras(entradaBS, salidaBS);
     const calc6 = diffHoras(salidaBS, parseHora(final.tiempoSalidaPlanta));

@@ -166,7 +166,7 @@ export default function ProcesoFinal() {
     note += `  Punto Despacho: ${primer.puntoDespacho || "N/A"}\n`;
     note += `  Báscula Entrada: ${primer.basculaEntrada || "N/A"}\n`;
     note += `  Método de Carga: ${primer.metodoCarga || "N/A"}\n`;
-    note += `  Número de Ejes: ${primer.numeroEjes || "N/A"}\n\n`;
+    note += `  Número de Ejes: ${primer.numeroEjes || "N/A"}\n`;
     note += `  Condicion: ${primer.condicion || "N/A"}\n\n`;
 
     note += "  Tiempos:\n";
