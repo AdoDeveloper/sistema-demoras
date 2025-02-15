@@ -167,6 +167,7 @@ export default function ProcesoFinal() {
     note += `  Báscula Entrada: ${primer.basculaEntrada || "N/A"}\n`;
     note += `  Método de Carga: ${primer.metodoCarga || "N/A"}\n`;
     note += `  Número de Ejes: ${primer.numeroEjes || "N/A"}\n\n`;
+    note += `  Condicion: ${primer.condicion || "N/A"}\n\n`;
 
     note += "  Tiempos:\n";
     note += `    Prechequeo: ${primer.tiempoPrechequeo?.fecha || "N/A"} ${primer.tiempoPrechequeo?.hora || "N/A"} - ${primer.tiempoPrechequeo?.comentarios || ""}\n`;

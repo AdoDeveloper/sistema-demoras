@@ -3,7 +3,11 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Loader from "../components/Loader"; // Ajusta la ruta según la ubicación de tu Loader.jsx
+import Loader from "../components/Loader"; // Ajusta la ruta según tu estructura
+import WeatherWidget from "../components/WeatherWidget"; // Ajusta la ruta según tu estructura
+import { FiHome, FiLogOut } from "react-icons/fi";
+import { FaPlay, FaList } from "react-icons/fa";
+import { HiOutlineUserCircle } from "react-icons/hi";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -14,8 +18,6 @@ export default function Dashboard() {
     if (status === "unauthenticated") {
       router.push("/login");
     }
-
-    // Obtener datos desde caché si existen
     const cached = sessionStorage.getItem("user");
     if (cached) {
       setCachedUser(JSON.parse(cached));
@@ -27,79 +29,88 @@ export default function Dashboard() {
 
   if (status === "loading") {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-500 to-indigo-500">
         <Loader />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <div className="w-full max-w-md bg-white border border-gray-200 shadow-lg rounded-lg overflow-hidden">
-        {/* Franja superior en color naranja (original) */}
-        <div className="h-2 bg-orange-500"></div>
-        <div className="p-6">
-          {/* Logo centrado */}
-          <div className="flex justify-center">
-            <img
-              src="/logo.png"
-              alt="ALMAPAC Logo"
-              className="w-20 h-20 object-contain"
-            />
-          </div>
-
-          {/* Título principal */}
-          <h1 className="text-center text-3xl font-bold text-blue-700 mt-4">
-            Control de Tiempos
-          </h1>
-
-          {/* Banner del Panel de Control */}
-          <div className="mt-4 text-center font-bold text-white py-2 px-4 bg-orange-500 rounded-md shadow-md">
-            Panel de Control
-          </div>
-
-          {/* Área de bienvenida y botones */}
-          <div className="mt-6 p-4 border border-orange-500 rounded-md">
-            <p className="text-lg font-semibold text-gray-800">
-              👋 Bienvenido,{" "}
-              <span className="text-blue-700">
-                {cachedUser?.username || "Usuario"}
-              </span>
-            </p>
-
-            {/* Grid de botones responsive */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button
-                className="md:col-span-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-md shadow-xl transform transition duration-200 hover:-translate-y-1 active:translate-y-0"
-                onClick={() => router.push("/proceso/iniciar")}
-              >
-                Iniciar Proceso
-              </button>
-
-              <button
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md shadow-xl transform transition duration-200 hover:-translate-y-1 active:translate-y-0"
-                onClick={() => router.push("/proceso/consultar")}
-              >
-                Ver Registros
-              </button>
-
-              <button
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-md shadow-xl transform transition duration-200 hover:-translate-y-1 active:translate-y-0"
-                onClick={() => {
-                  sessionStorage.removeItem("user");
-                  localStorage.removeItem("userId");
-                  localStorage.removeItem("userName");
-                  localStorage.removeItem("demorasProcess");
-                  localStorage.removeItem("nextauth.message");
-                  signOut();
-                }}
-              >
-                Cerrar Sesión
-              </button>
+    <div className="min-h-screen bg-gray-50 relative">
+      {/* Encabezado fijo */}
+      <header className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          {/* Logo e icono de inicio */}
+          <div className="flex items-center space-x-2">
+            <FiHome size={28} className="text-blue-600" />
+            <div className="ml-2">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-800">
+                Control de Tiempos
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500">Panel de Control</p>
             </div>
           </div>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem("user");
+              localStorage.removeItem("userId");
+              localStorage.removeItem("userName");
+              localStorage.removeItem("demorasProcess");
+              localStorage.removeItem("nextauth.message");
+              signOut();
+            }}
+            className="flex items-center bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition duration-200"
+          >
+            <FiLogOut size={20} className="mr-2" />
+            <span>Salir</span>
+          </button>
         </div>
-      </div>
+      </header>
+
+      {/* Contenedor para el contenido principal */}
+      <main className="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* Sección de bienvenida */}
+        <section className="bg-white rounded-xl shadow p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center space-x-3">
+            <HiOutlineUserCircle size={48} className="text-blue-600" />
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">
+                ¡Bienvenido, {cachedUser?.username || "Usuario"}!
+              </h2>
+              <p className="text-gray-600">Esperamos que tengas un excelente día.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Widget del clima */}
+        <section>
+          <WeatherWidget />
+        </section>
+
+        {/* Acciones */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            onClick={() => router.push("/proceso/iniciar")}
+            className="flex items-center justify-center w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
+          >
+            <FaPlay size={20} className="mr-2" />
+            <span>Iniciar Proceso</span>
+          </button>
+          <button
+            onClick={() => router.push("/proceso/consultar")}
+            className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
+          >
+            <FaList size={20} className="mr-2" />
+            <span>Ver Registros</span>
+          </button>
+        </section>
+      </main>
+        {/* Pie de página fijo */}
+        <footer className="fixed bottom-0 left-0 right-0 bg-white py-3 shadow-inner">
+        <div className="max-w-7xl mx-auto text-center text-xs sm:text-sm text-gray-500">
+          © {new Date().getFullYear()} Todos los derechos reservados.
+        </div>
+      </footer>
     </div>
   );
 }
