@@ -17,7 +17,7 @@ const WeatherWidget = () => {
 
   // La API de WeatherAPI: la API key se toma de las variables de entorno
   const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
-  const url = `http://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=Acajutla&aqi=no`;
+  const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=Acajutla&aqi=no`;
 
   const fetchWeather = useCallback(async () => {
     try {
