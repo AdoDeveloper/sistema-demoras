@@ -106,11 +106,10 @@ function getAirQualityInfo(index) {
 const WeatherWidget = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
-  // Se usará la hora local de la localidad (usando localtime_epoch)
   const [currentTime, setCurrentTime] = useState(new Date());
   const [rotateIcon, setRotateIcon] = useState(false);
 
-  // API key y endpoint
+  // API key y endpoint (coordenadas de Acajutla – Planta Almapac)
   const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
   const url = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=13.571590310635003,-89.83056926998199&days=7&aqi=yes&alerts=yes&lang=es`;
 
@@ -139,7 +138,7 @@ const WeatherWidget = () => {
     }
   }, [weatherData]);
 
-  // Actualiza la hora local cada segundo sumando 1 segundo
+  // Actualiza la hora local cada segundo
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime((prev) => new Date(prev.getTime() + 1000));
@@ -155,37 +154,20 @@ const WeatherWidget = () => {
   }
 
   const { location, current, forecast, alerts } = weatherData;
-  // Usar localtime_epoch para la hora local de la localidad
-  const localTime = new Date(weatherData.location.localtime_epoch * 1000);
-  const hour = localTime.getHours();
-  let saludo = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+  const hour = currentTime.getHours();
+  const saludo =
+    hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
 
-  // Imagen de la condición actual
   const conditionIconUrl = `https:${current.condition.icon}`;
-
-  // Rotación 3D al hacer clic
   const handleIconClick = () => {
     setRotateIcon(true);
     setTimeout(() => setRotateIcon(false), 500);
   };
 
-  // Seleccionar el pronóstico del día actual basado en la fecha local.
-  // Convertir el string "YYYY-MM-DD" en una fecha local de El Salvador.
-  const [year, month, day] = forecast.forecastday[0].date.split("-");
-  // Creamos el objeto Date usando (año, mes-1, día) para que se interprete en el horario local del servidor
-  // Luego formateamos usando la zona horaria de El Salvador.
-  const forecastDate = new Date(year, month - 1, day);
-  const dayName = forecastDate.toLocaleDateString(["es-SV", "es-ES"], {
-    timeZone: "America/El_Salvador",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-  // Si deseas filtrar el pronóstico para la fecha local:
-  const localDateStr = localTime.toISOString().split("T")[0];
+  // Seleccionamos el pronóstico para el día actual
+  const localDateStr = currentTime.toISOString().split("T")[0];
   const todayData =
     forecast.forecastday.find((d) => d.date === localDateStr) || forecast.forecastday[0];
-
   const todayForecast = todayData.day;
   const minTemp = todayForecast?.mintemp_c ?? "--";
   const maxTemp = todayForecast?.maxtemp_c ?? "--";
@@ -220,13 +202,26 @@ const WeatherWidget = () => {
   const { astro } = todayData;
   const dayLength = getDayLength(astro.sunrise, astro.sunset);
 
-  // Horario del día actual
+  // Cálculo de temperaturas aparentes: usamos la propiedad "feelslike_c" de cada hora
   const hourlyData = todayData.hour || [];
+  const apparentTemps = hourlyData.map((h) => h.feelslike_c);
+  const apparentMin = apparentTemps.length ? Math.min(...apparentTemps) : "--";
+  const apparentMax = apparentTemps.length ? Math.max(...apparentTemps) : "--";
+
+  // Para mostrar la fecha (nombre del día)
+  const [year, month, day] = forecast.forecastday[0].date.split("-");
+  const forecastDate = new Date(year, month - 1, day);
+  const dayName = forecastDate.toLocaleDateString(["es-SV", "es-ES"], {
+    timeZone: "America/El_Salvador",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 
   return (
-    <div className="bg-white w-full">
-      {/* Sección superior: widget personalizado */}
-      <div className="max-w-4xl w-full rounded-lg shadow-lg p-6 mx-auto">
+    <div className="bg-white w-full rounded-xl shadow-lg">
+      {/* Sección principal: widget */}
+      <div className="max-w-4xl w-full rounded-lg p-4 mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
@@ -236,7 +231,7 @@ const WeatherWidget = () => {
               {location.region}, {location.country}
             </p>
             <p className="text-sm text-gray-600 mt-1">
-              Hora local: {localTime.toLocaleTimeString()}
+              Planta Almapac: {currentTime.toLocaleTimeString()}
             </p>
             <p className="text-xs text-gray-400">
               Últ. actualización: {current.last_updated}
@@ -245,7 +240,9 @@ const WeatherWidget = () => {
           <div className="flex items-center space-x-4 mt-4 sm:mt-0">
             <div
               onClick={handleIconClick}
-              className={`cursor-pointer transform transition-transform duration-500 ${rotateIcon ? "rotate-y-180" : ""}`}
+              className={`cursor-pointer transform transition-transform duration-500 ${
+                rotateIcon ? "rotate-y-180" : ""
+              }`}
             >
               <img
                 src={conditionIconUrl}
@@ -264,10 +261,12 @@ const WeatherWidget = () => {
 
         {/* Detalles del día actual */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-sm">
+          {/* Celda de Temperatura Aparente (con min y max aparente calculadas) */}
           <div className="flex flex-col items-center bg-blue-50 p-2 rounded-md">
             <WiThermometer className="text-xl mb-1" />
-            <span className="font-semibold">Sensación</span>
+            <span className="font-semibold">Aparente</span>
             <span>{current.feelslike_c}°C</span>
+            <span className="text-xs">Min: {apparentMin}° / Max: {apparentMax}°</span>
           </div>
           <div className="flex flex-col items-center bg-blue-50 p-2 rounded-md">
             <WiHumidity className="text-xl mb-1" />
@@ -275,7 +274,10 @@ const WeatherWidget = () => {
             <span>{current.humidity}%</span>
           </div>
           <div className="flex flex-col items-center bg-blue-50 p-2 rounded-md">
-            <FaArrowUp style={{ transform: `rotate(${current.wind_degree}deg)` }} className="text-xl mb-1 text-blue-600" />
+            <FaArrowUp
+              style={{ transform: `rotate(${current.wind_degree}deg)` }}
+              className="text-xl mb-1 text-blue-600"
+            />
             <span className="font-semibold">Viento</span>
             <span>{current.wind_kph} km/h</span>
           </div>
@@ -292,7 +294,9 @@ const WeatherWidget = () => {
           <div className="flex flex-col items-center bg-blue-50 p-2 rounded-md">
             <WiThermometer className="text-xl mb-1" />
             <span className="font-semibold">Mín./Máx.</span>
-            <span>{minTemp}°C / {maxTemp}°C</span>
+            <span>
+              {minTemp}°C / {maxTemp}°C
+            </span>
           </div>
           <div className="flex flex-col items-center bg-blue-50 p-2 rounded-md">
             <WiDaySunny className="text-xl mb-1" />
@@ -342,57 +346,6 @@ const WeatherWidget = () => {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Título y fecha de hoy */}
-      <div className="p-4">
-        <h2 className="text-md font-semibold text-gray-800">
-          El tiempo en {location.name} hoy, {dayName}
-        </h2>
-      </div>
-
-      {/* Pronóstico horario con scroll horizontal */}
-      <div className="overflow-x-auto whitespace-nowrap space-x-2 px-2 pb-4">
-        {hourlyData.map((hourItem) => {
-          const timeLabel = formatTimeHHMM(hourItem.time);
-          const iconUrl = `https:${hourItem.condition.icon}`;
-          const feelsLike = hourItem.feelslike_c;
-          const windKph = hourItem.wind_kph;
-          const uvLabel = getUvLabel(hourItem.uv);
-          const fps = getFpsSuggestion(hourItem.uv);
-          const chanceRain = hourItem.chance_of_rain ?? 0;
-          return (
-            <div key={hourItem.time_epoch} className="inline-flex flex-col items-center justify-start bg-blue-50 p-3 text-sm rounded-md">
-              <div className="mb-1 font-semibold">{timeLabel}</div>
-              <img src={iconUrl} alt={hourItem.condition.text} className="w-10 h-10 mb-1" />
-              <div className="text-center">
-                <p className="font-medium">{Math.round(hourItem.temp_c)}°C</p>
-                <p className="text-xs text-gray-500">{hourItem.condition.text}</p>
-                <p className="text-xs text-gray-500">Sens. {Math.round(feelsLike)}°</p>
-              </div>
-              <div className="flex items-center text-xs text-gray-600 mt-1">
-                <FaArrowUp style={{ transform: `rotate(${hourItem.wind_degree}deg)` }} className="mr-1 text-blue-600" />
-                <span>{Math.round(windKph)} km/h</span>
-              </div>
-              <div className="text-xs text-gray-600">
-                UV: {uvLabel} <br />
-                <span className="text-xs text-gray-500">{fps}</span>
-              </div>
-              <div className="text-xs text-gray-600">Lluvia: {chanceRain}%</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Salida y puesta de sol */}
-      <div className="p-4 bg-gray-100">
-        <h3 className="text-md font-semibold text-gray-800">Salida y Puesta del Sol</h3>
-        <div className="text-sm text-gray-700 mt-1 space-y-1">
-          <p><strong>Salida del sol:</strong> {astro.sunrise}</p>
-          <p><strong>Puesta del sol:</strong> {astro.sunset}</p>
-          <p><strong>Duración del día:</strong> {dayLength}</p>
-          <p><strong>Fase Lunar:</strong> {astro.moon_phase}</p>
-        </div>
       </div>
 
       <style jsx>{`

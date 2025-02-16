@@ -29,7 +29,7 @@ export default function Dashboard() {
 
   if (status === "loading") {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-500 to-indigo-500">
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
         <Loader />
       </div>
     );
