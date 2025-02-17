@@ -106,7 +106,7 @@ export async function POST(request) {
             tiempoIngresoPlanta: primerP.tiempoIngresoPlanta?.hora || "",
             ingresoPlantaObservaciones:
               primerP.tiempoIngresoPlanta?.comentarios || "",
-            tiemporLlegadaBascula: primerP.tiempoLlegadaBascula?.hora || "",
+            tiempoLlegadaBascula: primerP.tiempoLlegadaBascula?.hora || "",
             llegadaBasculaObservaciones:
               primerP.tiempoLlegadaBascula?.comentarios || "",
             tiempoEntradaBascula: primerP.tiempoEntradaBascula?.hora || "",

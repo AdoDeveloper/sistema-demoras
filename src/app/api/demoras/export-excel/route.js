@@ -217,7 +217,7 @@ export async function GET(request) {
         "Obs Autorizac.": primer.autorizacionObservaciones || "-",
         "Tiempo Ing. Planta": primer.tiempoIngresoPlanta || "-",
         "Obs Ingreso": primer.ingresoPlantaObservaciones || "-",
-        "Tiempo Lleg. Básq. (P1)": primer.tiemporLlegadaBascula || "-",
+        "Tiempo Lleg. Básq. (P1)": primer.tiempoLlegadaBascula || "-",
         "Obs Lleg. Básq. (P1)": primer.llegadaBasculaObservaciones || "-",
         "Tiempo Entr. Básq. (P1)": primer.tiempoEntradaBascula || "-",
         "Obs Entr. Básq. (P1)": primer.entradaBasculaObservaciones || "-",
