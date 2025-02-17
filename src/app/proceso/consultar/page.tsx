@@ -323,46 +323,79 @@ export default function DemorasPage() {
     }
     // Crear documento PDF
     const pdfDoc = await PDFDocument.create();
+    // Usamos Courier para lograr un efecto monoespaciado (ideal para tablas)
+    const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
     let currentPage = pdfDoc.addPage();
     const { width, height } = currentPage.getSize();
-    let yPosition = height - 40;
-    const lineHeight = 12;
+    const margin = 50;
+    let yPosition = height - margin;
+    const lineHeight = 14;
 
-    // Función auxiliar para dibujar texto y crear nuevas páginas si es necesario.
-    // Se reemplaza el carácter "→" por "->" para evitar errores de codificación.
-    const drawText = (text: string, size: number = 10) => {
+    // Función auxiliar para dibujar texto; reemplaza "→" por "->"
+    const drawText = (text: string, size: number = 10, font = timesRomanFont) => {
       const sanitizedText = text.replace(/→/g, "->");
-      if (yPosition < 50) {
+      // Si el espacio en la página es insuficiente, se agrega otra página
+      if (yPosition < margin + lineHeight) {
         currentPage = pdfDoc.addPage();
-        yPosition = currentPage.getSize().height - 50;
+        yPosition = currentPage.getSize().height - margin;
       }
       currentPage.drawText(sanitizedText, {
-        x: 50,
+        x: margin,
         y: yPosition,
         size,
-        font: timesRomanFont,
+        font,
         color: rgb(0, 0, 0),
       });
       yPosition -= lineHeight;
     };
 
-    // Agregar título
-    drawText("Detalle de la Demora", 18);
-    yPosition -= lineHeight;
-
-    // Función para agregar secciones al PDF
-    const addSection = (title: string, data: any) => {
-      drawText(title, 12);
-      for (const [key, value] of Object.entries(data)) {
-        drawText(`${formatKey(key)}: ${value || "-"}`, 10);
+    // Función para centrar texto
+    const centerText = (text: string, size: number = 12, font = timesRomanFont) => {
+      const textWidth = font.widthOfTextAtSize(text, size);
+      const x = (width - textWidth) / 2;
+      if (yPosition < margin + lineHeight) {
+        currentPage = pdfDoc.addPage();
+        yPosition = currentPage.getSize().height - margin;
       }
+      currentPage.drawText(text, {
+        x,
+        y: yPosition,
+        size,
+        font,
+        color: rgb(0, 0, 0),
+      });
       yPosition -= lineHeight;
     };
 
-    // Secciones a agregar
-    addSection("Información General", {
+    // --- Encabezado ---
+    centerText("ALMAPAC S.A de C.V. - PLANTA ACAJUTLA", 16, timesRomanFont);
+    // Espacio extra entre títulos
+    yPosition -= lineHeight * 0.5;
+    centerText("Control de Tiempos Despacho", 14, timesRomanFont);
+    yPosition -= lineHeight * 0.5;
+    centerText(`Detalle del Registro #${selectedDemora.id}`, 14, timesRomanFont);
+    yPosition -= lineHeight * 1.5; // Espacio superior extra antes de la data
+
+    // Función para agregar una sección en formato de tabla (dos columnas: clave y valor)
+    const addTableSection = (sectionTitle: string, data: any) => {
+      drawText(sectionTitle, 12, timesRomanFont); // Título de sección
+      // Encabezado de columnas (usando fuente monoespaciada)
+      const header = `${"Campo".padEnd(30)} | Valor`;
+      drawText(header, 10, courierFont);
+      drawText("-".repeat(80), 10, courierFont);
+      // Por cada par clave-valor se imprime una línea con columnas fijas.
+      // Se omiten campos "id", "createdAt" y "updatedAt" (se asume que filterDetailData ya los elimina)
+      for (const [key, value] of Object.entries(data)) {
+        const line = `${formatKey(key).padEnd(30)} | ${value || "-"}`;
+        drawText(line, 10, courierFont);
+      }
+      yPosition -= lineHeight; // Espacio entre secciones
+    };
+
+    // Sección "Información General"
+    addTableSection("Información General", {
       Registro: selectedDemora.id,
       "Fecha Inicio": selectedDemora.fechaInicio,
       "Tiempo Total": selectedDemora.tiempoTotal || "-",
@@ -371,31 +404,44 @@ export default function DemorasPage() {
     });
 
     if (selectedDemora.primerProceso) {
-      addSection("Primer Proceso", filterDetailData(selectedDemora.primerProceso));
+      addTableSection("Primer Proceso", filterDetailData(selectedDemora.primerProceso));
     }
     if (selectedDemora.segundoProceso) {
-      addSection("Segundo Proceso", filterDetailData(selectedDemora.segundoProceso));
+      addTableSection("Segundo Proceso", filterDetailData(selectedDemora.segundoProceso));
     }
     if (selectedDemora.tercerProceso) {
-      addSection("Tercer Proceso", filterDetailData(selectedDemora.tercerProceso));
+      addTableSection("Tercer Proceso", filterDetailData(selectedDemora.tercerProceso));
       if (selectedDemora.tercerProceso.vueltas) {
-        drawText(`Total de Vueltas: ${selectedDemora.tercerProceso.vueltas.length}`, 12);
+        drawText(`Total de Vueltas: ${selectedDemora.tercerProceso.vueltas.length}`, 12, timesRomanFont);
         selectedDemora.tercerProceso.vueltas.forEach((vuelta: any, index: number) => {
-          addSection(`Vuelta ${index + 1}`, vuelta);
+          // Aplicamos el filtro para omitir campos createdAt y updatedAt en cada vuelta
+          addTableSection(`Vuelta ${index + 1}`, filterDetailData(vuelta));
         });
       }
     }
     if (selectedDemora.procesoFinal) {
-      addSection("Proceso Final", filterDetailData(selectedDemora.procesoFinal));
+      addTableSection("Proceso Final", filterDetailData(selectedDemora.procesoFinal));
     }
     const intervalos = calcularIntervalos(selectedDemora);
-    addSection("Intervalos entre Procesos", {
-      "B.E. (Entr → Sal)": intervalos.calc1,
-      "Sal. B.E. → Lleg. Punto": intervalos.calc2,
-      "Carga": intervalos.calc3,
-      "Sal. Punto → B.S. Entr.": intervalos.calc4,
-      "B.S. (Entr → Sal)": intervalos.calc5,
-      "B.S. → Planta": intervalos.calc6,
+    addTableSection("Intervalos entre Procesos", {
+      "B.E. (Entr -> Sal)": intervalos.calc1,
+      "Sal. B.E. -> Lleg. Punto": intervalos.calc2,
+      "Tiempo Total Carga": intervalos.calc3,
+      "Sal. Punto -> B.S. Entr.": intervalos.calc4,
+      "B.S. (Entr -> Sal)": intervalos.calc5,
+      "B.S. -> Salida Planta": intervalos.calc6,
+    });
+
+    // --- Pie de página ---
+    const reporteFecha = new Date();
+    const fechaHoraReporte = `Reporte: ${reporteFecha.toLocaleDateString()} ${reporteFecha.toLocaleTimeString()}`;
+    // Colocamos el pie de página en la parte inferior de la última página
+    currentPage.drawText(fechaHoraReporte, {
+      x: margin,
+      y: margin / 2,
+      size: 10,
+      font: timesRomanFont,
+      color: rgb(0, 0, 0),
     });
 
     const pdfBytes = await pdfDoc.save();
@@ -403,7 +449,7 @@ export default function DemorasPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Detalle-Demora-${selectedDemora.id}.pdf`;
+    a.download = `Detalle-Registro-${selectedDemora.id}.pdf`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -657,10 +703,10 @@ export default function DemorasPage() {
               <th className="border px-2 py-1">Obs Lleg. Portería</th>
               <th className="border px-2 py-1">B.E. (Entr → Sal)</th>
               <th className="border px-2 py-1">Sal. B.E. → Lleg. Punto</th>
-              <th className="border px-2 py-1">Carga</th>
+              <th className="border px-2 py-1">Tiempo Total Carga</th>
               <th className="border px-2 py-1">Sal. Punto → B.S. Entr.</th>
               <th className="border px-2 py-1">B.S. (Entr → Sal)</th>
-              <th className="border px-2 py-1">B.S. → Planta</th>
+              <th className="border px-2 py-1">B.S. → Salida Planta</th>
               <th className="border px-2 py-1">Acción</th>
             </tr>
           </thead>
@@ -825,7 +871,7 @@ export default function DemorasPage() {
               &times;
             </button>
             <h2 className="text-xl font-bold mb-4 text-blue-700 text-center">
-              Detalle de la Demora
+              Detalle del Registro
             </h2>
             <div className="space-y-4">
               <DetailTable
@@ -868,10 +914,10 @@ export default function DemorasPage() {
                 data={{
                   "B.E. (Entr → Sal)": calcularIntervalos(selectedDemora).calc1,
                   "Sal. B.E. → Lleg. Punto": calcularIntervalos(selectedDemora).calc2,
-                  "Carga": calcularIntervalos(selectedDemora).calc3,
+                  "Tiempo Total Carga": calcularIntervalos(selectedDemora).calc3,
                   "Sal. Punto → B.S. Entr.": calcularIntervalos(selectedDemora).calc4,
                   "B.S. (Entr → Sal)": calcularIntervalos(selectedDemora).calc5,
-                  "B.S. → Planta": calcularIntervalos(selectedDemora).calc6,
+                  "B.S. → Salida Planta": calcularIntervalos(selectedDemora).calc6,
                 }}
               />
             </div>
