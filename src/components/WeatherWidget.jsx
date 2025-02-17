@@ -13,16 +13,6 @@ import {
 import { FaArrowUp, FaSun } from "react-icons/fa";
 import WeatherLoader from './WeatherLoader'
 
-/** Formatea la hora a "HH:mm" (24h). */
-function formatTimeHHMM(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
 /** Calcula la duración del día (sunrise -> sunset) en horas y minutos. */
 function getDayLength(sunriseStr, sunsetStr) {
   const today = new Date();
@@ -132,13 +122,6 @@ const WeatherWidget = () => {
     return () => clearInterval(interval);
   }, [fetchWeather]);
 
-  // Establece la hora local usando localtime_epoch
-  useEffect(() => {
-    if (weatherData?.location?.localtime_epoch) {
-      setCurrentTime(new Date(weatherData.location.localtime_epoch * 1000));
-    }
-  }, [weatherData]);
-
   // Actualiza la hora local cada segundo
   useEffect(() => {
     const interval = setInterval(() => {
@@ -199,25 +182,11 @@ const WeatherWidget = () => {
       : null;
   const airQualityData = getAirQualityInfo(airQualityIndex);
 
-  // Datos astronómicos
-  const { astro } = todayData;
-  const dayLength = getDayLength(astro.sunrise, astro.sunset);
-
   // Cálculo de temperaturas aparentes: usamos la propiedad "feelslike_c" de cada hora
   const hourlyData = todayData.hour || [];
   const apparentTemps = hourlyData.map((h) => h.feelslike_c);
   const apparentMin = apparentTemps.length ? Math.min(...apparentTemps) : "--";
   const apparentMax = apparentTemps.length ? Math.max(...apparentTemps) : "--";
-
-  // Para mostrar la fecha (nombre del día)
-  const [year, month, day] = forecast.forecastday[0].date.split("-");
-  const forecastDate = new Date(year, month - 1, day);
-  const dayName = forecastDate.toLocaleDateString(["es-SV", "es-ES"], {
-    timeZone: "America/El_Salvador",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
 
   return (
     <div className="bg-white w-full rounded-xl shadow-lg">
@@ -232,7 +201,13 @@ const WeatherWidget = () => {
               {location.region}, {location.country}
             </p>
             <p className="text-sm text-gray-600 mt-1">
-              Planta Almapac: {currentTime.toLocaleTimeString()}
+              Planta Almapac: {currentTime.toLocaleTimeString("es-ES", {
+                timeZone: "America/El_Salvador",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false,
+              })}
             </p>
             <p className="text-xs text-gray-400">
               Últ. actualización: {current.last_updated}
