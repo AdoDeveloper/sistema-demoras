@@ -862,7 +862,7 @@ export default function DemorasPage() {
       {/* Modal Minimalista y Responsive */}
       {showModal && selectedDemora && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
-          <div className="bg-white w-full max-w-md md:max-w-4xl rounded-lg shadow-lg p-4 relative max-h-full overflow-y-auto">
+          <div className="bg-white w-full max-w-md md:max-w-4xl shadow-lg p-4 relative max-h-full overflow-y-auto">
             <button
               onClick={handleCloseModal}
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl"

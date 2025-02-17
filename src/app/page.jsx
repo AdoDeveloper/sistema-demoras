@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Loader from "../components/Loader"; // Ajusta la ruta según tu estructura
 import WeatherWidget from "../components/WeatherWidget"; // Ajusta la ruta según tu estructura
 import { FiHome, FiLogOut } from "react-icons/fi";
-import { FaPlay, FaList } from "react-icons/fa";
+import { FaPlay, FaList, FaChartBar } from "react-icons/fa";
 import { HiOutlineUserCircle } from "react-icons/hi";
 
 export default function Dashboard() {
@@ -88,7 +88,7 @@ export default function Dashboard() {
         </section>
 
         {/* Acciones */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => router.push("/proceso/iniciar")}
             className="flex items-center justify-center w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
@@ -102,6 +102,13 @@ export default function Dashboard() {
           >
             <FaList size={20} className="mr-2" />
             <span>Ver Registros</span>
+          </button>
+          <button
+            onClick={() => router.push("/proceso/analisis")}
+            className="flex items-center justify-center w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
+          >
+            <FaChartBar size={20} className="mr-2" />
+            <span>Ver Datos</span>
           </button>
         </section>
       </main>
