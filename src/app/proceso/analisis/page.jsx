@@ -23,7 +23,7 @@ import {
   FaChartBar,
   FaTable,
 } from "react-icons/fa";
-import Loader from "../../../components/Loader";
+import AnalysisLoader from "../../../components/AnalysisLoader";
 
 // Registrar elementos para Chart.js
 ChartJS.register(
@@ -145,6 +145,10 @@ export default function AnalisisPage() {
   const [generalFilter, setGeneralFilter] = useState("");
   const [selectedField, setSelectedField] = useState("Todos");
 
+  // Estado para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
+
   // Cargar data desde /api/demoras
   useEffect(() => {
     setLoading(true);
@@ -237,7 +241,7 @@ export default function AnalisisPage() {
           case "Personal Asignado":
             value = item.segundoProceso?.personalAsignado || "";
             break;
-          case "User Name":
+          case "Usuario":
             value = item.userName || "";
             break;
           default:
@@ -247,6 +251,11 @@ export default function AnalisisPage() {
       });
     }
     setFilteredData(tempFiltered);
+  }, [startDate, endDate, condicionFil, generalFilter, selectedField, allDemoras]);
+
+  // Reiniciar página actual cuando cambie el filtro
+  useEffect(() => {
+    setCurrentPage(1);
   }, [startDate, endDate, condicionFil, generalFilter, selectedField, allDemoras]);
 
   // Calcular promedio del tiempo total (en segundos)
@@ -570,7 +579,7 @@ export default function AnalisisPage() {
 
   // Sección explicativa de Intervalos y Procesos
   const descripcion = (
-    <div className="mb-8">
+    <div className="mb-8 mt-4">
       <h2 className="text-xl font-bold mb-2">Descripción de Intervalos y Procesos</h2>
       <ul className="list-disc pl-6">
         <li>
@@ -713,13 +722,20 @@ export default function AnalisisPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
-        <Loader />
+        <AnalysisLoader />
       </div>
     );
   }
 
   // Determinar las columnas a mostrar según el filtro seleccionado
   const displayColumns = columnMapping[selectedField] || columnMapping["Todos"];
+
+  // Lógica de paginación
+  const totalPages = Math.ceil(filteredData.length / recordsPerPage) || 1;
+  const currentRecords = filteredData.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
 
   return (
     <div className="p-4">
@@ -788,7 +804,7 @@ export default function AnalisisPage() {
             <option value="Enlonador">Enlonador</option>
             <option value="Modelo Equipo">Modelo Equipo</option>
             <option value="Personal Asignado">Personal Asignado</option>
-            <option value="User Name">User Name</option>
+            <option value="Usuario">Usuario</option>
           </select>
         </div>
         <div className="sm:col-span-2">
@@ -804,20 +820,24 @@ export default function AnalisisPage() {
       </div>
 
       {/* Tabla de registros filtrados */}
-      <div className="mb-8 overflow-x-auto">
+      <div className="overflow-x-auto">
         <table className="min-w-full border-collapse text-sm">
           <thead>
             <tr>
               {displayColumns.map((col) => (
-                <th key={col} className="border p-2">{col}</th>
+                <th key={col} className="border p-2">
+                  {col}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((item) => (
+            {currentRecords.map((item) => (
               <tr key={item.id}>
                 {displayColumns.map((col) => (
-                  <td key={col} className="border p-2">{getCellValue(col, item)}</td>
+                  <td key={col} className="border p-2">
+                    {getCellValue(col, item)}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -826,6 +846,35 @@ export default function AnalisisPage() {
         <div className="mt-2 text-sm">
           Total de registros: {filteredData.length}
         </div>
+      </div>
+
+      {/* Paginador */}
+      <div className="flex justify-center pb-4 border-b-2">
+        <button
+          onClick={() => setCurrentPage((prev) => prev - 1)}
+          disabled={currentPage === 1}
+          className="px-4 py-2 border rounded mr-2 disabled:opacity-50"
+        >
+          Anterior
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentPage(i + 1)}
+            className={`px-4 py-2 border rounded mx-1 ${
+              currentPage === i + 1 ? "bg-blue-500 text-white" : ""
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 border rounded ml-2 disabled:opacity-50"
+        >
+          Siguiente
+        </button>
       </div>
 
       {/* Sección de Descripción de Intervalos y Procesos */}
@@ -872,19 +921,19 @@ export default function AnalisisPage() {
         <h2 className="text-xl flex items-center mb-4">
           <FaTable className="mr-2" /> Resumen de Promedios
         </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <p className="text-lg">Tiempo Total Promedio: {secondsToHMS(Math.round(avgTimeSec))}</p>
-            <p className="text-lg">Intervalo 1 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval1))}</p>
-            <p className="text-lg">Intervalo 2 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval2))}</p>
-            <p className="text-lg">Intervalo 3 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval3))}</p>
-            <p className="text-lg">Intervalo 4 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval4))}</p>
-            <p className="text-lg">Intervalo 5 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval5))}</p>
-            <p className="text-lg">Intervalo 6 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval6))}</p>
-            <p className="text-lg">Primer Proceso: {secondsToHMS(Math.round(avgProcP1Unique))}</p>
-            <p className="text-lg">Segundo Proceso: {secondsToHMS(Math.round(avgProcP2Unique))}</p>
-            <p className="text-lg">Tercer Proceso: {secondsToHMS(Math.round(avgProcP3Unique))}</p>
-            <p className="text-lg">Final Proceso: {secondsToHMS(Math.round(avgProcP4Unique))}</p>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <p className="text-lg">Tiempo Total Promedio: {secondsToHMS(Math.round(avgTimeSec))}</p>
+          <p className="text-lg">Intervalo 1 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval1))}</p>
+          <p className="text-lg">Intervalo 2 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval2))}</p>
+          <p className="text-lg">Intervalo 3 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval3))}</p>
+          <p className="text-lg">Intervalo 4 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval4))}</p>
+          <p className="text-lg">Intervalo 5 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval5))}</p>
+          <p className="text-lg">Intervalo 6 Promedio: {secondsToHMS(Math.round(avgIntervalsSec.interval6))}</p>
+          <p className="text-lg">Primer Proceso: {secondsToHMS(Math.round(avgProcP1Unique))}</p>
+          <p className="text-lg">Segundo Proceso: {secondsToHMS(Math.round(avgProcP2Unique))}</p>
+          <p className="text-lg">Tercer Proceso: {secondsToHMS(Math.round(avgProcP3Unique))}</p>
+          <p className="text-lg">Final Proceso: {secondsToHMS(Math.round(avgProcP4Unique))}</p>
+        </div>
       </div>
 
       {/* Botones para Imprimir y Descargar PDF */}

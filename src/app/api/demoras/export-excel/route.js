@@ -100,7 +100,7 @@ export async function GET(request) {
 
     // 2) Obtener todos los registros de Demora (incluyendo relaciones)
     const registros = await prisma.demora.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "asc" },
       include: {
         primerProceso: true,
         segundoProceso: true,
@@ -350,7 +350,7 @@ export async function GET(request) {
       { header: "Obs Lleg. Portería", key: "Obs Lleg. Portería", width: 25 },
       { header: "B.E. (Entr → Sal)", key: "B.E. (Entr → Sal)", width: 20 },
       { header: "Sal. B.E. → Lleg. Punto", key: "Sal. B.E. → Lleg. Punto", width: 20 },
-      { header: "Carga", key: "Carga", width: 20 },
+      { header: "Tiempo Total Carga", key: "Carga", width: 20 },
       { header: "Sal. Punto → B.S. Entr.", key: "Sal. Punto → B.S. Entr.", width: 20 },
       { header: "B.S. (Entr → Sal)", key: "B.S. (Entr → Sal)", width: 20 },
       { header: "B.S. → Planta", key: "B.S. → Planta", width: 20 },

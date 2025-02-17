@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Loader from "../components/Loader"; // Ajusta la ruta según tu estructura
+import AnalysisLoader from "../components/AnalysisLoader"; // Ajusta la ruta según tu estructura
 import WeatherWidget from "../components/WeatherWidget"; // Ajusta la ruta según tu estructura
 import { FiHome, FiLogOut } from "react-icons/fi";
 import { FaPlay, FaList, FaChartBar } from "react-icons/fa";
@@ -30,7 +30,7 @@ export default function Dashboard() {
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
-        <Loader />
+        <AnalysisLoader />
       </div>
     );
   }

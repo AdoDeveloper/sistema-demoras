@@ -130,7 +130,7 @@ export default function DemorasPage() {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
 
-  // Filtros
+  // Estados para Filtros
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFinal, setFechaFinal] = useState("");
   const [filterText, setFilterText] = useState("");
@@ -138,6 +138,10 @@ export default function DemorasPage() {
   const [filterTransaccion, setFilterTransaccion] = useState("");
   const [filterCondicion, setFilterCondicion] = useState("");
   const [filterMetodo, setFilterMetodo] = useState("");
+
+  // Estado para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
 
   // Función para obtener la data; en refresco no se muestra el loader de pantalla
   const fetchDemoras = async (isRefresh = false) => {
@@ -161,6 +165,11 @@ export default function DemorasPage() {
   useEffect(() => {
     fetchDemoras();
   }, []);
+
+  // Reiniciar página actual al cambiar filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterText, filterTiempoTotal, filterTransaccion, filterCondicion, filterMetodo, fechaInicio, fechaFinal]);
 
   const handleOpenModal = (item: any) => {
     setSelectedDemora(item);
@@ -486,6 +495,13 @@ export default function DemorasPage() {
     return textMatch && tiempoMatch && transMatch && condicionMatch && metodoMatch && dateMatch;
   });
 
+  // Cálculo para paginación
+  const totalPages = Math.ceil(filteredDemoras.length / recordsPerPage) || 1;
+  const currentRecords = filteredDemoras.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -711,7 +727,7 @@ export default function DemorasPage() {
             </tr>
           </thead>
           <tbody className="text-gray-700">
-            {filteredDemoras.map((item) => {
+            {currentRecords.map((item) => {
               const primer = item.primerProceso || {};
               const segundo = item.segundoProceso || {};
               const tercero = item.tercerProceso || {};
@@ -857,6 +873,33 @@ export default function DemorasPage() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Paginador */}
+      <div className="flex justify-center mt-4 space-x-2">
+        <button
+          className="px-3 py-1 border rounded disabled:opacity-50"
+          onClick={() => setCurrentPage((prev) => prev - 1)}
+          disabled={currentPage === 1}
+        >
+          Anterior
+        </button>
+        {Array.from({ length: totalPages }, (_, index) => (
+          <button
+            key={index}
+            className={`px-3 py-1 border rounded ${currentPage === index + 1 ? "bg-blue-500 text-white" : ""}`}
+            onClick={() => setCurrentPage(index + 1)}
+          >
+            {index + 1}
+          </button>
+        ))}
+        <button
+          className="px-3 py-1 border rounded disabled:opacity-50"
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Siguiente
+        </button>
       </div>
 
       {/* Modal Minimalista y Responsive */}

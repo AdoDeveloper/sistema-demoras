@@ -1,151 +1,122 @@
 "use client";
 
-import React from "react";
-import styled from "styled-components";
+import React from 'react';
+import styled from 'styled-components';
 
 const WeatherLoader = () => {
   return (
     <StyledWrapper>
-      <div className="text-center text-lg font-semibold text-gray-700">
-        Cargando datos meteorológicos...
-      </div>
-      <div className="loader">
-        <div className="cloud front">
-          <span className="left-front" />
-          <span className="right-front" />
-        </div>
-        <span className="sun sunshine" />
-        <span className="sun" />
-        <div className="cloud back">
-          <span className="left-back" />
-          <span className="right-back" />
-        </div>
+      <div className="three-body">
+        <div className="three-body__dot" />
+        <div className="three-body__dot" />
+        <div className="three-body__dot" />
       </div>
     </StyledWrapper>
   );
-};
+}
 
 const StyledWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-
-  .text-center {
-    margin-bottom: 20px;
+  .three-body {
+   --uib-size: 35px;
+   --uib-speed: 0.8s;
+   --uib-color: #5D3FD3;
+   position: relative;
+   display: inline-block;
+   height: var(--uib-size);
+   width: var(--uib-size);
+   animation: spin78236 calc(var(--uib-speed) * 2.5) infinite linear;
   }
 
-  .loader {
-    position: relative;
-    width: 150px;
-    height: 150px;
+  .three-body__dot {
+   position: absolute;
+   height: 100%;
+   width: 30%;
   }
 
-  .cloud {
-    position: absolute;
-    background: #d1e0f0;
-    border-radius: 50%;
-    box-shadow: inset 0 -4px 10px rgba(0, 0, 0, 0.1);
+  .three-body__dot:after {
+   content: '';
+   position: absolute;
+   height: 0%;
+   width: 100%;
+   padding-bottom: 100%;
+   background-color: var(--uib-color);
+   border-radius: 50%;
   }
 
-  .front {
-    width: 100px;
-    height: 50px;
-    top: 50px;
-    left: 10px;
-    animation: float 4s infinite ease-in-out;
+  .three-body__dot:nth-child(1) {
+   bottom: 5%;
+   left: 0;
+   transform: rotate(60deg);
+   transform-origin: 50% 85%;
   }
 
-  .left-front {
-    width: 50px;
-    height: 50px;
-    background: #b0c4de;
-    position: absolute;
-    border-radius: 50%;
-    left: -20px;
-    top: -15px;
+  .three-body__dot:nth-child(1)::after {
+   bottom: 0;
+   left: 0;
+   animation: wobble1 var(--uib-speed) infinite ease-in-out;
+   animation-delay: calc(var(--uib-speed) * -0.3);
   }
 
-  .right-front {
-    width: 60px;
-    height: 60px;
-    background: #b0c4de;
-    position: absolute;
-    border-radius: 50%;
-    right: -10px;
-    top: -20px;
+  .three-body__dot:nth-child(2) {
+   bottom: 5%;
+   right: 0;
+   transform: rotate(-60deg);
+   transform-origin: 50% 85%;
   }
 
-  .back {
-    width: 80px;
-    height: 40px;
-    top: 60px;
-    left: 30px;
-    animation: float 6s infinite ease-in-out;
+  .three-body__dot:nth-child(2)::after {
+   bottom: 0;
+   left: 0;
+   animation: wobble1 var(--uib-speed) infinite
+      calc(var(--uib-speed) * -0.15) ease-in-out;
   }
 
-  .left-back {
-    width: 40px;
-    height: 40px;
-    background: #a0b8d8;
-    position: absolute;
-    border-radius: 50%;
-    left: -10px;
-    top: -10px;
+  .three-body__dot:nth-child(3) {
+   bottom: -5%;
+   left: 0;
+   transform: translateX(116.666%);
   }
 
-  .right-back {
-    width: 45px;
-    height: 45px;
-    background: #a0b8d8;
-    position: absolute;
-    border-radius: 50%;
-    right: -5px;
-    top: -15px;
+  .three-body__dot:nth-child(3)::after {
+   top: 0;
+   left: 0;
+   animation: wobble2 var(--uib-speed) infinite ease-in-out;
   }
 
-  .sun {
-    position: absolute;
-    width: 50px;
-    height: 50px;
-    background: radial-gradient(circle, #ffdd57, #ffbb33);
-    border-radius: 50%;
-    top: 20px;
-    left: 50px;
+  @keyframes spin78236 {
+   0% {
+    transform: rotate(0deg);
+   }
+
+   100% {
+    transform: rotate(360deg);
+   }
   }
 
-  .sunshine {
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: rgba(255, 221, 87, 0.5);
-    border-radius: 50%;
-    top: 15px;
-    left: 45px;
-    animation: pulse 2s infinite ease-in-out;
-  }
-
-  @keyframes float {
-    0%,
+  @keyframes wobble1 {
+   0%,
     100% {
-      transform: translateY(5px);
-    }
-    50% {
-      transform: translateY(-5px);
-    }
+    transform: translateY(0%) scale(1);
+    opacity: 1;
+   }
+
+   50% {
+    transform: translateY(-66%) scale(0.65);
+    opacity: 0.8;
+   }
   }
 
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-      opacity: 0.6;
-    }
+  @keyframes wobble2 {
+   0%,
     100% {
-      transform: scale(1.4);
-      opacity: 0;
-    }
-  }
-`;
+    transform: translateY(0%) scale(1);
+    opacity: 1;
+   }
+
+   50% {
+    transform: translateY(66%) scale(0.65);
+    opacity: 0.8;
+   }
+  }`;
 
 export default WeatherLoader;
