@@ -449,8 +449,8 @@ export default function DemorasPage() {
   }
 
   return (
-    <div className="p-1 bg-gray-50 min-h-screen text-gray-800">
-      {/* Encabezado - Nuevo Diseño */}
+    <div className="p-1 bg-gray-50 min-h-screen text-gray-800 pb-6">
+      {/* Encabezado */}
       <header className="bg-gradient-to-r bg-orange-400 text-white shadow-lg md:sticky md:top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row items-center justify-between">
@@ -580,7 +580,7 @@ export default function DemorasPage() {
       </header>
 
       {/* Tabla Principal */}
-      <div className="overflow-x-auto bg-white shadow-md rounded-lg mt-6">
+      <div className="overflow-x-auto bg-white shadow-md mt-6">
         <table id="demoras-table" className="min-w-full border-collapse table-auto text-sm">
           <thead>
             <tr className="bg-blue-50 text-blue-700">
