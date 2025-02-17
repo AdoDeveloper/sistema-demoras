@@ -85,7 +85,7 @@ model PrimerProceso {
   autorizacionObservaciones   String?  @map("autorizacion_obs") @db.LongText
   tiempoIngresoPlanta         String?  @map("tiempo_ingreso_planta")
   ingresoPlantaObservaciones  String?  @map("ingreso_obs") @db.LongText
-  tiemporLlegadaBascula       String?  @map("tiempo_llegada_bascula")
+  tiempoLlegadaBascula        String?  @map("tiempo_llegada_bascula")
   llegadaBasculaObservaciones String?  @map("llegada_bascula_obs") @db.LongText
   tiempoEntradaBascula        String?  @map("tiempo_entrada_bascula")
   entradaBasculaObservaciones String?  @map("entrada_obs") @db.LongText

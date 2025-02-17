@@ -5,6 +5,7 @@ import Loader from "../../../components/Loader"; // Ajusta la ruta según tu est
 import * as XLSX from "xlsx";
 import { FiArrowLeft, FiDownload, FiFileText, FiRefreshCw } from "react-icons/fi";
 import Swal from "sweetalert2";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 // -------------------------
 // Funciones de Utilidad
@@ -187,7 +188,7 @@ export default function DemorasPage() {
       .replace(/T/, "-")
       .replace(/\..+/, "")
       .replace(/:/g, "-");
-    XLSX.writeFile(workbook, `Datos-Vista-${formattedDateTime}.xlsx`);
+    XLSX.writeFile(workbook, `Data-View-${formattedDateTime}.xlsx`);
     setDownloadLoading(false);
   };
 
@@ -314,6 +315,101 @@ export default function DemorasPage() {
     return { calc1, calc2, calc3, calc4, calc5, calc6 };
   };
 
+  // Función para descargar el detalle del registro actual en PDF usando pdf-lib
+  const handleDescargarPDF = async () => {
+    if (!selectedDemora) {
+      Swal.fire("Error", "No hay registro seleccionado", "error");
+      return;
+    }
+    // Crear documento PDF
+    const pdfDoc = await PDFDocument.create();
+    const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+
+    let currentPage = pdfDoc.addPage();
+    const { width, height } = currentPage.getSize();
+    let yPosition = height - 40;
+    const lineHeight = 12;
+
+    // Función auxiliar para dibujar texto y crear nuevas páginas si es necesario.
+    // Se reemplaza el carácter "→" por "->" para evitar errores de codificación.
+    const drawText = (text: string, size: number = 10) => {
+      const sanitizedText = text.replace(/→/g, "->");
+      if (yPosition < 50) {
+        currentPage = pdfDoc.addPage();
+        yPosition = currentPage.getSize().height - 50;
+      }
+      currentPage.drawText(sanitizedText, {
+        x: 50,
+        y: yPosition,
+        size,
+        font: timesRomanFont,
+        color: rgb(0, 0, 0),
+      });
+      yPosition -= lineHeight;
+    };
+
+    // Agregar título
+    drawText("Detalle de la Demora", 18);
+    yPosition -= lineHeight;
+
+    // Función para agregar secciones al PDF
+    const addSection = (title: string, data: any) => {
+      drawText(title, 12);
+      for (const [key, value] of Object.entries(data)) {
+        drawText(`${formatKey(key)}: ${value || "-"}`, 10);
+      }
+      yPosition -= lineHeight;
+    };
+
+    // Secciones a agregar
+    addSection("Información General", {
+      Registro: selectedDemora.id,
+      "Fecha Inicio": selectedDemora.fechaInicio,
+      "Tiempo Total": selectedDemora.tiempoTotal || "-",
+      "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
+      Realizado: selectedDemora.userName || "-",
+    });
+
+    if (selectedDemora.primerProceso) {
+      addSection("Primer Proceso", filterDetailData(selectedDemora.primerProceso));
+    }
+    if (selectedDemora.segundoProceso) {
+      addSection("Segundo Proceso", filterDetailData(selectedDemora.segundoProceso));
+    }
+    if (selectedDemora.tercerProceso) {
+      addSection("Tercer Proceso", filterDetailData(selectedDemora.tercerProceso));
+      if (selectedDemora.tercerProceso.vueltas) {
+        drawText(`Total de Vueltas: ${selectedDemora.tercerProceso.vueltas.length}`, 12);
+        selectedDemora.tercerProceso.vueltas.forEach((vuelta: any, index: number) => {
+          addSection(`Vuelta ${index + 1}`, vuelta);
+        });
+      }
+    }
+    if (selectedDemora.procesoFinal) {
+      addSection("Proceso Final", filterDetailData(selectedDemora.procesoFinal));
+    }
+    const intervalos = calcularIntervalos(selectedDemora);
+    addSection("Intervalos entre Procesos", {
+      "B.E. (Entr → Sal)": intervalos.calc1,
+      "Sal. B.E. → Lleg. Punto": intervalos.calc2,
+      "Carga": intervalos.calc3,
+      "Sal. Punto → B.S. Entr.": intervalos.calc4,
+      "B.S. (Entr → Sal)": intervalos.calc5,
+      "B.S. → Planta": intervalos.calc6,
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Detalle-Demora-${selectedDemora.id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   // Filtros aplicados a los registros (filtra por texto, tiempo, transacción, condición, método y rango de fechas)
   const filteredDemoras = demoras.filter((item) => {
     const itemString = JSON.stringify(item).toLowerCase();
@@ -353,53 +449,59 @@ export default function DemorasPage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen text-gray-800">
+    <div className="p-1 bg-gray-50 min-h-screen text-gray-800">
       {/* Encabezado - Nuevo Diseño */}
-      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg md:sticky md:top-0 z-50">
+      <header className="bg-gradient-to-r bg-orange-400 text-white shadow-lg md:sticky md:top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center">
               <button
                 onClick={() => (window.location.href = "/")}
-                className="bg-blue-800 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+                className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+                title="Volver"
               >
                 <FiArrowLeft size={20} />
               </button>
               <h1 className="text-2xl font-bold">Registro de Tiempos</h1>
             </div>
-            <div className="flex items-center mt-4 md:mt-0 gap-4">
+            <div className="grid grid-cols-3 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
               <button
                 onClick={handleDescargarVista}
-                className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105"
+                title="Descargar Vista"
+                className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 {downloadLoading ? (
                   <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
                 ) : (
                   <FiDownload size={20} />
                 )}
-                <span>Descargar Vista</span>
+                <span className="hidden md:inline">Descargar Vista</span>
               </button>
+
               <button
                 onClick={handleExportarExcel}
-                className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105"
+                title="Exportar Excel"
+                className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 {exportLoading ? (
                   <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
                 ) : (
                   <FiFileText size={20} />
                 )}
-                <span>Exportar Excel</span>
+                <span className="hidden md:inline">Exportar Excel</span>
               </button>
+
               <button
                 onClick={handleRefresh}
-                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105"
+                title="Refrescar"
+                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 {refreshLoading ? (
                   <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
                 ) : (
                   <FiRefreshCw size={20} />
                 )}
-                <span>Refrescar</span>
+                <span className="hidden md:inline">Refrescar</span>
               </button>
             </div>
           </div>
@@ -595,7 +697,7 @@ export default function DemorasPage() {
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.autorizacionObservaciones || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoIngresoPlanta || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.ingresoPlantaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiemporLlegadaBascula || "-"}</td>
+                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoLlegadaBascula || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.llegadaBasculaObservaciones || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoEntradaBascula || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.entradaBasculaObservaciones || "-"}</td>
@@ -713,11 +815,12 @@ export default function DemorasPage() {
 
       {/* Modal Minimalista y Responsive */}
       {showModal && selectedDemora && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-4 relative">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white w-full max-w-md md:max-w-4xl rounded-lg shadow-lg p-4 relative max-h-full overflow-y-auto">
             <button
               onClick={handleCloseModal}
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl"
+              title="Cerrar"
             >
               &times;
             </button>
@@ -728,11 +831,11 @@ export default function DemorasPage() {
               <DetailTable
                 title="Información General"
                 data={{
-                  "Registro": selectedDemora.id,
+                  Registro: selectedDemora.id,
                   "Fecha Inicio": selectedDemora.fechaInicio,
                   "Tiempo Total": selectedDemora.tiempoTotal || "-",
-                  "Nº Transacción": selectedDemora.primerProceso.numeroTransaccion || "-",
-                  "Realizado": selectedDemora.userName || "-",
+                  "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
+                  Realizado: selectedDemora.userName || "-",
                 }}
               />
               <DetailTable
@@ -771,6 +874,23 @@ export default function DemorasPage() {
                   "B.S. → Planta": calcularIntervalos(selectedDemora).calc6,
                 }}
               />
+            </div>
+            {/* Botones de Regresar y Descargar PDF */}
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={handleCloseModal}
+                className="bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded flex items-center gap-1"
+              >
+                <FiArrowLeft size={20} />
+                <span>Regresar</span>
+              </button>
+              <button
+                onClick={handleDescargarPDF}
+                className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded flex items-center gap-1"
+              >
+                <FiDownload size={20} />
+                <span>Descargar PDF</span>
+              </button>
             </div>
           </div>
         </div>
