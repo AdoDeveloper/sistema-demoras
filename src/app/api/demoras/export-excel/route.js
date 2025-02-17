@@ -1,12 +1,13 @@
+// /api/demoras/export-excel/route.js
 import { NextResponse } from "next/server";
 import prisma from "../../../../../lib/prisma";
 import ExcelJS from "exceljs";
 
-/** Umbral de horas para considerar que hubo “demora”. Ajusta según tu criterio. */
+/** Umbral de horas para considerar “demora” (para análisis, si se requiere) */
 const UMBRAL_DEMORA = 2;
 
 /**
- * Parsea un string "DD/MM/YYYY, HH:mm:ss" => objeto Date
+ * Parsea un string "DD/MM/YYYY, HH:mm:ss" a Date.
  * Ejemplo: "11/02/2025, 05:57:22"
  */
 function parseFechaHora(str) {
@@ -16,35 +17,45 @@ function parseFechaHora(str) {
     const [dia, mes, anio] = fechaStr.split("/").map(Number);
     const [hh, mm, ss] = horaStr.split(":").map(Number);
     return new Date(anio, mes - 1, dia, hh, mm, ss);
-  } catch {
+  } catch (err) {
     return null;
   }
 }
 
 /**
- * Parsea "HH:mm:ss" => objeto Date (1970-01-01 HH:mm:ss)
+ * Parsea "HH:mm:ss" a Date (con fecha base 1970-01-01).
  */
 function parseHora(str) {
   if (!str) return null;
   try {
     const [hh, mm, ss] = str.split(":").map(Number);
     return new Date(1970, 0, 1, hh, mm, ss);
-  } catch {
+  } catch (err) {
     return null;
   }
 }
 
 /**
- * Calcula diferencia en horas (decimales) entre 2 fechas
+ * Calcula la diferencia en horas (decimales) entre 2 fechas.
  */
 function diffEnHoras(dateA, dateB) {
   if (!dateA || !dateB) return 0;
-  const msDiff = dateB - dateA; // milisegundos
-  return msDiff / (1000 * 60 * 60);
+  return (dateB - dateA) / (1000 * 60 * 60);
 }
 
 /**
- * Generar nombre de archivo "Demoras-YYYY-MM-DD_HH-mm.xlsx"
+ * Convierte un valor en horas (decimal) a formato "HH:MM:SS".
+ */
+function formatInterval(hoursDecimal) {
+  const seconds = Math.round(hoursDecimal * 3600);
+  const hh = Math.floor(seconds / 3600);
+  const mm = Math.floor((seconds % 3600) / 60);
+  const ss = seconds % 60;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+}
+
+/**
+ * Genera un nombre de archivo dinámico: "Data YYYY-MM-DD HH-mm.xlsx"
  */
 function getFileName() {
   const now = new Date();
@@ -53,323 +64,362 @@ function getFileName() {
   const dd = String(now.getDate()).padStart(2, "0");
   const hh = String(now.getHours()).padStart(2, "0");
   const min = String(now.getMinutes()).padStart(2, "0");
-  return `Demoras-${yyyy}-${mm}-${dd}-${hh}-${min}.xlsx`;
+  return `Data ${yyyy}-${mm}-${dd} ${hh}-${min}.xlsx`;
 }
 
 /**
- * GET: Exportar todos los campos sin omitir nada + cálculos, demoras y gráficos
+ * Función recursiva para aplanar un objeto (flatten).
+ * Si encuentra un array, lo convierte a JSON (para la hoja principal).
  */
-export async function GET() {
+function flattenObject(obj, prefix = "") {
+  let result = {};
+  for (const key in obj) {
+    if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+    const value = obj[key];
+    const newKey = prefix ? `${prefix}.${key}` : key;
+    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+      Object.assign(result, flattenObject(value, newKey));
+    } else if (Array.isArray(value)) {
+      result[newKey] = JSON.stringify(value);
+    } else {
+      result[newKey] = value;
+    }
+  }
+  return result;
+}
+
+export async function GET(request) {
   try {
-    // 1) Obtener registros
-    const demoras = await prisma.demora.findMany({
+    // 1) Extraer parámetros de consulta (formato YYYY-MM-DD)
+    const { searchParams } = new URL(request.url);
+    const fechaInicioQuery = searchParams.get("fechaInicio");
+    const fechaFinalQuery = searchParams.get("fechaFinal");
+
+    const fechaInicioFilter = fechaInicioQuery ? new Date(fechaInicioQuery) : null;
+    const fechaFinalFilter = fechaFinalQuery ? new Date(fechaFinalQuery) : null;
+
+    // 2) Obtener todos los registros de Demora (incluyendo relaciones)
+    const registros = await prisma.demora.findMany({
       orderBy: { createdAt: "desc" },
+      include: {
+        primerProceso: true,
+        segundoProceso: true,
+        tercerProceso: { include: { vueltas: true } },
+        procesoFinal: true,
+      },
     });
+
+    // 3) Filtrar registros según la fecha de autorización (primerProceso.fechaAutorizacion)
+    let registrosFiltrados = registros;
+    if (fechaInicioFilter && fechaFinalFilter) {
+      registrosFiltrados = registros.filter((record) => {
+        const authDateStr = record.primerProceso?.fechaAutorizacion;
+        if (!authDateStr) return false;
+        const authDate = new Date(authDateStr);
+        return authDate >= fechaInicioFilter && authDate <= fechaFinalFilter;
+      });
+    }
 
     // Variables para análisis
     let sumHoras = 0;
     let countValid = 0;
     let totalDemoras = 0;
 
-    // 2) Aplanar la data
-    const rows = demoras.map((record) => {
-      const d = record.data || {};
+    // 4) Construir las filas de la hoja "Demoras" con los mismos campos que la tabla de la UI
+    const rows = registrosFiltrados.map((record) => {
+      const primer = record.primerProceso || {};
+      const segundo = record.segundoProceso || {};
+      const tercero = record.tercerProceso || {};
+      const final = record.procesoFinal || {};
 
-      // Secciones
-      const p = d.primerProceso || {};
-      const s = d.segundoProceso || {};
-      const t = d.tercerProceso || {};
-      const f = d.procesoFinal || {};
+      // Calcular intervalos en horas decimales y convertir a formato HH:MM:SS
+      const calc1 = formatInterval(diffEnHoras(parseHora(primer.tiempoEntradaBascula), parseHora(primer.tiempoSalidaBascula)));
+      const calc2 = formatInterval(diffEnHoras(parseHora(primer.tiempoSalidaBascula), parseHora(segundo.tiempoLlegadaPunto)));
+      const calc3 = formatInterval(diffEnHoras(parseHora(segundo.tiempoInicioCarga), parseHora(segundo.tiempoTerminaCarga)));
+      let entradaBS = null;
+      let salidaBS = null;
+      if (tercero.vueltas && tercero.vueltas.length > 0) {
+        const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
+        entradaBS = parseHora(lastVuelta.tiempoEntradaBascula);
+        salidaBS = parseHora(lastVuelta.tiempoSalidaBascula);
+      }
+      const calc4 = formatInterval(diffEnHoras(parseHora(segundo.tiempoSalidaPunto), entradaBS));
+      const calc5 = formatInterval(diffEnHoras(entradaBS, salidaBS));
+      const calc6 = formatInterval(diffEnHoras(salidaBS, parseHora(final.tiempoSalidaPlanta)));
 
-      // Tiempos primer proceso
-      const tpPre = p.tiempoPrechequeo || {};
-      const tpScan = p.tiempoScanner || {};
-      const tpAuto = p.tiempoAutorizacion || {};
-      const tpIng = p.tiempoIngresoPlanta || {};
-      const tpEnt = p.tiempoEntradaBascula || {};
-      const tpSal = p.tiempoSalidaBascula || {};
-
-      // Tiempos segundo
-      const tsLlegPunto = s.tiempoLlegadaPunto || {};
-      const tsLlegOp = s.tiempoLlegadaOperador || {};
-      const tsLlegEnl = s.tiempoLlegadaEnlonador || {};
-      const tsLlegEq = s.tiempoLlegadaEquipo || {};
-      const tsIni = s.tiempoInicioCarga || {};
-      const tsTerm = s.tiempoTerminaCarga || {};
-      const tsSal = s.tiempoSalidaPunto || {};
-
-      // Tiempos tercero
-      const ttEnt = t.tiempoEntradaBascula || {};
-      const ttSal = t.tiempoSalidaBascula || {};
-
-      // Tiempos final
-      const tfLleg = f.tiempoLlegadaTerminal || {};
-      const tfSal = f.tiempoSalidaPlanta || {};
-
-      // Parsear "fechaInicio"
-      const fechaHoraInicio = parseFechaHora(d.fechaInicio);
-
-      // Parsear "horaSalidaPlanta"
-      const horaSalidaStr = tfSal.hora || "";
-      const horaSalidaDate = parseHora(horaSalidaStr);
-
-      let horasTotales = 0;
-      let isDemora = false;
-      if (fechaHoraInicio && horaSalidaDate) {
-        // Combinar
-        const salidaFull = new Date(fechaHoraInicio);
-        salidaFull.setHours(horaSalidaDate.getHours());
-        salidaFull.setMinutes(horaSalidaDate.getMinutes());
-        salidaFull.setSeconds(horaSalidaDate.getSeconds());
-
-        horasTotales = diffEnHoras(fechaHoraInicio, salidaFull);
-        sumHoras += horasTotales;
-        countValid++;
-
-        if (horasTotales >= UMBRAL_DEMORA) {
-          isDemora = true;
-          totalDemoras++;
-        }
+      // Extraer datos de la última vuelta, si existe
+      let ultVueltaNum = "-";
+      let ultVueltaLlegPunto = "-";
+      let ultVueltaObsLlegPunto = "-";
+      let ultVueltaSalPunto = "-";
+      let ultVueltaObsSalPunto = "-";
+      let ultVueltaLlegBascula = "-";
+      let ultVueltaObsLlegBascula = "-";
+      let ultVueltaEntrBascula = "-";
+      let ultVueltaObsEntrBascula = "-";
+      let ultVueltaSalBascula = "-";
+      let ultVueltaObsSalBascula = "-";
+      if (tercero.vueltas && tercero.vueltas.length > 0) {
+        const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
+        ultVueltaNum = lastVuelta.numeroVuelta || "-";
+        ultVueltaLlegPunto = lastVuelta.tiempoLlegadaPunto || "-";
+        ultVueltaObsLlegPunto = lastVuelta.llegadaPuntoObservaciones || "-";
+        ultVueltaSalPunto = lastVuelta.tiempoSalidaPunto || "-";
+        ultVueltaObsSalPunto = lastVuelta.salidaPuntoObservaciones || "-";
+        ultVueltaLlegBascula = lastVuelta.tiempoLlegadaBascula || "-";
+        ultVueltaObsLlegBascula = lastVuelta.llegadaBasculaObservaciones || "-";
+        ultVueltaEntrBascula = lastVuelta.tiempoEntradaBascula || "-";
+        ultVueltaObsEntrBascula = lastVuelta.entradaBasculaObservaciones || "-";
+        ultVueltaSalBascula = lastVuelta.tiempoSalidaBascula || "-";
+        ultVueltaObsSalBascula = lastVuelta.salidaBasculaObservaciones || "-";
       }
 
-      // Vueltas
-      let vueltasStr = "";
-      if (Array.isArray(t.vueltas) && t.vueltas.length > 0) {
-        vueltasStr = JSON.stringify(t.vueltas);
+      // Calcular horas totales (para análisis)
+      let horasTotales = 0;
+      if (record.fechaInicio) {
+        const fechaHoraInicio = parseFechaHora(record.fechaInicio);
+        const horaSalidaStr = final.tiempoSalidaPlanta?.hora || "";
+        const horaSalidaDate = parseHora(horaSalidaStr);
+        if (fechaHoraInicio && horaSalidaDate) {
+          const salidaFull = new Date(fechaHoraInicio);
+          salidaFull.setHours(horaSalidaDate.getHours());
+          salidaFull.setMinutes(horaSalidaDate.getMinutes());
+          salidaFull.setSeconds(horaSalidaDate.getSeconds());
+          horasTotales = diffEnHoras(fechaHoraInicio, salidaFull);
+          sumHoras += horasTotales;
+          countValid++;
+          if (horasTotales >= UMBRAL_DEMORA) {
+            totalDemoras++;
+          }
+        }
       }
 
       return {
-        id: record.id,
-        fechaInicio: d.fechaInicio || "",
-
-        // ---------- Primer Proceso ----------
-        primer_terminal: p.terminal || "",
-        primer_cliente: p.cliente || "",
-        primer_placa: p.placa || "",
-        primer_remolque: p.remolque || "",
-        primer_ejes: p.ejes || "",
-        primer_pesador: p.pesador || "",
-        primer_pesoInicial: Number(p.pesoInicial) || 0,
-        primer_tipoProducto: p.tipoProducto || "",
-        primer_puntoDespacho: p.puntoDespacho || "",
-        primer_basculaEntrada: p.basculaEntrada || "",
-        primer_tipoCarga: p.tipoCarga || "",
-        primer_metodoCarga: p.metodoCarga || "",
-        // primer_tipoSistema: p.tipoSistema || "",
-
-        primer_tiempoPrechequeo_hora: tpPre.hora || "",
-        primer_tiempoPrechequeo_coment: tpPre.comentarios || "",
-        primer_tiempoScanner_hora: tpScan.hora || "",
-        primer_tiempoScanner_coment: tpScan.comentarios || "",
-        primer_tiempoAutorizacion_hora: tpAuto.hora || "",
-        primer_tiempoAutorizacion_coment: tpAuto.comentarios || "",
-        primer_tiempoIngresoPlanta_hora: tpIng.hora || "",
-        primer_tiempoIngresoPlanta_coment: tpIng.comentarios || "",
-        primer_tiempoEntradaBascula_hora: tpEnt.hora || "",
-        primer_tiempoEntradaBascula_coment: tpEnt.comentarios || "",
-        primer_tiempoSalidaBascula_hora: tpSal.hora || "",
-        primer_tiempoSalidaBascula_coment: tpSal.comentarios || "",
-
-        // ---------- Segundo Proceso ----------
-        segundo_enlonador: s.enlonador || "",
-        segundo_operador: s.operador || "",
-        segundo_personalAsignado: s.personalAsignado || "",
-        segundo_modeloEquipo: s.modeloEquipo || "",
-
-        segundo_llegadaPunto_hora: tsLlegPunto.hora || "",
-        segundo_llegadaPunto_coment: tsLlegPunto.comentarios || "",
-        segundo_llegadaOperador_hora: tsLlegOp.hora || "",
-        segundo_llegadaOperador_coment: tsLlegOp.comentarios || "",
-        segundo_llegadaEnlonador_hora: tsLlegEnl.hora || "",
-        segundo_llegadaEnlonador_coment: tsLlegEnl.comentarios || "",
-        segundo_llegadaEquipo_hora: tsLlegEq.hora || "",
-        segundo_llegadaEquipo_coment: tsLlegEq.comentarios || "",
-        segundo_inicioCarga_hora: tsIni.hora || "",
-        segundo_inicioCarga_coment: tsIni.comentarios || "",
-        segundo_terminaCarga_hora: tsTerm.hora || "",
-        segundo_terminaCarga_coment: tsTerm.comentarios || "",
-        segundo_salidaPunto_hora: tsSal.hora || "",
-        segundo_salidaPunto_coment: tsSal.comentarios || "",
-
-        // ---------- Tercer Proceso ----------
-        tercer_pesadorSalida: t.pesadorSalida || "",
-        tercer_basculaSalida: t.basculaSalida || "",
-        tercer_pesoNeto: t.pesoNeto || "",
-        tercer_tiempoEntradaBascula_hora: ttEnt.hora || "",
-        tercer_tiempoEntradaBascula_coment: ttEnt.comentarios || "",
-        tercer_tiempoSalidaBascula_hora: ttSal.hora || "",
-        tercer_tiempoSalidaBascula_coment: ttSal.comentarios || "",
-        tercer_vueltas: vueltasStr,
-
-        // ---------- Proceso Final ----------
-        final_llegadaTerminal_hora: tfLleg.hora || "",
-        final_llegadaTerminal_coment: tfLleg.comentarios || "",
-        final_salidaPlanta_hora: tfSal.hora || "",
-        final_salidaPlanta_coment: tfSal.comentarios || "",
-
-        horasTotales,
-        isDemora,
+        "Fecha Inicio": record.fechaInicio,
+        "Tiempo Total": record.tiempoTotal || "-",
+        "Nº Transacción": primer.numeroTransaccion || "-",
+        "Condición": primer.condicion || "-",
+        "Pesador Entrada": primer.pesadorEntrada || "-",
+        "Portería Entrada": primer.porteriaEntrada || "-",
+        "Método Carga": primer.metodoCarga || "-",
+        "Nº Ejes": primer.numeroEjes || "-",
+        "Punto Despacho": primer.puntoDespacho || "-",
+        "Báscula Entrada": primer.basculaEntrada || "-",
+        "Tiempo Precheq.": primer.tiempoPrechequeo || "-",
+        "Fecha Precheq.": primer.fechaPrechequeo || "-",
+        "Obs Precheq.": primer.prechequeoObservaciones || "-",
+        "Tiempo Scanner": primer.tiempoScanner || "-",
+        "Fecha Scanner": primer.fechaScanner || "-",
+        "Obs Scanner": primer.scannerObservaciones || "-",
+        "Fecha Autorización": primer.fechaAutorizacion || "-",
+        "Tiempo Autorizac.": primer.tiempoAutorizacion || "-",
+        "Fecha Autorizac.": primer.fechaAutorizacion || "-",
+        "Obs Autorizac.": primer.autorizacionObservaciones || "-",
+        "Tiempo Ing. Planta": primer.tiempoIngresoPlanta || "-",
+        "Obs Ingreso": primer.ingresoPlantaObservaciones || "-",
+        "Tiempo Lleg. Básq. (P1)": primer.tiemporLlegadaBascula || "-",
+        "Obs Lleg. Básq. (P1)": primer.llegadaBasculaObservaciones || "-",
+        "Tiempo Entr. Básq. (P1)": primer.tiempoEntradaBascula || "-",
+        "Obs Entr. Básq. (P1)": primer.entradaBasculaObservaciones || "-",
+        "Tiempo Sal. Básq. (P1)": primer.tiempoSalidaBascula || "-",
+        "Obs Sal. Básq. (P1)": primer.salidaBasculaObservaciones || "-",
+        "Operador": segundo.operador || "-",
+        "Enlonador": segundo.enlonador || "-",
+        "Modelo Equipo": segundo.modeloEquipo || "-",
+        "Personal Asig.": segundo.personalAsignado != null ? segundo.personalAsignado : "-",
+        "Obs Personal Asig.": segundo.personalAsignadoObservaciones || "-",
+        "Tiempo Lleg. Punto": segundo.tiempoLlegadaPunto || "-",
+        "Obs Lleg. Punto": segundo.llegadaPuntoObservaciones || "-",
+        "Tiempo Lleg. Oper.": segundo.tiempoLlegadaOperador || "-",
+        "Obs Lleg. Oper.": segundo.llegadaOperadorObservaciones || "-",
+        "Tiempo Lleg. Enlon.": segundo.tiempoLlegadaEnlonador || "-",
+        "Obs Lleg. Enlon.": segundo.llegadaEnlonadorObservaciones || "-",
+        "Tiempo Lleg. Equipo": segundo.tiempoLlegadaEquipo || "-",
+        "Obs Lleg. Equipo": segundo.llegadaEquipoObservaciones || "-",
+        "Tiempo Inicio Carga": segundo.tiempoInicioCarga || "-",
+        "Obs Inicio Carga": segundo.inicioCargaObservaciones || "-",
+        "Tiempo Term. Carga": segundo.tiempoTerminaCarga || "-",
+        "Obs Term. Carga": segundo.terminaCargaObservaciones || "-",
+        "Tiempo Salida Punto": segundo.tiempoSalidaPunto || "-",
+        "Obs Salida Punto": segundo.salidaPuntoObservaciones || "-",
+        "Báscula Salida": tercero.basculaSalida || "-",
+        "Pesador Salida": tercero.pesadorSalida || "-",
+        "Tiempo Lleg. Básq. (P3)": tercero.tiempoLlegadaBascula || "-",
+        "Obs Lleg. Básq. (P3)": tercero.llegadaBasculaObservaciones || "-",
+        "Tiempo Entr. Básq. (P3)": tercero.tiempoEntradaBascula || "-",
+        "Obs Entr. Básq. (P3)": tercero.entradaBasculaObservaciones || "-",
+        "Tiempo Sal. Básq. (P3)": tercero.tiempoSalidaBascula || "-",
+        "Obs Sal. Básq. (P3)": tercero.salidaBasculaObservaciones || "-",
+        "Últ. Vuelta - Nº": ultVueltaNum,
+        "Últ. Vuelta - Lleg. Punto": ultVueltaLlegPunto,
+        "Obs Lleg. Punto (V)": ultVueltaObsLlegPunto,
+        "Últ. Vuelta - Sal. Punto": ultVueltaSalPunto,
+        "Obs Sal. Punto (V)": ultVueltaObsSalPunto,
+        "Últ. Vuelta - Lleg. Básq.": ultVueltaLlegBascula,
+        "Obs Lleg. Básq. (V)": ultVueltaObsLlegBascula,
+        "Últ. Vuelta - Entr. Básq.": ultVueltaEntrBascula,
+        "Obs Entr. Básq. (V)": ultVueltaObsEntrBascula,
+        "Últ. Vuelta - Sal. Básq.": ultVueltaSalBascula,
+        "Obs Sal. Básq. (V)": ultVueltaObsSalBascula,
+        "Tiempo Salida Planta": final.tiempoSalidaPlanta || "-",
+        "Obs Salida Planta": final.salidaPlantaObservaciones || "-",
+        "Portería Salida": final.porteriaSalida || "-",
+        "Tiempo Lleg. Portería": final.tiempoLlegadaPorteria || "-",
+        "Obs Lleg. Portería": final.llegadaPorteriaObservaciones || "-",
+        "B.E. (Entr → Sal)": calc1,
+        "Sal. B.E. → Lleg. Punto": calc2,
+        "Carga": calc3,
+        "Sal. Punto → B.S. Entr.": calc4,
+        "B.S. (Entr → Sal)": calc5,
+        "B.S. → Planta": calc6
       };
     });
 
-    // Calcular promedio
-    let promedioHoras = 0;
-    if (countValid > 0) {
-      promedioHoras = sumHoras / countValid;
-    }
-
-    // 3) Crear workbook
-    const workbook = new ExcelJS.Workbook();
-
-    // 4) Hoja principal: "Demoras"
-    const sheet = workbook.addWorksheet("Demoras");
-
-    // 5) Definir columnas (Todas las que quieras, sin omitir nada)
-    sheet.columns = [
-      { header: "ID de la Demora", key: "id", width: 10 },
-      { header: "Fecha de Inicio del Proceso", key: "fechaInicio", width: 25 },
-
-      // ---------- Primer Proceso ----------
-      { header: "Terminal (P)", key: "primer_terminal", width: 18 },
-      { header: "Cliente (P)", key: "primer_cliente", width: 20 },
-      { header: "Placa (P)", key: "primer_placa", width: 12 },
-      { header: "Remolque (P)", key: "primer_remolque", width: 12 },
-      { header: "Ejes (P)", key: "primer_ejes", width: 10 },
-      { header: "Pesador (P)", key: "primer_pesador", width: 18 },
-      { header: "Peso Inicial (P)", key: "primer_pesoInicial", width: 18 },
-      { header: "Tipo de Producto (P)", key: "primer_tipoProducto", width: 20 },
-      { header: "Punto de Despacho (P)", key: "primer_puntoDespacho", width: 25 },
-      { header: "Báscula de Entrada (P)", key: "primer_basculaEntrada", width: 20 },
-      { header: "Tipo de Carga (P)", key: "primer_tipoCarga", width: 18 },
-      { header: "Método de Carga (P)", key: "primer_metodoCarga", width: 20 },
-
-      { header: "Prechequeo", key: "primer_tiempoPrechequeo_hora", width: 18 },
-      { header: "Comentario", key: "primer_tiempoPrechequeo_coment", width: 25 },
-      { header: "Scanner", key: "primer_tiempoScanner_hora", width: 18 },
-      { header: "Comentario", key: "primer_tiempoScanner_coment", width: 25 },
-      { header: "Autorización", key: "primer_tiempoAutorizacion_hora", width: 18 },
-      { header: "Comentario", key: "primer_tiempoAutorizacion_coment", width: 25 },
-      { header: "Ingreso Planta", key: "primer_tiempoIngresoPlanta_hora", width: 18 },
-      { header: "Comentario", key: "primer_tiempoIngresoPlanta_coment", width: 25 },
-      { header: "Entrada Báscula", key: "primer_tiempoEntradaBascula_hora", width: 18 },
-      { header: "Comentario", key: "primer_tiempoEntradaBascula_coment", width: 25 },
-      { header: "Salida Báscula", key: "primer_tiempoSalidaBascula_hora", width: 18 },
-      { header: "Comentario", key: "primer_tiempoSalidaBascula_coment", width: 25 },
-
-      // ---------- Segundo Proceso ----------
-      { header: "Enlonador", key: "segundo_enlonador", width: 20 },
-      { header: "Operador", key: "segundo_operador", width: 20 },
-      { header: "Personal Asignado", key: "segundo_personalAsignado", width: 25 },
-      { header: "Modelo Equipo", key: "segundo_modeloEquipo", width: 25 },
-
-      { header: "Llegada Punto", key: "segundo_llegadaPunto_hora", width: 18 },
-      { header: "Comentario", key: "segundo_llegadaPunto_coment", width: 25 },
-      { header: "Llegada Operador", key: "segundo_llegadaOperador_hora", width: 20 },
-      { header: "Comentario", key: "segundo_llegadaOperador_coment", width: 25 },
-      { header: "Llegada Enlonador", key: "segundo_llegadaEnlonador_hora", width: 20 },
-      { header: "Comentario", key: "segundo_llegadaEnlonador_coment", width: 25 },
-      { header: "Llegada Equipo", key: "segundo_llegadaEquipo_hora", width: 18 },
-      { header: "Comentario", key: "segundo_llegadaEquipo_coment", width: 25 },
-      { header: "Inicio Carga", key: "segundo_inicioCarga_hora", width: 18 },
-      { header: "Comentario", key: "segundo_inicioCarga_coment", width: 25 },
-      { header: "Termina Carga", key: "segundo_terminaCarga_hora", width: 18 },
-      { header: "Comentario", key: "segundo_terminaCarga_coment", width: 25 },
-      { header: "Salida Punto", key: "segundo_salidaPunto_hora", width: 18 },
-      { header: "Comentario", key: "segundo_salidaPunto_coment", width: 25 },
-
-      // ---------- Tercer Proceso ----------
-      { header: "Pesador Salida", key: "tercer_pesadorSalida", width: 25 },
-      { header: "Báscula Salida", key: "tercer_basculaSalida", width: 25 },
-      { header: "Peso Neto", key: "tercer_pesoNeto", width: 10 },
-      { header: "Entrada Báscula", key: "tercer_tiempoEntradaBascula_hora", width: 22 },
-      { header: "Comentario", key: "tercer_tiempoEntradaBascula_coment", width: 25 },
-      { header: "Salida Báscula", key: "tercer_tiempoSalidaBascula_hora", width: 20 },
-      { header: "Comentario", key: "tercer_tiempoSalidaBascula_coment", width: 25 },
-      { header: "Vueltas (T) [JSON]", key: "tercer_vueltas", width: 30 },
-
-      // ---------- Proceso Final ----------
-      { header: "Llegada Terminal", key: "final_llegadaTerminal_hora", width: 22 },
-      { header: "Comentario", key: "final_llegadaTerminal_coment", width: 25 },
-      { header: "Salida Planta", key: "final_salidaPlanta_hora", width: 18 },
-      { header: "Comentario", key: "final_salidaPlanta_coment", width: 25 },
-
-      { header: "Horas Totales", key: "horasTotales", width: 12 },
-      { header: "¿Demora?", key: "isDemora", width: 10 },
+    // 5) Definir las columnas de Excel exactamente en el mismo orden que la tabla actual
+    const columnasExcel = [
+      { header: "Fecha Inicio", key: "Fecha Inicio", width: 20 },
+      { header: "Tiempo Total", key: "Tiempo Total", width: 20 },
+      { header: "Nº Transacción", key: "Nº Transacción", width: 20 },
+      { header: "Condición", key: "Condición", width: 15 },
+      { header: "Pesador Entrada", key: "Pesador Entrada", width: 20 },
+      { header: "Portería Entrada", key: "Portería Entrada", width: 20 },
+      { header: "Método Carga", key: "Método Carga", width: 20 },
+      { header: "Nº Ejes", key: "Nº Ejes", width: 15 },
+      { header: "Punto Despacho", key: "Punto Despacho", width: 25 },
+      { header: "Báscula Entrada", key: "Báscula Entrada", width: 20 },
+      { header: "Tiempo Precheq.", key: "Tiempo Precheq.", width: 20 },
+      { header: "Fecha Precheq.", key: "Fecha Precheq.", width: 20 },
+      { header: "Obs Precheq.", key: "Obs Precheq.", width: 25 },
+      { header: "Tiempo Scanner", key: "Tiempo Scanner", width: 20 },
+      { header: "Fecha Scanner", key: "Fecha Scanner", width: 20 },
+      { header: "Obs Scanner", key: "Obs Scanner", width: 25 },
+      { header: "Fecha Autorización", key: "Fecha Autorización", width: 20 },
+      { header: "Tiempo Autorizac.", key: "Tiempo Autorizac.", width: 20 },
+      { header: "Fecha Autorizac.", key: "Fecha Autorizac.", width: 20 },
+      { header: "Obs Autorizac.", key: "Obs Autorizac.", width: 25 },
+      { header: "Tiempo Ing. Planta", key: "Tiempo Ing. Planta", width: 20 },
+      { header: "Obs Ingreso", key: "Obs Ingreso", width: 25 },
+      { header: "Tiempo Lleg. Básq. (P1)", key: "Tiempo Lleg. Básq. (P1)", width: 20 },
+      { header: "Obs Lleg. Básq. (P1)", key: "Obs Lleg. Básq. (P1)", width: 25 },
+      { header: "Tiempo Entr. Básq. (P1)", key: "Tiempo Entr. Básq. (P1)", width: 20 },
+      { header: "Obs Entr. Básq. (P1)", key: "Obs Entr. Básq. (P1)", width: 25 },
+      { header: "Tiempo Sal. Básq. (P1)", key: "Tiempo Sal. Básq. (P1)", width: 20 },
+      { header: "Obs Sal. Básq. (P1)", key: "Obs Sal. Básq. (P1)", width: 25 },
+      { header: "Operador", key: "Operador", width: 20 },
+      { header: "Enlonador", key: "Enlonador", width: 20 },
+      { header: "Modelo Equipo", key: "Modelo Equipo", width: 25 },
+      { header: "Personal Asig.", key: "Personal Asig.", width: 20 },
+      { header: "Obs Personal Asig.", key: "Obs Personal Asig.", width: 25 },
+      { header: "Tiempo Lleg. Punto", key: "Tiempo Lleg. Punto", width: 20 },
+      { header: "Obs Lleg. Punto", key: "Obs Lleg. Punto", width: 25 },
+      { header: "Tiempo Lleg. Oper.", key: "Tiempo Lleg. Oper.", width: 20 },
+      { header: "Obs Lleg. Oper.", key: "Obs Lleg. Oper.", width: 25 },
+      { header: "Tiempo Lleg. Enlon.", key: "Tiempo Lleg. Enlon.", width: 20 },
+      { header: "Obs Lleg. Enlon.", key: "Obs Lleg. Enlon.", width: 25 },
+      { header: "Tiempo Lleg. Equipo", key: "Tiempo Lleg. Equipo", width: 20 },
+      { header: "Obs Lleg. Equipo", key: "Obs Lleg. Equipo", width: 25 },
+      { header: "Tiempo Inicio Carga", key: "Tiempo Inicio Carga", width: 20 },
+      { header: "Obs Inicio Carga", key: "Obs Inicio Carga", width: 25 },
+      { header: "Tiempo Term. Carga", key: "Tiempo Term. Carga", width: 20 },
+      { header: "Obs Term. Carga", key: "Obs Term. Carga", width: 25 },
+      { header: "Tiempo Salida Punto", key: "Tiempo Salida Punto", width: 20 },
+      { header: "Obs Salida Punto", key: "Obs Salida Punto", width: 25 },
+      { header: "Báscula Salida", key: "Báscula Salida", width: 20 },
+      { header: "Pesador Salida", key: "Pesador Salida", width: 20 },
+      { header: "Tiempo Lleg. Básq. (P3)", key: "Tiempo Lleg. Básq. (P3)", width: 20 },
+      { header: "Obs Lleg. Básq. (P3)", key: "Obs Lleg. Básq. (P3)", width: 25 },
+      { header: "Tiempo Entr. Básq. (P3)", key: "Tiempo Entr. Básq. (P3)", width: 20 },
+      { header: "Obs Entr. Básq. (P3)", key: "Obs Entr. Básq. (P3)", width: 25 },
+      { header: "Tiempo Sal. Básq. (P3)", key: "Tiempo Sal. Básq. (P3)", width: 20 },
+      { header: "Obs Sal. Básq. (P3)", key: "Obs Sal. Básq. (P3)", width: 25 },
+      { header: "Últ. Vuelta - Nº", key: "Últ. Vuelta - Nº", width: 20 },
+      { header: "Últ. Vuelta - Lleg. Punto", key: "Últ. Vuelta - Lleg. Punto", width: 20 },
+      { header: "Obs Lleg. Punto (V)", key: "Obs Lleg. Punto (V)", width: 25 },
+      { header: "Últ. Vuelta - Sal. Punto", key: "Últ. Vuelta - Sal. Punto", width: 20 },
+      { header: "Obs Sal. Punto (V)", key: "Obs Sal. Punto (V)", width: 25 },
+      { header: "Últ. Vuelta - Lleg. Básq.", key: "Últ. Vuelta - Lleg. Básq.", width: 20 },
+      { header: "Obs Lleg. Básq. (V)", key: "Obs Lleg. Básq. (V)", width: 25 },
+      { header: "Últ. Vuelta - Entr. Básq.", key: "Últ. Vuelta - Entr. Básq.", width: 20 },
+      { header: "Obs Entr. Básq. (V)", key: "Obs Entr. Básq. (V)", width: 25 },
+      { header: "Últ. Vuelta - Sal. Básq.", key: "Últ. Vuelta - Sal. Básq.", width: 20 },
+      { header: "Obs Sal. Básq. (V)", key: "Obs Sal. Básq. (V)", width: 25 },
+      { header: "Tiempo Salida Planta", key: "Tiempo Salida Planta", width: 20 },
+      { header: "Obs Salida Planta", key: "Obs Salida Planta", width: 25 },
+      { header: "Portería Salida", key: "Portería Salida", width: 20 },
+      { header: "Tiempo Lleg. Portería", key: "Tiempo Lleg. Portería", width: 20 },
+      { header: "Obs Lleg. Portería", key: "Obs Lleg. Portería", width: 25 },
+      { header: "B.E. (Entr → Sal)", key: "B.E. (Entr → Sal)", width: 20 },
+      { header: "Sal. B.E. → Lleg. Punto", key: "Sal. B.E. → Lleg. Punto", width: 20 },
+      { header: "Carga", key: "Carga", width: 20 },
+      { header: "Sal. Punto → B.S. Entr.", key: "Sal. Punto → B.S. Entr.", width: 20 },
+      { header: "B.S. (Entr → Sal)", key: "B.S. (Entr → Sal)", width: 20 },
+      { header: "B.S. → Planta", key: "B.S. → Planta", width: 20 },
     ];
 
-    // 6) Agregar filas
+    // 6) Crear el workbook y la hoja "Demoras"
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Demoras");
+    sheet.columns = columnasExcel;
     rows.forEach((row) => {
       sheet.addRow(row);
     });
+    // Se formatean los campos de cálculo (si se desean, se pueden aplicar formatos personalizados aquí)
 
-    // 6a) Formato para “Horas Totales”
-    sheet.getColumn("horasTotales").numFmt = "0.00";
-
-    // 6b) isDemora -> "Sí"/"No"
-    const colDemora = sheet.getColumn("isDemora");
-    colDemora.eachCell((cell, rowNum) => {
-      if (rowNum === 1) return; // encabezado
-      cell.value = cell.value ? "Sí" : "No";
-    });
-
-    // ========== HOJA VUELTAS =============
-    // Si quieres dividir "vueltas" en tabla separada
-    const sheetVueltas = workbook.addWorksheet("Vueltas");
-    sheetVueltas.columns = [
-      { header: "DemoraID", key: "demoraId", width: 10 },
-      { header: "Nro Vuelta", key: "numeroVuelta", width: 12 },
-      { header: "Hora", key: "hora", width: 12 },
-      { header: "Comentarios", key: "comentarios", width: 20 },
-    ];
-
-    rows.forEach((r) => {
-      if (r.tercer_vueltas && typeof r.tercer_vueltas === "string") {
-        try {
-          const arr = JSON.parse(r.tercer_vueltas);
-          if (Array.isArray(arr)) {
-            arr.forEach((v) => {
-              sheetVueltas.addRow({
-                demoraId: r.id,
-                numeroVuelta: v.numeroVuelta,
-                hora: v.hora,
-                comentarios: v.comentarios,
-              });
-            });
-          }
-        } catch {
-          // no pasa nada
-        }
+    // 7) Agregar hoja "Vueltas" si existen datos
+    let datosVueltas = [];
+    registrosFiltrados.forEach((record) => {
+      const idDemora = record.id;
+      const vueltas = record.tercerProceso?.vueltas;
+      if (Array.isArray(vueltas) && vueltas.length > 0) {
+        vueltas.forEach((vuelta, index) => {
+          datosVueltas.push({
+            demoraId: idDemora,
+            numeroVuelta: index + 1,
+            ...vuelta,
+          });
+        });
       }
     });
+    if (datosVueltas.length > 0) {
+      const keysVueltasSet = new Set();
+      datosVueltas.forEach((dato) => {
+        Object.keys(dato).forEach((key) => keysVueltasSet.add(key));
+      });
+      const columnasVueltas = Array.from(keysVueltasSet).map((key) => ({
+        header: key,
+        key: key,
+        width: 20,
+      }));
+      const sheetVueltas = workbook.addWorksheet("Vueltas");
+      sheetVueltas.columns = columnasVueltas;
+      datosVueltas.forEach((row) => {
+        sheetVueltas.addRow(row);
+      });
+    }
 
-    // ========== HOJA ANALISIS (Promedio, total demoras, etc.) ==========
-    const sheetAnalysis = workbook.addWorksheet("Analisis");
-    sheetAnalysis.columns = [
+    // 8) Agregar hoja de análisis con más datos
+    const sheetAnalisis = workbook.addWorksheet("Analisis");
+    sheetAnalisis.columns = [
       { header: "Métrica", key: "metrica", width: 30 },
-      { header: "Valor", key: "valor", width: 15 },
+      { header: "Valor", key: "valor", width: 20 },
     ];
+    // Datos de análisis
+    sheetAnalisis.addRow({ metrica: "Total Registros", valor: rows.length });
+    sheetAnalisis.addRow({ metrica: "Registros con fecha/hora válidos", valor: countValid });
+    sheetAnalisis.addRow({ metrica: "Suma Total de Horas (decimales)", valor: sumHoras.toFixed(2) });
+    sheetAnalisis.addRow({ metrica: "Promedio de Horas (decimales)", valor: countValid ? (sumHoras / countValid).toFixed(2) : 0 });
+    // También se agregan en formato tiempo:
+    sheetAnalisis.addRow({ metrica: "Promedio de Horas (HH:MM:SS)", valor: countValid ? formatInterval(sumHoras / countValid) : "-" });
+    sheetAnalisis.addRow({ metrica: "Total en Demora", valor: totalDemoras });
+    // Porcentaje de registros en demora:
+    const porcentajeDemora = rows.length ? ((totalDemoras / rows.length) * 100).toFixed(2) : 0;
+    sheetAnalisis.addRow({ metrica: "Porcentaje en Demora (%)", valor: porcentajeDemora + "%" });
+    // Agregar fecha y hora de generación:
+    sheetAnalisis.addRow({ metrica: "Fecha de Exportación", valor: new Date().toLocaleString() });
 
-    sheetAnalysis.addRow({ metrica: "Total Registros", valor: rows.length });
-    sheetAnalysis.addRow({ metrica: "Registros con fecha/hora válidos", valor: countValid });
-    sheetAnalysis.addRow({ metrica: "Promedio de Horas", valor: promedioHoras });
-    sheetAnalysis.addRow({ metrica: "Total en Demora", valor: totalDemoras });
-    sheetAnalysis.addRow({ metrica: "Umbral Demora (horas)", valor: UMBRAL_DEMORA });
-
-    // // Formato decimales en "valor" si es number
-    // sheetAnalysis.getColumn("valor").eachCell((cell, rowNum) => {
-    //   if (rowNum === 1) return; // Encabezado
-    //   if (typeof cell.value === "number") {
-    //     cell.numFmt = "0.00";
-    //   }
-    // });
-
-    // 7) Generar buffer
+    // 9) Generar el buffer y retornar la respuesta
     const buffer = await workbook.xlsx.writeBuffer();
-
-    // 8) Nombre de archivo
     const fileName = getFileName();
-
-    // 9) Retornar
     return new NextResponse(buffer, {
       status: 200,
       headers: {

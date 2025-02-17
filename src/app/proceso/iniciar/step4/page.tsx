@@ -81,11 +81,9 @@ export default function ProcesoFinal() {
     let stored = localStorage.getItem("demorasProcess");
     if (!stored) {
       const initialData = {
-        fechaInicio: new Date().toLocaleString("en-GB", {
-          timeZone: "America/El_Salvador",
-        }),
-        userId: localStorage.getItem("userId"),
-        userName: localStorage.getItem("userName"),
+        fechaInicio: new Date().toLocaleString("en-GB", {timeZone: "America/El_Salvador"}),
+        userId:localStorage.getItem("userId"),
+        userName:localStorage.getItem("userName"),
         primerProceso: {},
         segundoProceso: {},
         tercerProceso: {},
@@ -126,7 +124,7 @@ export default function ProcesoFinal() {
     setter((prev) => ({ ...prev, hora }));
   };
 
-  // Función para parsear una hora
+  // Función para parsear una hora (campo con {hora, comentarios})
   const parserHora = (campo) => {
     if (!campo?.hora) return null;
     try {
@@ -139,7 +137,7 @@ export default function ProcesoFinal() {
     }
   };
 
-  // Función para parsear fecha y hora
+  // Función para parsear fecha y hora (en caso de tener fecha y hora separados)
   const parserFechaHora = (campo) => {
     if (!campo?.fecha || !campo?.hora) return null;
     try {
@@ -227,7 +225,38 @@ export default function ProcesoFinal() {
     return note;
   };
 
-  // Botón "Guardar"
+  // Función para guardar los datos del Proceso Final en localStorage (sin mostrar alertas)
+  const guardarDatosProcesoFinal = () => {
+    const stored = localStorage.getItem("demorasProcess");
+    if (!stored) {
+      console.error("No se encontró demorasProcess en localStorage");
+      return;
+    }
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") {
+      console.error("Datos en cache inválidos.");
+      return;
+    }
+    parsed.procesoFinal = {
+      tiempoLlegadaPorteria,
+      tiempoSalidaPlanta,
+      porteriaSalida,
+    };
+    const primerProceso = parsed.primerProceso;
+    const autorizacionDate = primerProceso.tiempoAutorizacion
+      ? parserFechaHora(primerProceso.tiempoAutorizacion)
+      : null;
+    const salidaDate = parserHora(tiempoSalidaPlanta);
+    let tiempoTotal = "";
+    if (autorizacionDate && salidaDate) {
+      const diffMillis = salidaDate.getTime() - autorizacionDate.getTime();
+      tiempoTotal = formatTime(diffMillis);
+    }
+    parsed.tiempoTotal = tiempoTotal;
+    localStorage.setItem("demorasProcess", JSON.stringify(parsed));
+  };
+
+  // Botón "Guardar" (para guardar datos en caché)
   const handleGuardarLocal = () => {
     const stored = localStorage.getItem("demorasProcess");
     if (!stored) {
@@ -273,7 +302,7 @@ export default function ProcesoFinal() {
     );
   };
 
-  // Función para guardar en un archivo txt la información de caché en formato legible
+  // Botón "Guardar Nota": descarga un archivo TXT con la info formateada
   const handleGuardarNota = () => {
     const stored = localStorage.getItem("demorasProcess");
     if (!stored) {
@@ -284,7 +313,7 @@ export default function ProcesoFinal() {
     const content = generateReadableNote(parsed);
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     // Generar nombre de archivo: <userName>-YYYY-MM-DD-HH-MM-SS.txt
-    const userName = parsed.userName || "usuario";
+    const userName = localStorage.getItem("userName") || "Usuario";
     const now = new Date();
     const formattedDate = now.toISOString().slice(0, 10);
     const formattedTime = now
@@ -415,8 +444,11 @@ export default function ProcesoFinal() {
     }
   };
 
-  // Botón "Anterior"
+  // Botón "Anterior": guardar datos en localStorage y navegar a la etapa anterior
   const handleAtras = () => {
+    // Guardamos los datos del Proceso Final en localStorage
+    guardarDatosProcesoFinal();
+    // Luego, navegamos a la página del Tercer Proceso
     router.push("/proceso/iniciar/step3");
   };
 
@@ -785,6 +817,7 @@ export default function ProcesoFinal() {
         </div>
         <div className="mt-6 flex flex-col md:flex-row justify-between gap-2">
           <div className="flex gap-2">
+            {/* Al hacer clic en "Anterior" se guardan los datos y luego se navega */}
             <button
               className="bg-gray-500 text-white px-4 py-2 rounded text-sm hover:bg-gray-600"
               onClick={handleAtras}

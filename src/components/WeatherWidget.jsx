@@ -11,6 +11,7 @@ import {
   WiDaySunny,
 } from "react-icons/wi";
 import { FaArrowUp, FaSun } from "react-icons/fa";
+import WeatherLoader from './WeatherLoader'
 
 /** Formatea la hora a "HH:mm" (24h). */
 function formatTimeHHMM(dateString) {
@@ -147,8 +148,8 @@ const WeatherWidget = () => {
   }, []);
 
   if (loading) {
-    return <div className="text-center">Cargando datos meteorológicos...</div>;
-  }
+    return <WeatherLoader/>;
+  } 
   if (!weatherData) {
     return <div className="text-center text-red-500">Error al cargar los datos.</div>;
   }
