@@ -27,5 +27,5 @@ export async function middleware(req) {
 // Configuración para que el middleware actúe en estas rutas
 export const config = {
   matcher: ["/", "/proceso/consultar", "/api/demoras", "/api/auth/session", "/proceso/iniciar",
-            "/proceso/iniciar/step2", "/proceso/iniciar/step3", "/proceso/iniciar/step4",],
+            "/proceso/iniciar/step2", "/proceso/iniciar/step3", "/proceso/iniciar/step4","/proceso/analisis",],
 };

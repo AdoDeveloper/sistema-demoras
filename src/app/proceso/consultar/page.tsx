@@ -526,7 +526,7 @@ export default function DemorasPage() {
               </button>
               <h1 className="text-2xl font-bold">Registro de Tiempos</h1>
             </div>
-            <div className="grid grid-cols-3 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
+            <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
               {/*<button
                 onClick={handleDescargarVista}
                 title="Descargar Vista"
@@ -550,20 +550,20 @@ export default function DemorasPage() {
                 ) : (
                   <FiFileText size={20} />
                 )}
-                <span className="hidden md:inline">Exportar Excel</span>
+                <span className="md:inline">Exportar Excel</span>
               </button>
 
               <button
                 onClick={handleRefresh}
                 title="Refrescar"
-                className="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
+                className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 {refreshLoading ? (
                   <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
                 ) : (
                   <FiRefreshCw size={20} />
                 )}
-                <span className="hidden md:inline">Refrescar</span>
+                <span className="md:inline">Refrescar</span>
               </button>
             </div>
           </div>
@@ -923,7 +923,7 @@ export default function DemorasPage() {
                   Registro: selectedDemora.id,
                   "Fecha Inicio": selectedDemora.fechaInicio,
                   "Tiempo Total": selectedDemora.tiempoTotal || "-",
-                  "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
+                  "Nº Transaccion": selectedDemora.primerProceso?.numeroTransaccion || "-",
                   Realizado: selectedDemora.userName || "-",
                 }}
               />

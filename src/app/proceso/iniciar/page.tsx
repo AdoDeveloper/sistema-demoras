@@ -348,7 +348,7 @@ export default function PrimerProceso() {
               className="react-select-container"
               classNamePrefix="react-select"
               options={ejesOptions}
-              placeholder="Seleccione Portería"
+              placeholder="Seleccione Ejes"
               value={numeroEjes ? { value: numeroEjes, label: numeroEjes } : null}
               onChange={(option: OptionType | null) =>
                 setNumeroEjes(option ? option.value : "")
@@ -371,6 +371,20 @@ export default function PrimerProceso() {
                 setCondicion(option ? option.value : "")
               }
             />
+          </div>
+          <div>
+          <div className="text-sm sm:text-base text-blue-600 mb-2">
+              <strong>NORMAL:</strong> Si el flujo de unidades es normal y no afecta los procesos de despacho.
+            </div>
+            <div className="text-sm sm:text-base text-orange-600 mt-2 mb-1">
+              <strong>LLUVIA:</strong> Si la condicion del clima afecta los procesos de despacho.
+            </div>
+            <div className="text-sm sm:text-base text-blue-600 mb-2">
+              <strong>MELAZA:</strong> Si el flujo de unidades requiere uso de bascula 3 y afecta los procesos de despacho.
+            </div>
+            <div className="text-sm sm:text-base text-orange-600 mb-2">
+              <strong>CEREALES:</strong> Si hay recepcion de cereales provenientes de barcos y afecta los procesos de despacho.
+            </div>
           </div>
         </div>
 

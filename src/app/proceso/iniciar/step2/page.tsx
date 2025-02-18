@@ -50,6 +50,7 @@ const enlonadorOptions: OptionType[] = [
   { value: "MIGUEL CRESPIN", label: "MIGUEL CRESPIN" },
   { value: "MOISES ALVAREZ", label: "MOISES ALVAREZ" },
   { value: "RAFAEL JIMENEZ", label: "RAFAEL JIMENEZ" },
+  { value: "RICARDO CLEMENTE", label: "RICARDO CLEMENTE"},
   { value: "ROBERTO CALDERON", label: "ROBERTO CALDERON" },
   { value: "TOMAS CADENA", label: "TOMAS CADENA" },
   { value: "WALDIR PINEDA", label: "WALDIR PINEDA" }
@@ -92,6 +93,7 @@ const operadorOptions: OptionType[] = [
   { value: "MIGUEL CRESPIN", label: "MIGUEL CRESPIN" },
   { value: "MOISES ALVAREZ", label: "MOISES ALVAREZ" },
   { value: "RAFAEL JIMENEZ", label: "RAFAEL JIMENEZ" },
+  { value: "RICARDO CLEMENTE", label: "RICARDO CLEMENTE"},
   { value: "ROBERTO CALDERON", label: "ROBERTO CALDERON" },
   { value: "TOMAS CADENA", label: "TOMAS CADENA" },
   { value: "WALDIR PINEDA", label: "WALDIR PINEDA" }
@@ -302,6 +304,7 @@ export default function SegundoProceso() {
             <input
               type="number"
               className="border w-full p-2 text-sm sm:text-base"
+              placeholder="Ingrese la Cantidad"
               value={personalAsignado}
               onChange={(e) => setPersonalAsignado(e.target.value)}
             />
@@ -337,7 +340,7 @@ export default function SegundoProceso() {
           <h3 className="font-bold text-lg mb-2 sm:text-sm">Tiempos</h3>
           <div className="text-sm sm:text-base text-orange-600 mb-2">
               <strong>NOTA:</strong> Si no requiere ingresar 6 digitos de 0.
-            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Llegada al Punto */}
             <div className="border rounded p-2">

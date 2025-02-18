@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"; 
 import prisma from "../../../../lib/prisma";
 
 function parseFechaInicio(fechaStr) {
@@ -67,7 +67,33 @@ export async function POST(request) {
       }
     }
 
-    // 3) Ejecutar todas las operaciones en una transacción
+    // 3) Validar las vueltas ANTES de iniciar la transacción para evitar saltos de ID
+    if (tercerP && Object.keys(tercerP).length > 0 && Array.isArray(tercerP.vueltas)) {
+      for (let i = 0; i < tercerP.vueltas.length; i++) {
+        const unaVuelta = tercerP.vueltas[i];
+        if (Number(unaVuelta.numeroVuelta) === 1) {
+          const horaLlegadaPunto = unaVuelta.llegadaPunto?.hora || "";
+          const horaSalidaPunto = unaVuelta.salidaPunto?.hora || "";
+          const horaLlegadaBascula = unaVuelta.llegadaBascula?.hora || "";
+          const horaEntradaBascula = unaVuelta.entradaBascula?.hora || "";
+          const horaSalidaBascula = unaVuelta.salidaBascula?.hora || "";
+          
+          if (
+            !horaLlegadaPunto.trim() ||
+            !horaSalidaPunto.trim() ||
+            !horaLlegadaBascula.trim() ||
+            !horaEntradaBascula.trim() ||
+            !horaSalidaBascula.trim()
+          ) {
+            const errorMsg = "Error: Faltan horas obligatorias en la vuelta 1.";
+            console.error(">>> [API Debug]", errorMsg);
+            return NextResponse.json({ error: errorMsg }, { status: 400 });
+          }
+        }
+      }
+    }
+
+    // 4) Ejecutar todas las operaciones en una transacción
     const createdData = await prisma.$transaction(async (tx) => {
       // Crear la Demora principal
       const demoraCreada = await tx.demora.create({
@@ -101,20 +127,15 @@ export async function POST(request) {
             scannerObservaciones: primerP.tiempoScanner?.comentarios || "",
             tiempoAutorizacion: primerP.tiempoAutorizacion?.hora || "",
             fechaAutorizacion: primerP.tiempoAutorizacion?.fecha || "",
-            autorizacionObservaciones:
-              primerP.tiempoAutorizacion?.comentarios || "",
+            autorizacionObservaciones: primerP.tiempoAutorizacion?.comentarios || "",
             tiempoIngresoPlanta: primerP.tiempoIngresoPlanta?.hora || "",
-            ingresoPlantaObservaciones:
-              primerP.tiempoIngresoPlanta?.comentarios || "",
+            ingresoPlantaObservaciones: primerP.tiempoIngresoPlanta?.comentarios || "",
             tiempoLlegadaBascula: primerP.tiempoLlegadaBascula?.hora || "",
-            llegadaBasculaObservaciones:
-              primerP.tiempoLlegadaBascula?.comentarios || "",
+            llegadaBasculaObservaciones: primerP.tiempoLlegadaBascula?.comentarios || "",
             tiempoEntradaBascula: primerP.tiempoEntradaBascula?.hora || "",
-            entradaBasculaObservaciones:
-              primerP.tiempoEntradaBascula?.comentarios || "",
+            entradaBasculaObservaciones: primerP.tiempoEntradaBascula?.comentarios || "",
             tiempoSalidaBascula: primerP.tiempoSalidaBascula?.hora || "",
-            salidaBasculaObservaciones:
-              primerP.tiempoSalidaBascula?.comentarios || "",
+            salidaBasculaObservaciones: primerP.tiempoSalidaBascula?.comentarios || "",
           },
         });
         console.log(">>> [API Debug] Primer proceso creado con éxito.");
@@ -131,29 +152,21 @@ export async function POST(request) {
             enlonador: segundoP.enlonador || "",
             modeloEquipo: segundoP.modeloEquipo || "",
             personalAsignado: parseInt(segundoP.personalAsignado, 10) || 0,
-            personalAsignadoObservaciones:
-              segundoP.personalAsignadoObservaciones || "",
+            personalAsignadoObservaciones: segundoP.personalAsignadoObservaciones || "",
             tiempoLlegadaPunto: segundoP.tiempoLlegadaPunto?.hora || "",
-            llegadaPuntoObservaciones:
-              segundoP.tiempoLlegadaPunto?.comentarios || "",
+            llegadaPuntoObservaciones: segundoP.tiempoLlegadaPunto?.comentarios || "",
             tiempoLlegadaOperador: segundoP.tiempoLlegadaOperador?.hora || "",
-            llegadaOperadorObservaciones:
-              segundoP.tiempoLlegadaOperador?.comentarios || "",
+            llegadaOperadorObservaciones: segundoP.tiempoLlegadaOperador?.comentarios || "",
             tiempoLlegadaEnlonador: segundoP.tiempoLlegadaEnlonador?.hora || "",
-            llegadaEnlonadorObservaciones:
-              segundoP.tiempoLlegadaEnlonador?.comentarios || "",
+            llegadaEnlonadorObservaciones: segundoP.tiempoLlegadaEnlonador?.comentarios || "",
             tiempoLlegadaEquipo: segundoP.tiempoLlegadaEquipo?.hora || "",
-            llegadaEquipoObservaciones:
-              segundoP.tiempoLlegadaEquipo?.comentarios || "",
+            llegadaEquipoObservaciones: segundoP.tiempoLlegadaEquipo?.comentarios || "",
             tiempoInicioCarga: segundoP.tiempoInicioCarga?.hora || "",
-            inicioCargaObservaciones:
-              segundoP.tiempoInicioCarga?.comentarios || "",
+            inicioCargaObservaciones: segundoP.tiempoInicioCarga?.comentarios || "",
             tiempoTerminaCarga: segundoP.tiempoTerminaCarga?.hora || "",
-            terminaCargaObservaciones:
-              segundoP.tiempoTerminaCarga?.comentarios || "",
+            terminaCargaObservaciones: segundoP.tiempoTerminaCarga?.comentarios || "",
             tiempoSalidaPunto: segundoP.tiempoSalidaPunto?.hora || "",
-            salidaPuntoObservaciones:
-              segundoP.tiempoSalidaPunto?.comentarios || "",
+            salidaPuntoObservaciones: segundoP.tiempoSalidaPunto?.comentarios || "",
           },
         });
         console.log(">>> [API Debug] Segundo proceso creado con éxito.");
@@ -169,20 +182,14 @@ export async function POST(request) {
             basculaSalida: tercerP.basculaSalida || "",
             pesadorSalida: tercerP.pesadorSalida || "",
             tiempoLlegadaBascula: tercerP.tiempoLlegadaBascula?.hora || "",
-            llegadaBasculaObservaciones:
-              tercerP.tiempoLlegadaBascula?.comentarios || "",
+            llegadaBasculaObservaciones: tercerP.tiempoLlegadaBascula?.comentarios || "",
             tiempoEntradaBascula: tercerP.tiempoEntradaBascula?.hora || "",
-            entradaBasculaObservaciones:
-              tercerP.tiempoEntradaBascula?.comentarios || "",
+            entradaBasculaObservaciones: tercerP.tiempoEntradaBascula?.comentarios || "",
             tiempoSalidaBascula: tercerP.tiempoSalidaBascula?.hora || "",
-            salidaBasculaObservaciones:
-              tercerP.tiempoSalidaBascula?.comentarios || "",
+            salidaBasculaObservaciones: tercerP.tiempoSalidaBascula?.comentarios || "",
           },
         });
-        console.log(
-          ">>> [API Debug] Tercer proceso creado con ID:",
-          terceroCreado.id
-        );
+        console.log(">>> [API Debug] Tercer proceso creado con ID:", terceroCreado.id);
 
         if (Array.isArray(tercerP.vueltas)) {
           console.log(">>> [API Debug] Procesando vueltas:", tercerP.vueltas);
@@ -191,7 +198,7 @@ export async function POST(request) {
             const unaVuelta = tercerP.vueltas[i];
             console.log(`>>> [API Debug] Procesando vuelta ${i + 1}:`, unaVuelta);
             
-            // Validar si es la vuelta 1
+            // Validación de vuelta 1 dentro de la transacción (por seguridad)
             if (Number(unaVuelta.numeroVuelta) === 1) {
               const horaLlegadaPunto = unaVuelta.llegadaPunto?.hora || "";
               const horaSalidaPunto = unaVuelta.salidaPunto?.hora || "";
@@ -206,7 +213,7 @@ export async function POST(request) {
                 !horaEntradaBascula.trim() ||
                 !horaSalidaBascula.trim()
               ) {
-                const errorMsg = "Error: Faltan horas obligatorias en la vuelta 1. Se revierte la transacción.";
+                const errorMsg = "Error: Faltan horas obligatorias en la vuelta 1 (validación interna).";
                 console.error(">>> [API Debug]", errorMsg);
                 throw new Error(errorMsg);
               }
@@ -248,12 +255,10 @@ export async function POST(request) {
           data: {
             demoraId: demoraCreada.id,
             tiempoSalidaPlanta: finalP.tiempoSalidaPlanta?.hora || "",
-            salidaPlantaObservaciones:
-              finalP.tiempoSalidaPlanta?.comentarios || "",
+            salidaPlantaObservaciones: finalP.tiempoSalidaPlanta?.comentarios || "",
             porteriaSalida: finalP.porteriaSalida || "",
             tiempoLlegadaPorteria: finalP.tiempoLlegadaPorteria?.hora || "",
-            llegadaPorteriaObservaciones:
-              finalP.tiempoLlegadaPorteria?.comentarios || "",
+            llegadaPorteriaObservaciones: finalP.tiempoLlegadaPorteria?.comentarios || "",
           },
         });
         console.log(">>> [API Debug] Proceso final creado con éxito.");
