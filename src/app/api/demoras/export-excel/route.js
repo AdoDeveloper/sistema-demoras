@@ -177,7 +177,7 @@ export async function GET(request) {
       // Calcular horas totales (para análisis)
       let horasTotales = 0;
       if (record.fechaInicio) {
-        const fechaHoraInicio = parseFechaHora(record.fechaInicio);
+        const fechaHoraInicio = parseFechaHora(record.fechaAutorizacion);
         const horaSalidaStr = final.tiempoSalidaPlanta?.hora || "";
         const horaSalidaDate = parseHora(horaSalidaStr);
         if (fechaHoraInicio && horaSalidaDate) {
@@ -358,7 +358,7 @@ export async function GET(request) {
 
     // 6) Crear el workbook y la hoja "Demoras"
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Demoras");
+    const sheet = workbook.addWorksheet("Historial");
     sheet.columns = columnasExcel;
     rows.forEach((row) => {
       sheet.addRow(row);
@@ -398,24 +398,24 @@ export async function GET(request) {
     }
 
     // 8) Agregar hoja de análisis con más datos
-    const sheetAnalisis = workbook.addWorksheet("Analisis");
-    sheetAnalisis.columns = [
-      { header: "Métrica", key: "metrica", width: 30 },
-      { header: "Valor", key: "valor", width: 20 },
-    ];
-    // Datos de análisis
-    sheetAnalisis.addRow({ metrica: "Total Registros", valor: rows.length });
-    sheetAnalisis.addRow({ metrica: "Registros con fecha/hora válidos", valor: countValid });
-    sheetAnalisis.addRow({ metrica: "Suma Total de Horas (decimales)", valor: sumHoras.toFixed(2) });
-    sheetAnalisis.addRow({ metrica: "Promedio de Horas (decimales)", valor: countValid ? (sumHoras / countValid).toFixed(2) : 0 });
-    // También se agregan en formato tiempo:
-    sheetAnalisis.addRow({ metrica: "Promedio de Horas (HH:MM:SS)", valor: countValid ? formatInterval(sumHoras / countValid) : "-" });
-    sheetAnalisis.addRow({ metrica: "Total en Demora", valor: totalDemoras });
-    // Porcentaje de registros en demora:
-    const porcentajeDemora = rows.length ? ((totalDemoras / rows.length) * 100).toFixed(2) : 0;
-    sheetAnalisis.addRow({ metrica: "Porcentaje en Demora (%)", valor: porcentajeDemora + "%" });
-    // Agregar fecha y hora de generación:
-    sheetAnalisis.addRow({ metrica: "Fecha de Exportación", valor: new Date().toLocaleString() });
+    // const sheetAnalisis = workbook.addWorksheet("Analisis");
+    // sheetAnalisis.columns = [
+    //   { header: "Métrica", key: "metrica", width: 30 },
+    //   { header: "Valor", key: "valor", width: 20 },
+    // ];
+    // // Datos de análisis
+    // sheetAnalisis.addRow({ metrica: "Total Registros", valor: rows.length });
+    // sheetAnalisis.addRow({ metrica: "Registros con fecha/hora válidos", valor: countValid });
+    // sheetAnalisis.addRow({ metrica: "Suma Total de Horas (decimales)", valor: sumHoras.toFixed(2) });
+    // sheetAnalisis.addRow({ metrica: "Promedio de Horas (decimales)", valor: countValid ? (sumHoras / countValid).toFixed(2) : 0 });
+    // // También se agregan en formato tiempo:
+    // sheetAnalisis.addRow({ metrica: "Promedio de Horas (HH:MM:SS)", valor: countValid ? formatInterval(sumHoras / countValid) : "-" });
+    // sheetAnalisis.addRow({ metrica: "Total en Demora", valor: totalDemoras });
+    // // Porcentaje de registros en demora:
+    // const porcentajeDemora = rows.length ? ((totalDemoras / rows.length) * 100).toFixed(2) : 0;
+    // sheetAnalisis.addRow({ metrica: "Porcentaje en Demora (%)", valor: porcentajeDemora + "%" });
+    // // Agregar fecha y hora de generación:
+    // sheetAnalisis.addRow({ metrica: "Fecha de Exportación", valor: new Date().toLocaleString() });
 
     // 9) Generar el buffer y retornar la respuesta
     const buffer = await workbook.xlsx.writeBuffer();

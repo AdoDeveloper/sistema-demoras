@@ -527,7 +527,7 @@ export default function DemorasPage() {
               <h1 className="text-2xl font-bold">Registro de Tiempos</h1>
             </div>
             <div className="grid grid-cols-3 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
-              <button
+              {/*<button
                 onClick={handleDescargarVista}
                 title="Descargar Vista"
                 className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
@@ -538,7 +538,7 @@ export default function DemorasPage() {
                   <FiDownload size={20} />
                 )}
                 <span className="hidden md:inline">Descargar Vista</span>
-              </button>
+              </button>*/}
 
               <button
                 onClick={handleExportarExcel}
