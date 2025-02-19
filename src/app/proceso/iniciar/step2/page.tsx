@@ -33,6 +33,7 @@ const enlonadorOptions: OptionType[] = [
   { value: "FRANCISCO GARCIA", label: "FRANCISCO GARCIA" },
   { value: "GABRIEL MARTINEZ", label: "GABRIEL MARTINEZ" },
   { value: "IVAN GOMEZ", label: "IVAN GOMEZ" },
+  { value: "JONATHAN CALDERON", label: "JONATHAN CALDERON" },
   { value: "JORGE ISIDRO", label: "JORGE ISIDRO" },
   { value: "JORGE MENDEZ", label: "JORGE MENDEZ" },
   { value: "JOSE FUENTES", label: "JOSE FUENTES" },
@@ -76,6 +77,7 @@ const operadorOptions: OptionType[] = [
   { value: "FRANCISCO GARCIA", label: "FRANCISCO GARCIA" },
   { value: "GABRIEL MARTINEZ", label: "GABRIEL MARTINEZ" },
   { value: "IVAN GOMEZ", label: "IVAN GOMEZ" },
+  { value: "JONATHAN CALDERON", label: "JONATHAN CALDERON" },
   { value: "JORGE ISIDRO", label: "JORGE ISIDRO" },
   { value: "JORGE MENDEZ", label: "JORGE MENDEZ" },
   { value: "JOSE FUENTES", label: "JOSE FUENTES" },
@@ -136,7 +138,7 @@ export default function SegundoProceso() {
   const [operador, setOperador] = useState("");
   const [personalAsignado, setPersonalAsignado] = useState("");
   const [personalAsignadoObservaciones, setPersonalAsignadoObservaciones] = useState("");
-  const [modeloEquipo, setModeloEquipo] = useState("No requiere");
+  const [modeloEquipo, setModeloEquipo] = useState("NO REQUIERE");
 
   // Tiempos (cada uno con { hora, comentarios })
   const [tiempoLlegadaPunto, setTiempoLlegadaPunto] = useState({ hora: "", comentarios: "" });
