@@ -13,6 +13,12 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [cachedUser, setCachedUser] = useState(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Indicador para saber cuándo el componente está montado en el cliente
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -27,7 +33,9 @@ export default function Dashboard() {
     }
   }, [status, session, router]);
 
-  if (status === "loading") {
+  // Mientras el componente no esté montado o la sesión esté cargando,
+  // mostramos un loader.
+  if (!mounted || status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
         <AnalysisLoader />
@@ -112,8 +120,9 @@ export default function Dashboard() {
           </button>
         </section>
       </main>
-        {/* Pie de página fijo */}
-        <footer className="fixed bottom-0 left-0 right-0 bg-white py-3 shadow-inner">
+
+      {/* Pie de página fijo */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white py-3 shadow-inner">
         <div className="max-w-7xl mx-auto text-center text-xs sm:text-sm text-gray-500">
           © {new Date().getFullYear()} Todos los derechos reservados.
         </div>

@@ -17,12 +17,11 @@ import {
 } from "chart.js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
-  FaArrowLeft,
   FaPrint,
   FaFilePdf,
-  FaChartBar,
   FaTable,
 } from "react-icons/fa";
+import { FiArrowLeft } from "react-icons/fi";
 import AnalysisLoader from "../../../components/AnalysisLoader";
 
 // Registrar elementos para Chart.js
@@ -135,6 +134,7 @@ function getCellValue(column, item) {
 }
 
 export default function AnalisisPage() {
+  // Estados para los datos y filtros
   const [allDemoras, setAllDemoras] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -145,27 +145,30 @@ export default function AnalisisPage() {
   const [generalFilter, setGeneralFilter] = useState("");
   const [selectedField, setSelectedField] = useState("Todos");
 
-  // Estado para paginación
+  // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const recordsPerPage = 10;
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
-  // Cargar data desde /api/demoras
+  // Cargar data desde /api/demoras con paginación
   useEffect(() => {
     setLoading(true);
-    fetch("/api/demoras")
+    fetch(`/api/demoras?page=${currentPage}&limit=${recordsPerPage}`)
       .then((res) => res.json())
-      .then((data) => {
-        setAllDemoras(data);
-        setFilteredData(data);
+      .then((result) => {
+        // Se asume que el endpoint retorna { data, totalCount }
+        setAllDemoras(result.data);
+        setFilteredData(result.data);
+        setTotalCount(result.totalCount);
         setLoading(false);
       })
       .catch((err) => {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  }, [currentPage, recordsPerPage]);
 
-  // Aplicar filtros usando la fecha de autorización y el campo seleccionado
+  // Aplicar filtros (se aplican solo sobre la data cargada de la página actual)
   useEffect(() => {
     let tempFiltered = allDemoras;
     if (startDate) {
@@ -253,10 +256,10 @@ export default function AnalisisPage() {
     setFilteredData(tempFiltered);
   }, [startDate, endDate, condicionFil, generalFilter, selectedField, allDemoras]);
 
-  // Reiniciar página actual cuando cambie el filtro
+  // Reiniciar la página actual cuando cambie algún filtro
   useEffect(() => {
     setCurrentPage(1);
-  }, [startDate, endDate, condicionFil, generalFilter, selectedField, allDemoras]);
+  }, [startDate, endDate, condicionFil, generalFilter, selectedField]);
 
   // Calcular promedio del tiempo total (en segundos)
   let totalTimeSec = 0;
@@ -626,8 +629,8 @@ export default function AnalisisPage() {
     const pdfDoc = await PDFDocument.create();
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
     const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
-    let currentPage = pdfDoc.addPage();
-    const { width, height } = currentPage.getSize();
+    let currentPagePdf = pdfDoc.addPage();
+    const { width, height } = currentPagePdf.getSize();
     const margin = 50;
     let yPos = height - margin;
     const lineH = 14;
@@ -635,10 +638,10 @@ export default function AnalisisPage() {
     const drawText = (text, size = 10, font = timesRomanFont) => {
       const sanitizedText = text.replace(/→/g, "->");
       if (yPos < margin + lineH) {
-        currentPage = pdfDoc.addPage();
-        yPos = currentPage.getSize().height - margin;
+        currentPagePdf = pdfDoc.addPage();
+        yPos = currentPagePdf.getSize().height - margin;
       }
-      currentPage.drawText(sanitizedText, {
+      currentPagePdf.drawText(sanitizedText, {
         x: margin,
         y: yPos,
         size,
@@ -652,10 +655,10 @@ export default function AnalisisPage() {
       const textWidth = font.widthOfTextAtSize(text, size);
       const x = (width - textWidth) / 2;
       if (yPos < margin + lineH) {
-        currentPage = pdfDoc.addPage();
-        yPos = currentPage.getSize().height - margin;
+        currentPagePdf = pdfDoc.addPage();
+        yPos = currentPagePdf.getSize().height - margin;
       }
-      currentPage.drawText(text, { x, y: yPos, size, font, color: rgb(0, 0, 0) });
+      currentPagePdf.drawText(text, { x, y: yPos, size, font, color: rgb(0, 0, 0) });
       yPos -= lineH;
     };
 
@@ -698,7 +701,7 @@ export default function AnalisisPage() {
     // Pie de página: Fecha y hora del reporte
     const repFecha = new Date();
     const repFechaHora = `Reporte: ${repFecha.toLocaleDateString()} ${repFecha.toLocaleTimeString()}`;
-    currentPage.drawText(repFechaHora, {
+    currentPagePdf.drawText(repFechaHora, {
       x: margin,
       y: margin / 2,
       size: 10,
@@ -730,26 +733,21 @@ export default function AnalisisPage() {
   // Determinar las columnas a mostrar según el filtro seleccionado
   const displayColumns = columnMapping[selectedField] || columnMapping["Todos"];
 
-  // Lógica de paginación
-  const totalPages = Math.ceil(filteredData.length / recordsPerPage) || 1;
-  const currentRecords = filteredData.slice(
-    (currentPage - 1) * recordsPerPage,
-    currentPage * recordsPerPage
-  );
+  // Cálculo del número total de páginas (según el total de registros en el backend)
+  const totalPages = Math.ceil(totalCount / recordsPerPage) || 1;
 
   return (
     <div className="p-4">
       {/* Botón Regresar */}
       <button
         onClick={() => (window.location.href = "/")}
-        className="bg-blue-600 text-white px-4 py-2 mb-4 rounded inline-flex items-center"
+        className="mb-4 rounded-full inline-flex items-center"
       >
-        <FaArrowLeft className="mr-2" /> Regresar
+        <span className="bg-blue-600 p-2 rounded-full text-white flex items-center justify-center">
+          <FiArrowLeft size={20} />
+        </span>
+        <span className="ml-2 text-blue-600 font-semibold">Análisis de Datos</span>
       </button>
-
-      <h1 className="text-xl font-bold mb-4 flex items-center">
-        <FaChartBar className="mr-2" /> Análisis de Datos
-      </h1>
 
       {/* Filtros */}
       <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -819,6 +817,35 @@ export default function AnalisisPage() {
         </div>
       </div>
 
+      {/* Selector de cantidad de registros por página */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="mb-2 sm:mb-0">
+          <span className="text-sm">Total de registros: {totalCount}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm" htmlFor="recordsPerPage">Mostrar:</label>
+          <select
+            id="recordsPerPage"
+            value={recordsPerPage}
+            onChange={(e) => {
+              setRecordsPerPage(parseInt(e.target.value, 10));
+              setCurrentPage(1);
+            }}
+            className="border p-2 text-sm"
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="250">250</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+            <option value="2000">2000</option>
+            <option value="4000">4000</option>
+          </select>
+        </div>
+      </div>
+
       {/* Tabla de registros filtrados */}
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse text-sm">
@@ -832,7 +859,7 @@ export default function AnalisisPage() {
             </tr>
           </thead>
           <tbody>
-            {currentRecords.map((item) => (
+            {filteredData.map((item) => (
               <tr key={item.id}>
                 {displayColumns.map((col) => (
                   <td key={col} className="border p-2">
@@ -844,41 +871,43 @@ export default function AnalisisPage() {
           </tbody>
         </table>
         <div className="mt-2 text-sm">
-          Total de registros: {filteredData.length}
+          Total de registros en esta página: {filteredData.length}
         </div>
       </div>
 
       {/* Paginador */}
-      <div className="flex justify-center pb-4 border-b-2">
-        <button
-          onClick={() => setCurrentPage((prev) => prev - 1)}
-          disabled={currentPage === 1}
-          className="px-4 py-2 border rounded mr-2 disabled:opacity-50"
-        >
-          Anterior
-        </button>
-        {Array.from({ length: totalPages }, (_, i) => (
+      <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pb-4 border-b">
+        <div className="flex space-x-2 mb-2 sm:mb-0">
           <button
-            key={i}
-            onClick={() => setCurrentPage(i + 1)}
-            className={`px-4 py-2 border rounded mx-1 ${
-              currentPage === i + 1 ? "bg-blue-500 text-white" : ""
-            }`}
+            onClick={() => setCurrentPage((prev) => prev - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 border rounded mr-2 disabled:opacity-50"
           >
-            {i + 1}
+            Anterior
           </button>
-        ))}
-        <button
-          onClick={() => setCurrentPage((prev) => prev + 1)}
-          disabled={currentPage === totalPages}
-          className="px-4 py-2 border rounded ml-2 disabled:opacity-50"
-        >
-          Siguiente
-        </button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`px-4 py-2 border rounded mx-1 ${
+                currentPage === i + 1 ? "bg-blue-500 text-white" : ""
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 border rounded ml-2 disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+        </div>
+        <div className="text-sm">
+          Página {currentPage} de {totalPages}
+        </div>
       </div>
-
-      {/* Sección de Descripción de Intervalos y Procesos */}
-      {descripcion}
 
       {/* Sección de Gráficos (8 gráficos, más grandes y responsivos) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -915,6 +944,9 @@ export default function AnalisisPage() {
           <Radar data={chartProcessRadarData} options={chartProcessRadarOptions} />
         </div>
       </div>
+
+      {/* Sección de Descripción de Intervalos y Procesos */}
+      {descripcion}
 
       {/* Resumen de Promedios (en formato HH:mm:ss) */}
       <div className="mb-4">

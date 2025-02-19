@@ -6,8 +6,13 @@ function parseFechaInicio(fechaStr) {
   return fechaStr;
 }
 
-export async function GET() {
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const limit = parseInt(searchParams.get('limit') || '10', 10);
+
   try {
+    const totalCount = await prisma.demora.count();
     const demoras = await prisma.demora.findMany({
       include: {
         primerProceso: true,
@@ -16,8 +21,10 @@ export async function GET() {
         procesoFinal: true,
       },
       orderBy: { createdAt: "asc" },
+      skip: (page - 1) * limit,
+      take: limit,
     });
-    return NextResponse.json(demoras, { status: 200 });
+    return NextResponse.json({ data: demoras, totalCount }, { status: 200 });
   } catch (err) {
     console.error("Error al listar demoras:", err);
     return NextResponse.json({ error: "Error al listar demoras" }, { status: 500 });
@@ -198,7 +205,6 @@ export async function POST(request) {
             const unaVuelta = tercerP.vueltas[i];
             console.log(`>>> [API Debug] Procesando vuelta ${i + 1}:`, unaVuelta);
             
-            // Validación de vuelta 1 dentro de la transacción (por seguridad)
             if (Number(unaVuelta.numeroVuelta) === 1) {
               const horaLlegadaPunto = unaVuelta.llegadaPunto?.hora || "";
               const horaSalidaPunto = unaVuelta.salidaPunto?.hora || "";
@@ -266,7 +272,6 @@ export async function POST(request) {
         console.log(">>> [API Debug] procesoFinal vacío, no se crea registro.");
       }
 
-      // Retornar la Demora creada (registro principal)
       return demoraCreada;
     });
 
@@ -274,7 +279,6 @@ export async function POST(request) {
     return NextResponse.json({ ok: true, id: createdData.id }, { status: 201 });
   } catch (err) {
     console.error("Error al guardar demoras:", err);
-    // Validar error por duplicidad (por ejemplo, código P2002 de Prisma)
     if (err.code === "P2002") {
       return NextResponse.json({ error: "Registro duplicado" }, { status: 400 });
     }

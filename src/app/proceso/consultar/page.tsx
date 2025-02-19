@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Loader from "../../../components/Loader"; // Ajusta la ruta según tu estructura
+import Loader from "../../../components/Loader";
 import * as XLSX from "xlsx";
 import { FiArrowLeft, FiDownload, FiFileText, FiRefreshCw } from "react-icons/fi";
 import Swal from "sweetalert2";
@@ -79,8 +79,8 @@ function DetailTable({ title, data }: { title: string; data: any }) {
         <tbody>
           {entries.map(([key, value]) => (
             <tr key={key} className="border-b">
-              <td className="px-2 py-1 font-bold bg-blue-50">{formatKey(key)}</td>
-              <td className="px-2 py-1">{String(value || "-")}</td>
+              <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
+              <td className="px-2 py-1 whitespace-nowrap">{String(value || "-")}</td>
             </tr>
           ))}
         </tbody>
@@ -95,7 +95,7 @@ function VueltasDetail({ vueltas }: { vueltas: any[] }) {
     <div className="mb-4">
       {vueltas.map((vuelta, index) => (
         <div key={vuelta.id} className="mb-2 border rounded">
-          <div className="bg-blue-50 px-2 py-1 font-bold text-xs">
+          <div className="bg-blue-50 px-2 py-1 font-bold text-xs whitespace-nowrap">
             Vuelta {index + 1}
           </div>
           <table className="w-full text-xs border-collapse">
@@ -103,8 +103,8 @@ function VueltasDetail({ vueltas }: { vueltas: any[] }) {
               {Object.entries(vuelta).map(([key, value]) =>
                 ["id", "tercerProcesoId", "createdAt", "updatedAt"].includes(key) ? null : (
                   <tr key={key} className="border-b">
-                    <td className="px-2 py-1 font-bold bg-blue-50">{formatKey(key)}</td>
-                    <td className="px-2 py-1">{String(value || "-")}</td>
+                    <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">{String(value || "-")}</td>
                   </tr>
                 )
               )}
@@ -121,6 +121,7 @@ function VueltasDetail({ vueltas }: { vueltas: any[] }) {
 // -------------------------
 export default function DemorasPage() {
   const [demoras, setDemoras] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [selectedDemora, setSelectedDemora] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -130,7 +131,7 @@ export default function DemorasPage() {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
 
-  // Estados para Filtros
+  // Estados para Filtros (se aplican en el frontend)
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFinal, setFechaFinal] = useState("");
   const [filterText, setFilterText] = useState("");
@@ -139,22 +140,28 @@ export default function DemorasPage() {
   const [filterCondicion, setFilterCondicion] = useState("");
   const [filterMetodo, setFilterMetodo] = useState("");
 
-  // Estado para paginación
+  // Estado para paginación (backend)
   const [currentPage, setCurrentPage] = useState(1);
-  const recordsPerPage = 10;
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
 
-  // Función para obtener la data; en refresco no se muestra el loader de pantalla
+  // Función para obtener la data; sólo se envían al backend los parámetros de paginación
   const fetchDemoras = async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
-      const res = await fetch("/api/demoras");
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: recordsPerPage.toString(),
+      });
+
+      const res = await fetch(`/api/demoras?${queryParams.toString()}`);
       if (!res.ok) {
         Swal.fire("Error", "Error al obtener registros: " + res.status, "error");
         if (!isRefresh) setLoading(false);
         return;
       }
-      const data = await res.json();
-      setDemoras(data);
+      const result = await res.json();
+      setDemoras(result.data);
+      setTotalCount(result.totalCount);
     } catch (error: any) {
       Swal.fire("Error", "Error de red o parse JSON: " + error.message, "error");
     } finally {
@@ -162,14 +169,10 @@ export default function DemorasPage() {
     }
   };
 
+  // Se dispara la consulta al backend únicamente cuando cambia la paginación
   useEffect(() => {
     fetchDemoras();
-  }, []);
-
-  // Reiniciar página actual al cambiar filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterText, filterTiempoTotal, filterTransaccion, filterCondicion, filterMetodo, fechaInicio, fechaFinal]);
+  }, [currentPage, recordsPerPage]);
 
   const handleOpenModal = (item: any) => {
     setSelectedDemora(item);
@@ -252,14 +255,14 @@ export default function DemorasPage() {
   // Funciones para campos compuestos en la tabla
   const renderBasculaEntrada = (primer: any) => (
     <div>
-      <p>
+      <p className="whitespace-nowrap">
         <strong>Báscula:</strong> {primer.basculaEntrada || "-"}
       </p>
-      <p>
+      <p className="whitespace-nowrap">
         <strong>Entrada:</strong> {primer.tiempoEntradaBascula || "-"}
         {primer.entradaBasculaObservaciones ? ` (${primer.entradaBasculaObservaciones})` : ""}
       </p>
-      <p>
+      <p className="whitespace-nowrap">
         <strong>Salida:</strong> {primer.tiempoSalidaBascula || "-"}
         {primer.salidaBasculaObservaciones ? ` (${primer.salidaBasculaObservaciones})` : ""}
       </p>
@@ -280,14 +283,14 @@ export default function DemorasPage() {
     }
     return (
       <div>
-        <p>
+        <p className="whitespace-nowrap">
           <strong>Báscula:</strong> {tercero.basculaSalida || "-"}
         </p>
-        <p>
+        <p className="whitespace-nowrap">
           <strong>Entrada:</strong> {entrada}
           {entradaObs ? ` (${entradaObs})` : ""}
         </p>
-        <p>
+        <p className="whitespace-nowrap">
           <strong>Salida:</strong> {salida}
           {salidaObs ? ` (${salidaObs})` : ""}
         </p>
@@ -336,8 +339,8 @@ export default function DemorasPage() {
     const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
-    let currentPage = pdfDoc.addPage();
-    const { width, height } = currentPage.getSize();
+    let currentPagePdf = pdfDoc.addPage();
+    const { width, height } = currentPagePdf.getSize();
     const margin = 50;
     let yPosition = height - margin;
     const lineHeight = 14;
@@ -345,12 +348,11 @@ export default function DemorasPage() {
     // Función auxiliar para dibujar texto; reemplaza "→" por "->"
     const drawText = (text: string, size: number = 10, font = timesRomanFont) => {
       const sanitizedText = text.replace(/→/g, "->");
-      // Si el espacio en la página es insuficiente, se agrega otra página
       if (yPosition < margin + lineHeight) {
-        currentPage = pdfDoc.addPage();
-        yPosition = currentPage.getSize().height - margin;
+        currentPagePdf = pdfDoc.addPage();
+        yPosition = currentPagePdf.getSize().height - margin;
       }
-      currentPage.drawText(sanitizedText, {
+      currentPagePdf.drawText(sanitizedText, {
         x: margin,
         y: yPosition,
         size,
@@ -365,10 +367,10 @@ export default function DemorasPage() {
       const textWidth = font.widthOfTextAtSize(text, size);
       const x = (width - textWidth) / 2;
       if (yPosition < margin + lineHeight) {
-        currentPage = pdfDoc.addPage();
-        yPosition = currentPage.getSize().height - margin;
+        currentPagePdf = pdfDoc.addPage();
+        yPosition = currentPagePdf.getSize().height - margin;
       }
-      currentPage.drawText(text, {
+      currentPagePdf.drawText(text, {
         x,
         y: yPosition,
         size,
@@ -380,30 +382,25 @@ export default function DemorasPage() {
 
     // --- Encabezado ---
     centerText("ALMAPAC S.A de C.V. - PLANTA ACAJUTLA", 16, timesRomanFont);
-    // Espacio extra entre títulos
     yPosition -= lineHeight * 0.5;
     centerText("Control de Tiempos Despacho", 14, timesRomanFont);
     yPosition -= lineHeight * 0.5;
     centerText(`Detalle del Registro #${selectedDemora.id}`, 14, timesRomanFont);
-    yPosition -= lineHeight * 1.5; // Espacio superior extra antes de la data
+    yPosition -= lineHeight * 1.5;
 
-    // Función para agregar una sección en formato de tabla (dos columnas: clave y valor)
+    // Función para agregar una sección en formato de tabla
     const addTableSection = (sectionTitle: string, data: any) => {
-      drawText(sectionTitle, 12, timesRomanFont); // Título de sección
-      // Encabezado de columnas (usando fuente monoespaciada)
+      drawText(sectionTitle, 12, timesRomanFont);
       const header = `${"Campo".padEnd(30)} | Valor`;
       drawText(header, 10, courierFont);
       drawText("-".repeat(80), 10, courierFont);
-      // Por cada par clave-valor se imprime una línea con columnas fijas.
-      // Se omiten campos "id", "createdAt" y "updatedAt" (se asume que filterDetailData ya los elimina)
       for (const [key, value] of Object.entries(data)) {
         const line = `${formatKey(key).padEnd(30)} | ${value || "-"}`;
         drawText(line, 10, courierFont);
       }
-      yPosition -= lineHeight; // Espacio entre secciones
+      yPosition -= lineHeight;
     };
 
-    // Sección "Información General"
     addTableSection("Información General", {
       Registro: selectedDemora.id,
       "Fecha Inicio": selectedDemora.fechaInicio,
@@ -423,7 +420,6 @@ export default function DemorasPage() {
       if (selectedDemora.tercerProceso.vueltas) {
         drawText(`Total de Vueltas: ${selectedDemora.tercerProceso.vueltas.length}`, 12, timesRomanFont);
         selectedDemora.tercerProceso.vueltas.forEach((vuelta: any, index: number) => {
-          // Aplicamos el filtro para omitir campos createdAt y updatedAt en cada vuelta
           addTableSection(`Vuelta ${index + 1}`, filterDetailData(vuelta));
         });
       }
@@ -433,19 +429,15 @@ export default function DemorasPage() {
     }
     const intervalos = calcularIntervalos(selectedDemora);
     addTableSection("Intervalos entre Procesos", {
-      "B.E. (Entr -> Sal)": intervalos.calc1,
-      "Sal. B.E. -> Lleg. Punto": intervalos.calc2,
+      "B.E. (Entr → Sal)": intervalos.calc1,
+      "Sal. B.E. → Lleg. Punto": intervalos.calc2,
       "Tiempo Total Carga": intervalos.calc3,
-      "Sal. Punto -> B.S. Entr.": intervalos.calc4,
-      "B.S. (Entr -> Sal)": intervalos.calc5,
-      "B.S. -> Salida Planta": intervalos.calc6,
+      "Sal. Punto → B.S. Entr.": intervalos.calc4,
+      "B.S. (Entr → Sal)": intervalos.calc5,
+      "B.S. → Salida Planta": intervalos.calc6,
     });
 
-    // --- Pie de página ---
-    const reporteFecha = new Date();
-    const fechaHoraReporte = `Reporte: ${reporteFecha.toLocaleDateString()} ${reporteFecha.toLocaleTimeString()}`;
-    // Colocamos el pie de página en la parte inferior de la última página
-    currentPage.drawText(fechaHoraReporte, {
+    currentPagePdf.drawText(`Reporte: ${new Date().toLocaleString()}`, {
       x: margin,
       y: margin / 2,
       size: 10,
@@ -465,42 +457,61 @@ export default function DemorasPage() {
     URL.revokeObjectURL(url);
   };
 
-  // Filtros aplicados a los registros (filtra por texto, tiempo, transacción, condición, método y rango de fechas)
-  const filteredDemoras = demoras.filter((item) => {
-    const itemString = JSON.stringify(item).toLowerCase();
-    const textMatch = filterText === "" || itemString.includes(filterText.toLowerCase());
-    const tiempoMatch =
-      filterTiempoTotal === "" ||
-      (item.tiempoTotal && item.tiempoTotal.toLowerCase().includes(filterTiempoTotal.toLowerCase()));
-    const transMatch =
-      filterTransaccion === "" ||
-      (item.primerProceso?.numeroTransaccion &&
-        item.primerProceso.numeroTransaccion.toLowerCase().includes(filterTransaccion.toLowerCase()));
-    const condicionMatch =
-      filterCondicion === "" ||
-      (item.primerProceso?.condicion &&
-        item.primerProceso.condicion.toLowerCase().includes(filterCondicion.toLowerCase()));
-    const metodoMatch =
-      filterMetodo === "" ||
-      (item.primerProceso?.metodoCarga &&
-        item.primerProceso.metodoCarga.toLowerCase().includes(filterMetodo.toLowerCase()));
-    let dateMatch = true;
-    if (fechaInicio && fechaFinal) {
-      // Se filtra según la fecha de autorización (ajusta según lo que necesites)
-      const itemDate = new Date(item.primerProceso.fechaAutorizacion);
-      const start = new Date(fechaInicio);
-      const end = new Date(fechaFinal);
-      dateMatch = itemDate >= start && itemDate <= end;
+  // Aplicación de filtros en el frontend sobre la data ya traída (paginada)
+  const filteredDemoras = demoras.filter(item => {
+    // Filtro de texto (busca en todos los campos)
+    if (filterText) {
+      const haystack = JSON.stringify(item).toLowerCase();
+      if (!haystack.includes(filterText.toLowerCase())) return false;
     }
-    return textMatch && tiempoMatch && transMatch && condicionMatch && metodoMatch && dateMatch;
+    // Filtro Tiempo Total
+    if (filterTiempoTotal) {
+      if (!(item.tiempoTotal && item.tiempoTotal.includes(filterTiempoTotal))) return false;
+    }
+    // Filtro Nº Transacción (buscando en primerProceso)
+    if (filterTransaccion) {
+      if (
+        !(
+          item.primerProceso &&
+          item.primerProceso.numeroTransaccion &&
+          item.primerProceso.numeroTransaccion.toString().includes(filterTransaccion)
+        )
+      )
+        return false;
+    }
+    // Filtro Condición (en primerProceso)
+    if (filterCondicion) {
+      if (
+        !(
+          item.primerProceso &&
+          item.primerProceso.condicion &&
+          item.primerProceso.condicion.toLowerCase().includes(filterCondicion.toLowerCase())
+        )
+      )
+        return false;
+    }
+    // Filtro Método de Carga (en primerProceso)
+    if (filterMetodo) {
+      if (
+        !(
+          item.primerProceso &&
+          item.primerProceso.metodoCarga &&
+          item.primerProceso.metodoCarga.toLowerCase().includes(filterMetodo.toLowerCase())
+        )
+      )
+        return false;
+    }
+    // Filtro por fecha (comparando item.fechaInicio)
+    if (fechaInicio) {
+      if (!(item.fechaInicio && item.fechaInicio >= fechaInicio)) return false;
+    }
+    if (fechaFinal) {
+      if (!(item.fechaInicio && item.fechaInicio <= fechaFinal)) return false;
+    }
+    return true;
   });
 
-  // Cálculo para paginación
-  const totalPages = Math.ceil(filteredDemoras.length / recordsPerPage) || 1;
-  const currentRecords = filteredDemoras.slice(
-    (currentPage - 1) * recordsPerPage,
-    currentPage * recordsPerPage
-  );
+  const totalPages = Math.ceil(totalCount / recordsPerPage) || 1;
 
   if (loading) {
     return (
@@ -527,19 +538,6 @@ export default function DemorasPage() {
               <h1 className="text-2xl font-bold">Registro de Tiempos</h1>
             </div>
             <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
-              {/*<button
-                onClick={handleDescargarVista}
-                title="Descargar Vista"
-                className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
-              >
-                {downloadLoading ? (
-                  <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
-                ) : (
-                  <FiDownload size={20} />
-                )}
-                <span className="hidden md:inline">Descargar Vista</span>
-              </button>*/}
-
               <button
                 onClick={handleExportarExcel}
                 title="Exportar Excel"
@@ -552,7 +550,6 @@ export default function DemorasPage() {
                 )}
                 <span className="md:inline">Exportar Excel</span>
               </button>
-
               <button
                 onClick={handleRefresh}
                 title="Refrescar"
@@ -643,91 +640,248 @@ export default function DemorasPage() {
 
       {/* Tabla Principal */}
       <div className="overflow-x-auto bg-white shadow-md mt-6">
-        <table id="demoras-table" className="min-w-full border-collapse table-auto text-sm">
+        <table
+          id="demoras-table"
+          className="min-w-full border-collapse table-auto text-sm"
+        >
           <thead>
-            <tr className="bg-blue-50 text-blue-700">
-              <th className="border px-2 py-1">Fecha Inicio</th>
-              <th className="border px-2 py-1">Tiempo Total</th>
-              <th className="border px-2 py-1">Nº Transacción</th>
-              <th className="border px-2 py-1">Condición</th>
-              <th className="border px-2 py-1">Pesador Entrada</th>
-              <th className="border px-2 py-1">Portería Entrada</th>
-              <th className="border px-2 py-1">Método Carga</th>
-              <th className="border px-2 py-1">Nº Ejes</th>
-              <th className="border px-2 py-1">Punto Despacho</th>
-              <th className="border px-2 py-1">Báscula Entrada</th>
-              <th className="border px-2 py-1">Tiempo Precheq.</th>
-              <th className="border px-2 py-1">Fecha Precheq.</th>
-              <th className="border px-2 py-1">Obs Precheq.</th>
-              <th className="border px-2 py-1">Tiempo Scanner</th>
-              <th className="border px-2 py-1">Fecha Scanner</th>
-              <th className="border px-2 py-1">Obs Scanner</th>
-              <th className="border px-2 py-1">Fecha Autorización</th>
-              <th className="border px-2 py-1">Tiempo Autorizac.</th>
-              <th className="border px-2 py-1">Fecha Autorizac.</th>
-              <th className="border px-2 py-1">Obs Autorizac.</th>
-              <th className="border px-2 py-1">Tiempo Ing. Planta</th>
-              <th className="border px-2 py-1">Obs Ingreso</th>
-              <th className="border px-2 py-1">Tiempo Lleg. Básq. (P1)</th>
-              <th className="border px-2 py-1">Obs Lleg. Básq. (P1)</th>
-              <th className="border px-2 py-1">Tiempo Entr. Básq. (P1)</th>
-              <th className="border px-2 py-1">Obs Entr. Básq. (P1)</th>
-              <th className="border px-2 py-1">Tiempo Sal. Básq. (P1)</th>
-              <th className="border px-2 py-1">Obs Sal. Básq. (P1)</th>
-              <th className="border px-2 py-1">Operador</th>
-              <th className="border px-2 py-1">Enlonador</th>
-              <th className="border px-2 py-1">Modelo Equipo</th>
-              <th className="border px-2 py-1">Personal Asig.</th>
-              <th className="border px-2 py-1">Obs Personal Asig.</th>
-              <th className="border px-2 py-1">Tiempo Lleg. Punto</th>
-              <th className="border px-2 py-1">Obs Lleg. Punto</th>
-              <th className="border px-2 py-1">Tiempo Lleg. Oper.</th>
-              <th className="border px-2 py-1">Obs Lleg. Oper.</th>
-              <th className="border px-2 py-1">Tiempo Lleg. Enlon.</th>
-              <th className="border px-2 py-1">Obs Lleg. Enlon.</th>
-              <th className="border px-2 py-1">Tiempo Lleg. Equipo</th>
-              <th className="border px-2 py-1">Obs Lleg. Equipo</th>
-              <th className="border px-2 py-1">Tiempo Inicio Carga</th>
-              <th className="border px-2 py-1">Obs Inicio Carga</th>
-              <th className="border px-2 py-1">Tiempo Term. Carga</th>
-              <th className="border px-2 py-1">Obs Term. Carga</th>
-              <th className="border px-2 py-1">Tiempo Salida Punto</th>
-              <th className="border px-2 py-1">Obs Salida Punto</th>
-              <th className="border px-2 py-1">Báscula Salida</th>
-              <th className="border px-2 py-1">Pesador Salida</th>
-              <th className="border px-2 py-1">Tiempo Lleg. Básq. (P3)</th>
-              <th className="border px-2 py-1">Obs Lleg. Básq. (P3)</th>
-              <th className="border px-2 py-1">Tiempo Entr. Básq. (P3)</th>
-              <th className="border px-2 py-1">Obs Entr. Básq. (P3)</th>
-              <th className="border px-2 py-1">Tiempo Sal. Básq. (P3)</th>
-              <th className="border px-2 py-1">Obs Sal. Básq. (P3)</th>
-              <th className="border px-2 py-1">Últ. Vuelta - Nº</th>
-              <th className="border px-2 py-1">Últ. Vuelta - Lleg. Punto</th>
-              <th className="border px-2 py-1">Obs Lleg. Punto (V)</th>
-              <th className="border px-2 py-1">Últ. Vuelta - Sal. Punto</th>
-              <th className="border px-2 py-1">Obs Sal. Punto (V)</th>
-              <th className="border px-2 py-1">Últ. Vuelta - Lleg. Básq.</th>
-              <th className="border px-2 py-1">Obs Lleg. Básq. (V)</th>
-              <th className="border px-2 py-1">Últ. Vuelta - Entr. Básq.</th>
-              <th className="border px-2 py-1">Obs Entr. Básq. (V)</th>
-              <th className="border px-2 py-1">Últ. Vuelta - Sal. Básq.</th>
-              <th className="border px-2 py-1">Obs Sal. Básq. (V)</th>
-              <th className="border px-2 py-1">Tiempo Salida Planta</th>
-              <th className="border px-2 py-1">Obs Salida Planta</th>
-              <th className="border px-2 py-1">Portería Salida</th>
-              <th className="border px-2 py-1">Tiempo Lleg. Portería</th>
-              <th className="border px-2 py-1">Obs Lleg. Portería</th>
-              <th className="border px-2 py-1">B.E. (Entr → Sal)</th>
-              <th className="border px-2 py-1">Sal. B.E. → Lleg. Punto</th>
-              <th className="border px-2 py-1">Tiempo Total Carga</th>
-              <th className="border px-2 py-1">Sal. Punto → B.S. Entr.</th>
-              <th className="border px-2 py-1">B.S. (Entr → Sal)</th>
-              <th className="border px-2 py-1">B.S. → Salida Planta</th>
-              <th className="border px-2 py-1">Acción</th>
+            <tr className="bg-blue-50 text-blue-700 text-xs md:text-sm">
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Fecha Inicio
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Total
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                N° Transacción
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Condición
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Pesador Entrada
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Portería Entrada
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Método Carga
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                N° Ejes
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Punto Despacho
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Báscula Entrada
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Precheq.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Fecha Precheq.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Precheq.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Scanner
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Fecha Scanner
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Scanner
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Fecha Autorización
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Autorizac.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Fecha Autorizac.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Autorizac.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Ing. Planta
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Ingreso
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Lleg. Básq. (P1)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Básq. (P1)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Entr. Básq. (P1)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Entr. Básq. (P1)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Sal. Básq. (P1)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Sal. Básq. (P1)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Operador
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Enlonador
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Modelo Equipo
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Personal Asig.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Personal Asig.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Lleg. Punto
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Punto
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Lleg. Oper.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Oper.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Lleg. Enlon.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Enlon.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Lleg. Equipo
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Equipo
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Inicio Carga
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Inicio Carga
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Term. Carga
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Term. Carga
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Salida Punto
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Salida Punto
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Báscula Salida
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Pesador Salida
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Lleg. Básq. (P3)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Básq. (P3)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Entr. Básq. (P3)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Entr. Básq. (P3)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Sal. Básq. (P3)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Sal. Básq. (P3)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Últ. Vuelta - Nº
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Últ. Vuelta - Lleg. Punto
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Punto (V)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Últ. Vuelta - Sal. Punto
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Sal. Punto (V)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Últ. Vuelta - Lleg. Básq.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Básq. (V)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Últ. Vuelta - Entr. Básq.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Entr. Básq. (V)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Últ. Vuelta - Sal. Básq.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Sal. Básq. (V)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Salida Planta
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Salida Planta
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Portería Salida
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Lleg. Portería
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Obs Lleg. Portería
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                B.E. (Entr → Sal)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Sal. B.E. → Lleg. Punto
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Tiempo Total Carga
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                Sal. Punto → B.S. Entr.
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                B.S. (Entr → Sal)
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">
+                B.S. → Salida Planta
+              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Acción</th>
             </tr>
           </thead>
-          <tbody className="text-gray-700">
-            {currentRecords.map((item) => {
+          <tbody className="text-gray-700 text-xs md:text-sm">
+            {filteredDemoras.map((item) => {
               const primer = item.primerProceso || {};
               const segundo = item.segundoProceso || {};
               const tercero = item.tercerProceso || {};
@@ -768,9 +922,7 @@ export default function DemorasPage() {
                   <td className="border px-2 py-1 whitespace-nowrap">{segundo.operador || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{segundo.enlonador || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{segundo.modeloEquipo || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {segundo.personalAsignado != null ? segundo.personalAsignado : "-"}
-                  </td>
+                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.personalAsignado != null ? segundo.personalAsignado : "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{segundo.personalAsignadoObservaciones || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{segundo.tiempoLlegadaPunto || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{segundo.llegadaPuntoObservaciones || "-"}</td>
@@ -875,31 +1027,57 @@ export default function DemorasPage() {
         </table>
       </div>
 
-      {/* Paginador */}
-      <div className="flex justify-center mt-4 space-x-2">
-        <button
-          className="px-3 py-1 border rounded disabled:opacity-50"
-          onClick={() => setCurrentPage((prev) => prev - 1)}
-          disabled={currentPage === 1}
-        >
-          Anterior
-        </button>
-        {Array.from({ length: totalPages }, (_, index) => (
+      {/* Fila del paginador y cantidad de registros mostrados */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mt-4">
+        <div className="flex space-x-2 mb-2 sm:mb-0">
           <button
-            key={index}
-            className={`px-3 py-1 border rounded ${currentPage === index + 1 ? "bg-blue-500 text-white" : ""}`}
-            onClick={() => setCurrentPage(index + 1)}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+            onClick={() => setCurrentPage((prev) => prev - 1)}
+            disabled={currentPage === 1}
           >
-            {index + 1}
+            Anterior
           </button>
-        ))}
-        <button
-          className="px-3 py-1 border rounded disabled:opacity-50"
-          onClick={() => setCurrentPage((prev) => prev + 1)}
-          disabled={currentPage === totalPages}
-        >
-          Siguiente
-        </button>
+          {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              key={index}
+              className={`px-3 py-1 border rounded ${
+                currentPage === index + 1 ? "bg-blue-500 text-white" : ""
+              }`}
+              onClick={() => setCurrentPage(index + 1)}
+            >
+              {index + 1}
+            </button>
+          ))}
+          <button
+            className="px-3 py-1 border rounded disabled:opacity-50"
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Siguiente
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">
+            Mostrando {filteredDemoras.length} de {totalCount} registros
+          </span>
+          <label htmlFor="recordsPerPage" className="text-sm">
+            Mostrar:
+          </label>
+          <select
+            id="recordsPerPage"
+            value={recordsPerPage}
+            onChange={(e) => {
+              setRecordsPerPage(parseInt(e.target.value, 10));
+              setCurrentPage(1);
+            }}
+            className="text-black px-2 py-1 rounded"
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
       </div>
 
       {/* Modal Minimalista y Responsive */}
@@ -964,7 +1142,6 @@ export default function DemorasPage() {
                 }}
               />
             </div>
-            {/* Botones de Regresar y Descargar PDF */}
             <div className="flex justify-between mt-4">
               <button
                 onClick={handleCloseModal}
