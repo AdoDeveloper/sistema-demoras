@@ -13,25 +13,10 @@ model User {
   email     String?   @unique @map("email")
   password  String?   @map("password")
   createdAt DateTime  @default(now()) @map("created_at")
-  accounts  Account[]
   demoras   Demora[]
   sessions  Session[]
 
   @@map("users")
-}
-
-model Account {
-  id                String  @id @default(uuid()) @map("id")
-  userId            Int     @map("user_id")
-  type              String  @map("type")
-  provider          String  @map("provider")
-  providerAccountId String  @map("provider_account_id")
-  accessToken       String? @map("access_token")
-  refreshToken      String? @map("refresh_token")
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId], map: "accounts_user_id_fkey")
-  @@map("accounts")
 }
 
 model Session {
