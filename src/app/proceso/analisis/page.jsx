@@ -752,19 +752,21 @@ export default function AnalisisPage() {
       {/* Filtros */}
       <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div>
-          <label className="block mb-1">Fecha Inicio (Autorización)</label>
+          <label className="block mb-1">Fecha Inicio</label>
           <input
             type="date"
             className="border p-2 w-full"
+            placeholder="dd/mm/aaaa"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
         <div>
-          <label className="block mb-1">Fecha Fin (Autorización)</label>
+          <label className="block mb-1">Fecha Final</label>
           <input
             type="date"
             className="border p-2 w-full"
+            placeholder="dd/mm/aaaa"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />

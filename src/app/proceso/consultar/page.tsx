@@ -571,6 +571,7 @@ export default function DemorasPage() {
               <input
                 type="date"
                  className="border text-black p-1 w-full rounded"
+                 placeholder="dd/mm/aaaa"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
               />
@@ -580,6 +581,7 @@ export default function DemorasPage() {
               <input
                 type="date"
                  className="border text-black p-1 w-full rounded"
+                 placeholder="dd/mm/aaaa"
                 value={fechaFinal}
                 onChange={(e) => setFechaFinal(e.target.value)}
               />

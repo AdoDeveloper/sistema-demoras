@@ -59,45 +59,199 @@ export default function Profile() {
     if (page < totalPages) fetchData(page + 1);
   };
 
-  // Función para generar el PDF de reporte diario
-  const handleDownloadPDF = async () => {
+// Función para generar el PDF de reporte diario con márgenes adecuados
+const handleDownloadPDF = async () => {
     const pdfDoc = await PDFDocument.create();
     const pagePDF = pdfDoc.addPage();
     const { width, height } = pagePDF.getSize();
     const margin = 50;
+    const contentWidth = width - (margin * 2);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontSize = 10;
-
-    // Título del PDF
-    pagePDF.drawText("Reporte Diario", {
-      x: margin,
+    const titleFontSize = 16;
+    const subtitleFontSize = 14;
+  
+    // Encabezado corporativo - centrado correctamente
+    pagePDF.drawText("ALMAPAC S.A. de C.V.", {
+      x: margin + (contentWidth / 2) - boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) / 2,
       y: height - margin,
-      size: 16,
-      font,
+      size: titleFontSize,
+      font: boldFont,
       color: rgb(0, 0, 0),
     });
-
-    const headers = ["Fecha", "Código", "Nombre", "Total", "Carga Máxima", "Cabaleo"];
-    const colWidths = [80, 60, 150, 80, 80, 80];
-    let tableY = height - margin - 40;
+  
+    // Subtítulo del documento - centrado correctamente
+    pagePDF.drawText("Reporte de Actividades", {
+      x: margin + (contentWidth / 2) - boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) / 2,
+      y: height - margin - 25,
+      size: subtitleFontSize,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Subtítulo adicional - centrado correctamente
+    pagePDF.drawText("Toma de Tiempos", {
+      x: margin + (contentWidth / 2) - font.widthOfTextAtSize("Toma de Tiempos", 12) / 2,
+      y: height - margin - 45,
+      size: 12,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+  
+    // Información del usuario y resumen - alineado correctamente con margen
+    const userInfoY = height - margin - 80;
+    pagePDF.drawText(`${userData?.nombreCompleto || "N/A"}`, {
+      x: margin,
+      y: userInfoY,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    pagePDF.drawText(`Código: ${userData?.codigo || "N/A"}`, {
+      x: margin,
+      y: userInfoY - 20,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Calcular totales - alineado a la derecha respetando el margen
+    const totalActivities = globalStats?.totalRegistros || 0;
+    const totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
+    const totalCabaleo = globalStats?.totalCabaleo || 0;
+    
+    pagePDF.drawText(`Total Realizados: ${totalActivities}`, {
+      x: width - margin - 150,
+      y: userInfoY,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    pagePDF.drawText(`Total Carga Máxima: ${totalCargaMaxima}`, {
+      x: width - margin - 150,
+      y: userInfoY - 20,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    pagePDF.drawText(`Total Cabaleo: ${totalCabaleo}`, {
+      x: width - margin - 150,
+      y: userInfoY - 40,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Línea separadora - respetando márgenes
+    pagePDF.drawLine({
+      start: { x: margin, y: userInfoY - 60 },
+      end: { x: width - margin, y: userInfoY - 60 },
+      thickness: 1,
+      color: rgb(0.7, 0.7, 0.7),
+    });
+  
+    // Dibujar cada registro con su propio encabezado
+    let startY = userInfoY - 80;
     const rowHeight = 20;
-    let currentX = margin;
-
-    // Dibujar encabezado de tabla
-    headers.forEach((header, idx) => {
-      pagePDF.drawText(header, {
-        x: currentX + 2,
-        y: tableY - rowHeight + 5,
-        size: fontSize,
-        font,
+    
+    // Ajustamos los anchos de columna para que se ajusten al contenido disponible
+    const tableWidth = contentWidth;
+    const colWidths = [
+      Math.floor(tableWidth * 0.12), // Fecha (12%)
+      Math.floor(tableWidth * 0.10), // Código (10%)
+      Math.floor(tableWidth * 0.35), // Nombre (35%)
+      Math.floor(tableWidth * 0.12), // Total (12%)
+      Math.floor(tableWidth * 0.17), // Carga Máxima (17%)
+      Math.floor(tableWidth * 0.14)  // Cabaleo (14%)
+    ];
+    
+    dailyStats.forEach((stat, index) => {
+      // Verificar si necesitamos una nueva página
+      if (startY < margin + 100) {
+        // Añadir nueva página
+        pagePDF = pdfDoc.addPage();
+        startY = height - margin - 40;
+        
+        // Añadir encabezado reducido en la nueva página
+        pagePDF.drawText("ALMAPAC S.A. de C.V. - Reporte de Actividades", {
+          x: margin,
+          y: height - margin,
+          size: 12,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        
+        startY -= 30;
+      }
+      
+      // Espacio entre tablas
+      if (index > 0) {
+        startY -= 30;
+      }
+      
+      // Título de la tabla individual
+      pagePDF.drawText(`Registro del día ${stat.fecha}`, {
+        x: margin,
+        y: startY,
+        size: 12,
+        font: boldFont,
         color: rgb(0, 0, 0),
       });
-      currentX += colWidths[idx];
-    });
-
-    tableY -= rowHeight;
-    dailyStats.forEach((stat) => {
-      currentX = margin;
+      startY -= 20;
+      
+      // Dibujar encabezados
+      const headers = ["Fecha", "Código", "Nombre", "Total", "Carga Máxima", "Cabaleo"];
+      let currentX = margin;
+      
+      // Fondo gris para los encabezados
+      pagePDF.drawRectangle({
+        x: margin,
+        y: startY - rowHeight,
+        width: tableWidth,
+        height: rowHeight,
+        color: rgb(0.95, 0.95, 0.95),
+        borderColor: rgb(0.8, 0.8, 0.8),
+        borderWidth: 1,
+      });
+      
+      headers.forEach((header, idx) => {
+        // Dibujar texto centrado en cada columna
+        const headerX = currentX + (colWidths[idx] / 2) - (font.widthOfTextAtSize(header, fontSize) / 2);
+        pagePDF.drawText(header, {
+          x: headerX,
+          y: startY - rowHeight + 6,
+          size: fontSize,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        
+        // Dibujar líneas verticales de la tabla
+        if (idx > 0) {
+          pagePDF.drawLine({
+            start: { x: currentX, y: startY },
+            end: { x: currentX, y: startY - rowHeight * 2 },
+            color: rgb(0.8, 0.8, 0.8),
+            thickness: 1,
+          });
+        }
+        
+        currentX += colWidths[idx];
+      });
+      
+      // Dibujar línea vertical final
+      pagePDF.drawLine({
+        start: { x: margin + tableWidth, y: startY },
+        end: { x: margin + tableWidth, y: startY - rowHeight * 2 },
+        color: rgb(0.8, 0.8, 0.8),
+        thickness: 1,
+      });
+      
+      // Dibujar datos de fila
+      startY -= rowHeight;
       const rowData = [
         stat.fecha,
         userData?.codigo || "-",
@@ -106,19 +260,73 @@ export default function Profile() {
         stat.cargaMaxima?.toString() || "0",
         stat.cabaleo?.toString() || "0",
       ];
+      
+      // Fondo blanco para los datos
+      pagePDF.drawRectangle({
+        x: margin,
+        y: startY - rowHeight,
+        width: tableWidth,
+        height: rowHeight,
+        color: rgb(1, 1, 1),
+        borderColor: rgb(0.8, 0.8, 0.8),
+        borderWidth: 1,
+      });
+      
+      currentX = margin;
       rowData.forEach((cell, idx) => {
+        // Centrar el texto en la celda
+        const cellWidth = font.widthOfTextAtSize(cell, fontSize);
+        const cellX = currentX + (colWidths[idx] / 2) - (cellWidth / 2);
+        
         pagePDF.drawText(cell, {
-          x: currentX + 2,
-          y: tableY - rowHeight + 5,
+          x: cellX,
+          y: startY - rowHeight + 6,
           size: fontSize,
           font,
           color: rgb(0, 0, 0),
         });
         currentX += colWidths[idx];
       });
-      tableY -= rowHeight;
+      
+      startY -= rowHeight;
     });
-
+    
+    // Obtener la página actual para agregar el pie de página
+    const pages = pdfDoc.getPages();
+    const currentPage = pages[pages.length - 1];
+    
+    // Agregar pie de página con fecha y hora
+    const dateTime = new Date().toLocaleString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    
+    const footerText = `Reporte generado el: ${dateTime}`;
+    currentPage.drawText(footerText, {
+      x: margin + (contentWidth / 2) - (font.widthOfTextAtSize(footerText, fontSize) / 2),
+      y: margin / 2,
+      size: fontSize,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+    
+    // Agregar numeración de página en cada página
+    pages.forEach((page, index) => {
+      const pageSize = page.getSize();
+      const pageText = `Página ${index + 1} de ${pages.length}`;
+      page.drawText(pageText, {
+        x: pageSize.width - margin - font.widthOfTextAtSize(pageText, fontSize),
+        y: margin / 2,
+        size: fontSize,
+        font,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+    });
+  
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: "application/pdf" });
     const urlBlob = URL.createObjectURL(blob);
@@ -137,8 +345,8 @@ export default function Profile() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <button
             onClick={() => (window.location.href = "/")}
-            className="text-blue-600 hover:text-blue-800 transition-colors"
-            title="Volver"
+                className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+                title="Volver"
           >
             <FiArrowLeft size={24} />
           </button>
