@@ -2,24 +2,24 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import AnalysisLoader from "../components/AnalysisLoader"; // Ajusta la ruta según tu estructura
-import WeatherWidget from "../components/WeatherWidget"; // Ajusta la ruta según tu estructura
-import { FiHome, FiLogOut } from "react-icons/fi";
+import { useEffect, useState, useRef } from "react";
+import dynamic from 'next/dynamic';
+import { FiHome, FiLogOut, FiUser, FiHelpCircle, FiSettings } from "react-icons/fi";
 import { FaPlay, FaList, FaChartBar } from "react-icons/fa";
 import { HiOutlineUserCircle } from "react-icons/hi";
+
+// Dynamic imports with no SSR to prevent hydration mismatch
+const AnalysisLoader = dynamic(() => import("../components/AnalysisLoader"), { ssr: false });
+const WeatherWidget = dynamic(() => import("../components/WeatherWidget"), { ssr: false });
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [cachedUser, setCachedUser] = useState(null);
-  const [mounted, setMounted] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef(null);
 
-  // Indicador para saber cuándo el componente está montado en el cliente
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
+  // Use useEffect for all client-side operations
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -33,12 +33,33 @@ export default function Dashboard() {
     }
   }, [status, session, router]);
 
-  // Mientras el componente no esté montado o la sesión esté cargando,
-  // mostramos un loader.
-  if (!mounted || status === "loading") {
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuRef]);
+
+  function logOut() {
+    sessionStorage.removeItem("user");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("demorasProcess");
+    localStorage.removeItem("nextauth.message");
+    signOut();
+  }
+
+  // Don't use mounted state, instead check if we're loading
+  if (typeof window === 'undefined' || status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
-        <AnalysisLoader />
+        <div>Cargando...</div> {/* Simple loading state for server */}
       </div>
     );
   }
@@ -58,20 +79,53 @@ export default function Dashboard() {
               <p className="text-xs sm:text-sm text-gray-500">Panel de Control</p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              sessionStorage.removeItem("user");
-              localStorage.removeItem("userId");
-              localStorage.removeItem("userName");
-              localStorage.removeItem("demorasProcess");
-              localStorage.removeItem("nextauth.message");
-              signOut();
-            }}
-            className="flex items-center bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition duration-200"
-          >
-            <FiLogOut size={20} className="mr-2" />
-            <span>Salir</span>
-          </button>
+          <div className="flex items-center space-x-6">
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center space-x-2 rounded-full transition-all duration-300 transform hover:scale-105"
+                title="Opciones de usuario"
+              >
+                <FiUser size={20} className="text-gray-700" />
+                <span className="hidden sm:inline text-gray-700">Perfil</span>
+              </button>
+
+              {/* Menú desplegable */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                  <a 
+                    href="/usuario" 
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <FiUser className="mr-2" size={16} />
+                    Perfil
+                  </a>
+                  <a 
+                    href="/configuracion" 
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <FiSettings className="mr-2" size={16} />
+                    Configuración
+                  </a>
+                  <a 
+                    href="/ayuda" 
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <FiHelpCircle className="mr-2" size={16} />
+                    Ayuda
+                  </a>
+                  <div className="border-t border-gray-100 my-1"></div>
+                  <button 
+                    onClick={logOut}
+                    className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <FiLogOut className="mr-2" size={16} />
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -90,9 +144,9 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Widget del clima */}
+        {/* Widget del clima - renderizado del lado del cliente */}
         <section>
-          <WeatherWidget />
+          {typeof window !== 'undefined' && <WeatherWidget />}
         </section>
 
         {/* Acciones */}

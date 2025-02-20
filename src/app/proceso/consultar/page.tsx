@@ -570,7 +570,7 @@ export default function DemorasPage() {
               <label className="text-sm">Fecha Inicio</label>
               <input
                 type="date"
-                className="text-black px-2 py-1 rounded"
+                 className="border text-black p-1 w-full rounded"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
               />
@@ -579,7 +579,7 @@ export default function DemorasPage() {
               <label className="text-sm">Fecha Final</label>
               <input
                 type="date"
-                className="text-black px-2 py-1 rounded"
+                 className="border text-black p-1 w-full rounded"
                 value={fechaFinal}
                 onChange={(e) => setFechaFinal(e.target.value)}
               />
