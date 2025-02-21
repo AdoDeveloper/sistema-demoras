@@ -45,8 +45,20 @@ export async function GET(request) {
     // Verificar que el usuario existe
     const userExists = await prisma.user.findUnique({
       where: { id: userId },
-      select: { nombreCompleto: true, codigo: true, email: true },
+      select: { 
+        nombreCompleto: true,
+        codigo: true,
+        email: true,
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
+
+    // console.log("Usuario encontrado:", userExists);
+
     if (!userExists) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }

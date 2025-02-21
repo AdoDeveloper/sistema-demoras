@@ -17,8 +17,18 @@ model User {
   createdAt DateTime  @default(now()) @map("created_at")
   demoras   Demora[]
   sessions  Session[]
+  roleId    Int       @map("role_id")
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@map("users")
+}
+
+model Role {
+  id        Int       @id @default(autoincrement()) @map("id")
+  name      String    @unique @map("name")
+  users     User[]
+
+  @@map("roles")
 }
 
 model Session {

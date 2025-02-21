@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiArrowLeft } from "react-icons/fi";
-import { FaArrowLeft, FaArrowRight, FaFilePdf } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
+import { FaArrowLeft, FaFilePdf } from "react-icons/fa";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export default function Profile() {
-  // Estados principales
+  const router = useRouter();
+
+  // Estados para perfil
   const [loading, setLoading] = useState(true);
   const [dailyStats, setDailyStats] = useState([]);
   const [globalStats, setGlobalStats] = useState(null);
@@ -14,22 +17,22 @@ export default function Profile() {
   const [userData, setUserData] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-
-  // Paginación
   const [page, setPage] = useState(1);
   const limit = 10;
   const [totalPages, setTotalPages] = useState(1);
 
+  // Estados para dashboard (usuario y rol)
+  const [cachedUser, setCachedUser] = useState(null);
+  const [roleId, setRoleId] = useState(null);
+
+  // Cargar datos del perfil y dashboard
   const fetchData = async (pageToLoad = 1) => {
     setLoading(true);
     try {
       const userId = localStorage.getItem("userId");
-      const url = `/api/user/profile?id=${userId}&page=${pageToLoad}&limit=${limit}&startDate=${encodeURIComponent(
-        startDate
-      )}&endDate=${encodeURIComponent(endDate)}`;
+      const url = `/api/user/profile?id=${userId}&page=${pageToLoad}&limit=${limit}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
       const res = await fetch(url);
       const data = await res.json();
-
       setGlobalStats(data.stats);
       setDailyStats(data.dailyStats);
       setRecords(data.registros || []);
@@ -46,60 +49,70 @@ export default function Profile() {
     fetchData();
   }, []);
 
+  // Actualiza usuario y roleId desde cache/localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem("user");
+      if (cached) {
+        setCachedUser(JSON.parse(cached));
+      }
+      const storedRoleId = localStorage.getItem("roleId");
+      if (storedRoleId) {
+        setRoleId(Number(storedRoleId));
+      }
+    }
+  }, []);
+
+  // Funciones de paginación
   const handleFilter = (e) => {
     e.preventDefault();
     fetchData(1);
   };
+  const handlePrevPage = () => { if (page > 1) fetchData(page - 1); };
+  const handleNextPage = () => { if (page < totalPages) fetchData(page + 1); };
 
-  const handlePrevPage = () => {
-    if (page > 1) fetchData(page - 1);
-  };
+  // Función para generar reporte PDF con alerta de carga
+  const handleDownloadPDF = async () => {
+    Swal.fire({
+      title: "Generando reporte...",
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading(); },
+    });
 
-  const handleNextPage = () => {
-    if (page < totalPages) fetchData(page + 1);
-  };
-
-// Función para generar el PDF de reporte diario con márgenes adecuados
-const handleDownloadPDF = async () => {
     const pdfDoc = await PDFDocument.create();
-    const pagePDF = pdfDoc.addPage();
+    let pagePDF = pdfDoc.addPage();
     const { width, height } = pagePDF.getSize();
     const margin = 50;
-    const contentWidth = width - (margin * 2);
+    const contentWidth = width - margin * 2;
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontSize = 10;
     const titleFontSize = 16;
     const subtitleFontSize = 14;
-  
-    // Encabezado corporativo - centrado correctamente
+
+    // Encabezado
     pagePDF.drawText("ALMAPAC S.A. de C.V.", {
-      x: margin + (contentWidth / 2) - boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) / 2,
+      x: margin + contentWidth / 2 - boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) / 2,
       y: height - margin,
       size: titleFontSize,
       font: boldFont,
       color: rgb(0, 0, 0),
     });
-  
-    // Subtítulo del documento - centrado correctamente
     pagePDF.drawText("Reporte de Actividades", {
-      x: margin + (contentWidth / 2) - boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) / 2,
+      x: margin + contentWidth / 2 - boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) / 2,
       y: height - margin - 25,
       size: subtitleFontSize,
       font: boldFont,
       color: rgb(0, 0, 0),
     });
-    
-    // Subtítulo adicional - centrado correctamente
     pagePDF.drawText("Toma de Tiempos", {
-      x: margin + (contentWidth / 2) - font.widthOfTextAtSize("Toma de Tiempos", 12) / 2,
+      x: margin + contentWidth / 2 - font.widthOfTextAtSize("Toma de Tiempos", 12) / 2,
       y: height - margin - 45,
       size: 12,
       font: boldFont,
       color: rgb(0, 0, 0),
     });
-  
-    // Información del usuario y resumen - alineado correctamente con margen
+
     const userInfoY = height - margin - 80;
     pagePDF.drawText(`${userData?.nombreCompleto || "N/A"}`, {
       x: margin,
@@ -108,7 +121,6 @@ const handleDownloadPDF = async () => {
       font: boldFont,
       color: rgb(0, 0, 0),
     });
-    
     pagePDF.drawText(`Código: ${userData?.codigo || "N/A"}`, {
       x: margin,
       y: userInfoY - 20,
@@ -116,205 +128,190 @@ const handleDownloadPDF = async () => {
       font: boldFont,
       color: rgb(0, 0, 0),
     });
-    
-    // Calcular totales - alineado a la derecha respetando el margen
-    const totalActivities = globalStats?.totalRegistros || 0;
-    const totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
-    const totalCabaleo = globalStats?.totalCabaleo || 0;
-    
-    pagePDF.drawText(`Total Realizados: ${totalActivities}`, {
-      x: width - margin - 150,
-      y: userInfoY,
-      size: 11,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    pagePDF.drawText(`Total Carga Máxima: ${totalCargaMaxima}`, {
-      x: width - margin - 150,
-      y: userInfoY - 20,
-      size: 11,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    pagePDF.drawText(`Total Cabaleo: ${totalCabaleo}`, {
-      x: width - margin - 150,
+    pagePDF.drawText(`${userData?.role?.name || "N/A"}`, {
+      x: margin,
       y: userInfoY - 40,
       size: 11,
       font: boldFont,
       color: rgb(0, 0, 0),
     });
-    
-    // Línea separadora - respetando márgenes
-    pagePDF.drawLine({
-      start: { x: margin, y: userInfoY - 60 },
-      end: { x: width - margin, y: userInfoY - 60 },
-      thickness: 1,
-      color: rgb(0.7, 0.7, 0.7),
-    });
-  
-    // Dibujar cada registro con su propio encabezado
-    let startY = userInfoY - 80;
-    const rowHeight = 20;
-    
-    // Ajustamos los anchos de columna para que se ajusten al contenido disponible
-    const tableWidth = contentWidth;
-    const colWidths = [
-      Math.floor(tableWidth * 0.12), // Fecha (12%)
-      Math.floor(tableWidth * 0.10), // Código (10%)
-      Math.floor(tableWidth * 0.35), // Nombre (35%)
-      Math.floor(tableWidth * 0.12), // Total (12%)
-      Math.floor(tableWidth * 0.17), // Carga Máxima (17%)
-      Math.floor(tableWidth * 0.14)  // Cabaleo (14%)
-    ];
-    
-    dailyStats.forEach((stat, index) => {
-      // Verificar si necesitamos una nueva página
-      if (startY < margin + 100) {
-        // Añadir nueva página
-        pagePDF = pdfDoc.addPage();
-        startY = height - margin - 40;
-        
-        // Añadir encabezado reducido en la nueva página
-        pagePDF.drawText("ALMAPAC S.A. de C.V. - Reporte de Actividades", {
+
+    // Si rol 1, mostrar resumen por usuario; de lo contrario, detalle completo
+    if (userData?.role?.id === 1) {
+      const totalRegistros = globalStats?.totalRegistros || 0;
+      pagePDF.drawText(`Total Registros: ${totalRegistros}`, {
+        x: margin,
+        y: userInfoY - 60,
+        size: 11,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+      let currentY = userInfoY - 80;
+      if (globalStats?.porUsuario && globalStats.porUsuario.length > 0) {
+        globalStats.porUsuario.forEach((u) => {
+          pagePDF.drawText(`${u.username}: ${u.totalRealizados}`, {
+            x: margin,
+            y: currentY,
+            size: 10,
+            font,
+            color: rgb(0, 0, 0),
+          });
+          currentY -= 15;
+        });
+      }
+    } else {
+      const totalActivities = globalStats?.totalRegistros || 0;
+      const totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
+      const totalCabaleo = globalStats?.totalCabaleo || 0;
+      pagePDF.drawText(`Total Realizados: ${totalActivities}`, {
+        x: width - margin - 150,
+        y: userInfoY,
+        size: 11,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+      pagePDF.drawText(`Total Carga Máxima: ${totalCargaMaxima}`, {
+        x: width - margin - 150,
+        y: userInfoY - 20,
+        size: 11,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+      pagePDF.drawText(`Total Cabaleo: ${totalCabaleo}`, {
+        x: width - margin - 150,
+        y: userInfoY - 40,
+        size: 11,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+
+      // Dibujar reporte detallado (tabla)
+      let startY = userInfoY - 80;
+      const rowHeight = 20;
+      const tableWidth = contentWidth;
+      const colWidths = [
+        Math.floor(tableWidth * 0.12), // Fecha
+        Math.floor(tableWidth * 0.10), // Código
+        Math.floor(tableWidth * 0.35), // Nombre
+        Math.floor(tableWidth * 0.12), // Total
+        Math.floor(tableWidth * 0.17), // Carga Máxima
+        Math.floor(tableWidth * 0.14), // Cabaleo
+      ];
+
+      dailyStats.forEach((stat, index) => {
+        if (startY < margin + 100) {
+          pagePDF = pdfDoc.addPage();
+          startY = height - margin - 40;
+          pagePDF.drawText("ALMAPAC S.A. de C.V. - Reporte de Actividades", {
+            x: margin,
+            y: height - margin,
+            size: 12,
+            font: boldFont,
+            color: rgb(0, 0, 0),
+          });
+          startY -= 30;
+        }
+        if (index > 0) startY -= 30;
+        pagePDF.drawText(`Registro del día ${stat.fecha}`, {
           x: margin,
-          y: height - margin,
+          y: startY,
           size: 12,
           font: boldFont,
           color: rgb(0, 0, 0),
         });
-        
-        startY -= 30;
-      }
-      
-      // Espacio entre tablas
-      if (index > 0) {
-        startY -= 30;
-      }
-      
-      // Título de la tabla individual
-      pagePDF.drawText(`Registro del día ${stat.fecha}`, {
-        x: margin,
-        y: startY,
-        size: 12,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      });
-      startY -= 20;
-      
-      // Dibujar encabezados
-      const headers = ["Fecha", "Código", "Nombre", "Total", "Carga Máxima", "Cabaleo"];
-      let currentX = margin;
-      
-      // Fondo gris para los encabezados
-      pagePDF.drawRectangle({
-        x: margin,
-        y: startY - rowHeight,
-        width: tableWidth,
-        height: rowHeight,
-        color: rgb(0.95, 0.95, 0.95),
-        borderColor: rgb(0.8, 0.8, 0.8),
-        borderWidth: 1,
-      });
-      
-      headers.forEach((header, idx) => {
-        // Dibujar texto centrado en cada columna
-        const headerX = currentX + (colWidths[idx] / 2) - (font.widthOfTextAtSize(header, fontSize) / 2);
-        pagePDF.drawText(header, {
-          x: headerX,
-          y: startY - rowHeight + 6,
-          size: fontSize,
-          font: boldFont,
-          color: rgb(0, 0, 0),
+        startY -= 20;
+        const headers = ["Fecha", "Código", "Nombre", "Total", "Carga Máxima", "Cabaleo"];
+        let currentX = margin;
+        pagePDF.drawRectangle({
+          x: margin,
+          y: startY - rowHeight,
+          width: tableWidth,
+          height: rowHeight,
+          color: rgb(0.95, 0.95, 0.95),
+          borderColor: rgb(0.8, 0.8, 0.8),
+          borderWidth: 1,
         });
-        
-        // Dibujar líneas verticales de la tabla
-        if (idx > 0) {
-          pagePDF.drawLine({
-            start: { x: currentX, y: startY },
-            end: { x: currentX, y: startY - rowHeight * 2 },
-            color: rgb(0.8, 0.8, 0.8),
-            thickness: 1,
+        headers.forEach((header, idx) => {
+          const headerX =
+            currentX +
+            colWidths[idx] / 2 -
+            font.widthOfTextAtSize(header, fontSize) / 2;
+          pagePDF.drawText(header, {
+            x: headerX,
+            y: startY - rowHeight + 6,
+            size: fontSize,
+            font: boldFont,
+            color: rgb(0, 0, 0),
           });
-        }
-        
-        currentX += colWidths[idx];
-      });
-      
-      // Dibujar línea vertical final
-      pagePDF.drawLine({
-        start: { x: margin + tableWidth, y: startY },
-        end: { x: margin + tableWidth, y: startY - rowHeight * 2 },
-        color: rgb(0.8, 0.8, 0.8),
-        thickness: 1,
-      });
-      
-      // Dibujar datos de fila
-      startY -= rowHeight;
-      const rowData = [
-        stat.fecha,
-        userData?.codigo || "-",
-        userData?.nombreCompleto || "-",
-        stat.total?.toString() || "0",
-        stat.cargaMaxima?.toString() || "0",
-        stat.cabaleo?.toString() || "0",
-      ];
-      
-      // Fondo blanco para los datos
-      pagePDF.drawRectangle({
-        x: margin,
-        y: startY - rowHeight,
-        width: tableWidth,
-        height: rowHeight,
-        color: rgb(1, 1, 1),
-        borderColor: rgb(0.8, 0.8, 0.8),
-        borderWidth: 1,
-      });
-      
-      currentX = margin;
-      rowData.forEach((cell, idx) => {
-        // Centrar el texto en la celda
-        const cellWidth = font.widthOfTextAtSize(cell, fontSize);
-        const cellX = currentX + (colWidths[idx] / 2) - (cellWidth / 2);
-        
-        pagePDF.drawText(cell, {
-          x: cellX,
-          y: startY - rowHeight + 6,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
+          if (idx > 0) {
+            pagePDF.drawLine({
+              start: { x: currentX, y: startY },
+              end: { x: currentX, y: startY - rowHeight * 2 },
+              color: rgb(0.8, 0.8, 0.8),
+              thickness: 1,
+            });
+          }
+          currentX += colWidths[idx];
         });
-        currentX += colWidths[idx];
+        pagePDF.drawLine({
+          start: { x: margin + tableWidth, y: startY },
+          end: { x: margin + tableWidth, y: startY - rowHeight * 2 },
+          color: rgb(0.8, 0.8, 0.8),
+          thickness: 1,
+        });
+        startY -= rowHeight;
+        const rowData = [
+          stat.fecha,
+          userData?.codigo || "-",
+          userData?.nombreCompleto || "-",
+          stat.total?.toString() || "0",
+          stat.cargaMaxima?.toString() || "0",
+          stat.cabaleo?.toString() || "0",
+        ];
+        pagePDF.drawRectangle({
+          x: margin,
+          y: startY - rowHeight,
+          width: tableWidth,
+          height: rowHeight,
+          color: rgb(1, 1, 1),
+          borderColor: rgb(0.8, 0.8, 0.8),
+          borderWidth: 1,
+        });
+        currentX = margin;
+        rowData.forEach((cell, idx) => {
+          const cellWidth = font.widthOfTextAtSize(cell, fontSize);
+          const cellX = currentX + colWidths[idx] / 2 - cellWidth / 2;
+          pagePDF.drawText(cell, {
+            x: cellX,
+            y: startY - rowHeight + 6,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+          });
+          currentX += colWidths[idx];
+        });
+        startY -= rowHeight;
       });
-      
-      startY -= rowHeight;
-    });
-    
-    // Obtener la página actual para agregar el pie de página
+    }
+
     const pages = pdfDoc.getPages();
     const currentPage = pages[pages.length - 1];
-    
-    // Agregar pie de página con fecha y hora
-    const dateTime = new Date().toLocaleString('es-ES', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+    const dateTime = new Date().toLocaleString("es-ES", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
-    
     const footerText = `Reporte generado el: ${dateTime}`;
     currentPage.drawText(footerText, {
-      x: margin + (contentWidth / 2) - (font.widthOfTextAtSize(footerText, fontSize) / 2),
+      x: margin + contentWidth / 2 - font.widthOfTextAtSize(footerText, fontSize) / 2,
       y: margin / 2,
       size: fontSize,
       font,
       color: rgb(0.5, 0.5, 0.5),
     });
-    
-    // Agregar numeración de página en cada página
     pages.forEach((page, index) => {
       const pageSize = page.getSize();
       const pageText = `Página ${index + 1} de ${pages.length}`;
@@ -326,7 +323,6 @@ const handleDownloadPDF = async () => {
         color: rgb(0.5, 0.5, 0.5),
       });
     });
-  
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: "application/pdf" });
     const urlBlob = URL.createObjectURL(blob);
@@ -336,32 +332,40 @@ const handleDownloadPDF = async () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    Swal.close();
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Cabecera */}
-      <header className="bg-white shadow">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <button
-            onClick={() => (window.location.href = "/")}
-                className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
-                title="Volver"
-          >
-            <FiArrowLeft size={24} />
-          </button>
-          <div className="text-right">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Perfil de Usuario</h1>
-            {userData && (
-              <p className="text-gray-600">
-                {userData.nombreCompleto} <span className="font-medium">(Código: {userData.codigo})</span>
-              </p>
-            )}
-          </div>
-        </div>
+      {/* Header con flecha izquierda */}
+      <header className="bg-white shadow p-4 flex items-center">
+        <button
+          onClick={() => router.push("/")}
+          className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105">   
+          <FaArrowLeft size={20} />
+        </button>
+        <h1 className="text-xl font-bold text-gray-800">Perfil de Usuario</h1>
       </header>
 
+      {/* Vista de perfil en formato de tarjeta */}
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow p-6 mb-8 flex flex-col items-center">
+          <img
+            src="/user.webp"
+            alt="Avatar"
+            className="w-32 h-32 rounded-full mb-4"
+          />
+          {userData ? (
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-800">{userData.nombreCompleto}</h2>
+              <p className="text-gray-600 mt-2">{userData.role?.name || "N/A"}</p>
+              <p className="text-gray-600">Código: {userData.codigo || "N/A"}</p>
+            </div>
+          ) : (
+            <p className="text-gray-500">Cargando perfil...</p>
+          )}
+        </div>
+
         {/* Filtro */}
         <section className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Filtrar por Fecha</h2>
@@ -445,7 +449,9 @@ const handleDownloadPDF = async () => {
                   {records.length > 0 ? (
                     records.map((reg, idx) => (
                       <tr key={idx} className="hover:bg-gray-100">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{reg.fechaInicio}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {reg.fechaInicio}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                           {reg.primerProceso?.metodoCarga || "-"}
                         </td>
@@ -522,12 +528,24 @@ const handleDownloadPDF = async () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {dailyStats.map((stat, idx) => (
                     <tr key={idx} className="hover:bg-gray-100">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{stat.fecha}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{userData.codigo || "-"}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{userData.nombreCompleto || "-"}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{stat.total}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{stat.cargaMaxima}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{stat.cabaleo}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {stat.fecha}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {userData.codigo || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {userData.nombreCompleto || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                        {stat.total}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                        {stat.cargaMaxima}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                        {stat.cabaleo}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
