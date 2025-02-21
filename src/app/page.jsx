@@ -10,6 +10,7 @@ import {
   FiUser,
   FiHelpCircle,
   FiChevronDown,
+  FiUsers,
 } from "react-icons/fi";
 import { FaPlay, FaList, FaChartBar } from "react-icons/fa";
 import { HiOutlineUserCircle } from "react-icons/hi";
@@ -200,7 +201,7 @@ export default function Dashboard() {
               onClick={() => router.push("/usuarios")}
               className="flex items-center justify-center w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
             >
-              <FiUser size={20} className="mr-2" />
+              <FiUsers size={20} className="mr-2" />
               <span>Usuarios</span>
             </button>
           )}
