@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Loader from "../../../components/Loader";
-import * as XLSX from "xlsx";
 import { FiArrowLeft, FiDownload, FiFileText, FiRefreshCw } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -184,26 +183,6 @@ export default function DemorasPage() {
     setSelectedDemora(null);
   };
 
-  // Función para descargar la vista a Excel
-  const handleDescargarVista = () => {
-    setDownloadLoading(true);
-    const table = document.getElementById("demoras-table");
-    if (!table) {
-      Swal.fire("Error", "Tabla no encontrada", "error");
-      setDownloadLoading(false);
-      return;
-    }
-    const workbook = XLSX.utils.table_to_book(table, { sheet: "Demoras" });
-    const now = new Date();
-    const formattedDateTime = now
-      .toISOString()
-      .replace(/T/, "-")
-      .replace(/\..+/, "")
-      .replace(/:/g, "-");
-    XLSX.writeFile(workbook, `Data-View-${formattedDateTime}.xlsx`);
-    setDownloadLoading(false);
-  };
-
   // Función para exportar el reporte completo con alerta y spinner
   const handleExportarExcel = async () => {
     if (!fechaInicio || !fechaFinal) {
@@ -328,11 +307,22 @@ export default function DemorasPage() {
   };
 
   // Función para descargar el detalle del registro actual en PDF usando pdf-lib
-  const handleDescargarPDF = async () => {
-    if (!selectedDemora) {
-      Swal.fire("Error", "No hay registro seleccionado", "error");
-      return;
-    }
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const handleDescargarPDF = async () => {
+  if (!selectedDemora) {
+    Swal.fire("Error", "No hay registro seleccionado", "error");
+    return;
+  }
+  // Mostrar alerta de carga
+  Swal.fire({
+    title: "Generando PDF...",
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    },
+  });
+  try {
     // Crear documento PDF
     const pdfDoc = await PDFDocument.create();
     // Usamos Courier para lograr un efecto monoespaciado (ideal para tablas)
@@ -455,7 +445,22 @@ export default function DemorasPage() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  };
+
+    // Cerrar la alerta de carga y esperar 300ms antes de mostrar la alerta de éxito
+    Swal.close();
+    await delay(300);
+    Swal.fire({
+      icon: "success",
+      title: "Generado con éxito",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  } catch (error: any) {
+    Swal.close();
+    await delay(300);
+    Swal.fire("Error", "Error generando PDF: " + error.message, "error");
+  }
+};
 
   // Aplicación de filtros en el frontend sobre la data ya traída (paginada)
   const filteredDemoras = demoras.filter(item => {

@@ -25,6 +25,9 @@ export default function Profile() {
   const [cachedUser, setCachedUser] = useState(null);
   const [roleId, setRoleId] = useState(null);
 
+  // Estado para controlar la generación del PDF y evitar doble clic
+  const [isGenerating, setIsGenerating] = useState(false);
+
   // Cargar datos del perfil y dashboard
   const fetchData = async (pageToLoad = 1) => {
     setLoading(true);
@@ -79,8 +82,14 @@ export default function Profile() {
     if (page < totalPages) fetchData(page + 1);
   };
 
+  // Función para introducir una demora
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   // Función para generar reporte PDF con alerta de carga y manejo de éxito/error
   const handleDownloadPDF = async () => {
+    if (isGenerating) return; // Prevenir ejecuciones múltiples
+    setIsGenerating(true);
+
     // Mostrar alerta de "Generando reporte..."
     Swal.fire({
       title: "Generando reporte...",
@@ -336,7 +345,10 @@ export default function Profile() {
       });
       const footerText = `Reporte generado el: ${dateTime}`;
       currentPage.drawText(footerText, {
-        x: margin + contentWidth / 2 - font.widthOfTextAtSize(footerText, fontSize) / 2,
+        x:
+          margin +
+          contentWidth / 2 -
+          font.widthOfTextAtSize(footerText, fontSize) / 2,
         y: margin / 2,
         size: fontSize,
         font,
@@ -367,22 +379,26 @@ export default function Profile() {
       a.click();
       document.body.removeChild(a);
 
-      // Cerrar la alerta de carga y mostrar éxito
+      // Cerrar la alerta de carga y esperar un breve tiempo
       Swal.close();
-      Swal.fire({
+      await delay(300);
+      await Swal.fire({
         icon: "success",
         title: "Reporte generado correctamente",
         timer: 2000,
         showConfirmButton: false,
       });
     } catch (error) {
-      // Cerrar la alerta de carga y mostrar error
+      // Cerrar la alerta de carga y esperar un breve tiempo
       Swal.close();
-      Swal.fire({
+      await delay(300);
+      await Swal.fire({
         icon: "error",
         title: "Error al generar reporte",
         text: error?.message || "Ocurrió un error inesperado.",
       });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
