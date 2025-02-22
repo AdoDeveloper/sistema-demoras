@@ -297,7 +297,7 @@ export default function ProcesoFinal() {
     setNotaHabilitada(true);
     Swal.fire(
       "Guardado",
-      `Los datos finales se han guardado en caché. Tiempo Total: ${tiempoTotal || "No calculado"}`,
+      `Los datos finales se han guardado localmente. Tiempo Total: ${tiempoTotal || "No calculado"}`,
       "success"
     );
   };
@@ -329,7 +329,7 @@ export default function ProcesoFinal() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    Swal.fire("Nota guardada", "La información de caché se ha descargado en un archivo TXT legible.", "success");
+    Swal.fire("Nota guardada", "Archivo txt generado.", "success");
   };
 
   // Validación de procesos

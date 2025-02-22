@@ -1,3 +1,4 @@
+// [...]/components/LoginForm.jsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -40,7 +41,8 @@ export default function LoginForm() {
     });
 
     if (result?.error) {
-      setError("Usuario o contraseña incorrectos");
+      // Capturamos el error devuelto por authorize
+      setError(result.error);
     } else {
       router.push("/");
     }

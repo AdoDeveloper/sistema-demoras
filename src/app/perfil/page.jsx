@@ -71,13 +71,8 @@ export default function Profile() {
   const handlePrevPage = () => { if (page > 1) fetchData(page - 1); };
   const handleNextPage = () => { if (page < totalPages) fetchData(page + 1); };
 
-  // Función para generar reporte PDF con alerta de carga
+  // Función para generar reporte PDF con alerta de carga y éxito
   const handleDownloadPDF = async () => {
-    Swal.fire({
-      title: "Generando reporte...",
-      allowOutsideClick: false,
-      didOpen: () => { Swal.showLoading(); },
-    });
 
     const pdfDoc = await PDFDocument.create();
     let pagePDF = pdfDoc.addPage();
@@ -234,8 +229,7 @@ export default function Profile() {
         headers.forEach((header, idx) => {
           const headerX =
             currentX +
-            colWidths[idx] / 2 -
-            font.widthOfTextAtSize(header, fontSize) / 2;
+            colWidths[idx] / 2 - boldFont.widthOfTextAtSize(header, fontSize) / 2;
           pagePDF.drawText(header, {
             x: headerX,
             y: startY - rowHeight + 6,
@@ -332,7 +326,15 @@ export default function Profile() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+
+    // Cerrar la alerta de carga y mostrar éxito
     Swal.close();
+    Swal.fire({
+      icon: "success",
+      title: "Reporte generado correctamente",
+      timer: 2000,
+      showConfirmButton: false,
+    });
   };
 
   return (
@@ -341,7 +343,8 @@ export default function Profile() {
       <header className="bg-white shadow p-4 flex items-center">
         <button
           onClick={() => router.push("/")}
-          className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105">   
+          className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+        >   
           <FaArrowLeft size={20} />
         </button>
         <h1 className="text-xl font-bold text-gray-800">Perfil de Usuario</h1>
