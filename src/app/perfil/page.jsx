@@ -30,9 +30,12 @@ export default function Profile() {
     setLoading(true);
     try {
       const userId = localStorage.getItem("userId");
-      const url = `/api/user/profile?id=${userId}&page=${pageToLoad}&limit=${limit}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      const url = `/api/user/profile?id=${userId}&page=${pageToLoad}&limit=${limit}&startDate=${encodeURIComponent(
+        startDate
+      )}&endDate=${encodeURIComponent(endDate)}`;
       const res = await fetch(url);
       const data = await res.json();
+
       setGlobalStats(data.stats);
       setDailyStats(data.dailyStats);
       setRecords(data.registros || []);
@@ -68,273 +71,319 @@ export default function Profile() {
     e.preventDefault();
     fetchData(1);
   };
-  const handlePrevPage = () => { if (page > 1) fetchData(page - 1); };
-  const handleNextPage = () => { if (page < totalPages) fetchData(page + 1); };
 
-  // Función para generar reporte PDF con alerta de carga y éxito
+  const handlePrevPage = () => {
+    if (page > 1) fetchData(page - 1);
+  };
+  const handleNextPage = () => {
+    if (page < totalPages) fetchData(page + 1);
+  };
+
+  // Función para generar reporte PDF con alerta de carga y manejo de éxito/error
   const handleDownloadPDF = async () => {
-
-    const pdfDoc = await PDFDocument.create();
-    let pagePDF = pdfDoc.addPage();
-    const { width, height } = pagePDF.getSize();
-    const margin = 50;
-    const contentWidth = width - margin * 2;
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontSize = 10;
-    const titleFontSize = 16;
-    const subtitleFontSize = 14;
-
-    // Encabezado
-    pagePDF.drawText("ALMAPAC S.A. de C.V.", {
-      x: margin + contentWidth / 2 - boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) / 2,
-      y: height - margin,
-      size: titleFontSize,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-    pagePDF.drawText("Reporte de Actividades", {
-      x: margin + contentWidth / 2 - boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) / 2,
-      y: height - margin - 25,
-      size: subtitleFontSize,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-    pagePDF.drawText("Toma de Tiempos", {
-      x: margin + contentWidth / 2 - font.widthOfTextAtSize("Toma de Tiempos", 12) / 2,
-      y: height - margin - 45,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
+    // Mostrar alerta de "Generando reporte..."
+    Swal.fire({
+      title: "Generando reporte...",
+      text: "Por favor espere mientras se genera el PDF.",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
     });
 
-    const userInfoY = height - margin - 80;
-    pagePDF.drawText(`${userData?.nombreCompleto || "N/A"}`, {
-      x: margin,
-      y: userInfoY,
-      size: 11,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-    pagePDF.drawText(`Código: ${userData?.codigo || "N/A"}`, {
-      x: margin,
-      y: userInfoY - 20,
-      size: 11,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-    pagePDF.drawText(`${userData?.role?.name || "N/A"}`, {
-      x: margin,
-      y: userInfoY - 40,
-      size: 11,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+    try {
+      const pdfDoc = await PDFDocument.create();
+      let pagePDF = pdfDoc.addPage();
+      const { width, height } = pagePDF.getSize();
+      const margin = 50;
+      const contentWidth = width - margin * 2;
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const fontSize = 10;
+      const titleFontSize = 16;
+      const subtitleFontSize = 14;
 
-    // Si rol 1, mostrar resumen por usuario; de lo contrario, detalle completo
-    if (userData?.role?.id === 1) {
-      const totalRegistros = globalStats?.totalRegistros || 0;
-      pagePDF.drawText(`Total Registros: ${totalRegistros}`, {
-        x: margin,
-        y: userInfoY - 60,
-        size: 11,
+      // Encabezado
+      pagePDF.drawText("ALMAPAC S.A. de C.V.", {
+        x:
+          margin +
+          contentWidth / 2 -
+          boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) / 2,
+        y: height - margin,
+        size: titleFontSize,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-      let currentY = userInfoY - 80;
-      if (globalStats?.porUsuario && globalStats.porUsuario.length > 0) {
-        globalStats.porUsuario.forEach((u) => {
-          pagePDF.drawText(`${u.username}: ${u.totalRealizados}`, {
-            x: margin,
-            y: currentY,
-            size: 10,
-            font,
-            color: rgb(0, 0, 0),
-          });
-          currentY -= 15;
-        });
-      }
-    } else {
-      const totalActivities = globalStats?.totalRegistros || 0;
-      const totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
-      const totalCabaleo = globalStats?.totalCabaleo || 0;
-      pagePDF.drawText(`Total Realizados: ${totalActivities}`, {
-        x: width - margin - 150,
+      pagePDF.drawText("Reporte de Actividades", {
+        x:
+          margin +
+          contentWidth / 2 -
+          boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) /
+            2,
+        y: height - margin - 25,
+        size: subtitleFontSize,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+      pagePDF.drawText("Toma de Tiempos", {
+        x:
+          margin +
+          contentWidth / 2 -
+          font.widthOfTextAtSize("Toma de Tiempos", 12) / 2,
+        y: height - margin - 45,
+        size: 12,
+        font: boldFont,
+        color: rgb(0, 0, 0),
+      });
+
+      const userInfoY = height - margin - 80;
+      pagePDF.drawText(`${userData?.nombreCompleto || "N/A"}`, {
+        x: margin,
         y: userInfoY,
         size: 11,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-      pagePDF.drawText(`Total Carga Máxima: ${totalCargaMaxima}`, {
-        x: width - margin - 150,
+      pagePDF.drawText(`Código: ${userData?.codigo || "N/A"}`, {
+        x: margin,
         y: userInfoY - 20,
         size: 11,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-      pagePDF.drawText(`Total Cabaleo: ${totalCabaleo}`, {
-        x: width - margin - 150,
+      pagePDF.drawText(`${userData?.role?.name || "N/A"}`, {
+        x: margin,
         y: userInfoY - 40,
         size: 11,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
 
-      // Dibujar reporte detallado (tabla)
-      let startY = userInfoY - 80;
-      const rowHeight = 20;
-      const tableWidth = contentWidth;
-      const colWidths = [
-        Math.floor(tableWidth * 0.12), // Fecha
-        Math.floor(tableWidth * 0.10), // Código
-        Math.floor(tableWidth * 0.35), // Nombre
-        Math.floor(tableWidth * 0.12), // Total
-        Math.floor(tableWidth * 0.17), // Carga Máxima
-        Math.floor(tableWidth * 0.14), // Cabaleo
-      ];
+      // Si rol 1, mostrar resumen por usuario; de lo contrario, detalle completo
+      if (userData?.role?.id === 1) {
+        const totalRegistros = globalStats?.totalRegistros || 0;
+        pagePDF.drawText(`Total Registros: ${totalRegistros}`, {
+          x: margin,
+          y: userInfoY - 60,
+          size: 11,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        let currentY = userInfoY - 80;
+        if (globalStats?.porUsuario && globalStats.porUsuario.length > 0) {
+          globalStats.porUsuario.forEach((u) => {
+            pagePDF.drawText(`${u.username}: ${u.totalRealizados}`, {
+              x: margin,
+              y: currentY,
+              size: 10,
+              font,
+              color: rgb(0, 0, 0),
+            });
+            currentY -= 15;
+          });
+        }
+      } else {
+        const totalActivities = globalStats?.totalRegistros || 0;
+        const totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
+        const totalCabaleo = globalStats?.totalCabaleo || 0;
+        pagePDF.drawText(`Total Realizados: ${totalActivities}`, {
+          x: width - margin - 150,
+          y: userInfoY,
+          size: 11,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        pagePDF.drawText(`Total Carga Máxima: ${totalCargaMaxima}`, {
+          x: width - margin - 150,
+          y: userInfoY - 20,
+          size: 11,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        pagePDF.drawText(`Total Cabaleo: ${totalCabaleo}`, {
+          x: width - margin - 150,
+          y: userInfoY - 40,
+          size: 11,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
 
-      dailyStats.forEach((stat, index) => {
-        if (startY < margin + 100) {
-          pagePDF = pdfDoc.addPage();
-          startY = height - margin - 40;
-          pagePDF.drawText("ALMAPAC S.A. de C.V. - Reporte de Actividades", {
+        // Dibujar reporte detallado (tabla)
+        let startY = userInfoY - 80;
+        const rowHeight = 20;
+        const tableWidth = contentWidth;
+        const colWidths = [
+          Math.floor(tableWidth * 0.12), // Fecha
+          Math.floor(tableWidth * 0.10), // Código
+          Math.floor(tableWidth * 0.35), // Nombre
+          Math.floor(tableWidth * 0.12), // Total
+          Math.floor(tableWidth * 0.17), // Carga Máxima
+          Math.floor(tableWidth * 0.14), // Cabaleo
+        ];
+
+        dailyStats.forEach((stat, index) => {
+          if (startY < margin + 100) {
+            pagePDF = pdfDoc.addPage();
+            startY = height - margin - 40;
+            pagePDF.drawText("ALMAPAC S.A. de C.V. - Reporte de Actividades", {
+              x: margin,
+              y: height - margin,
+              size: 12,
+              font: boldFont,
+              color: rgb(0, 0, 0),
+            });
+            startY -= 30;
+          }
+          if (index > 0) startY -= 30;
+          pagePDF.drawText(`Registro del día ${stat.fecha}`, {
             x: margin,
-            y: height - margin,
+            y: startY,
             size: 12,
             font: boldFont,
             color: rgb(0, 0, 0),
           });
-          startY -= 30;
-        }
-        if (index > 0) startY -= 30;
-        pagePDF.drawText(`Registro del día ${stat.fecha}`, {
-          x: margin,
-          y: startY,
-          size: 12,
-          font: boldFont,
-          color: rgb(0, 0, 0),
-        });
-        startY -= 20;
-        const headers = ["Fecha", "Código", "Nombre", "Total", "Carga Máxima", "Cabaleo"];
-        let currentX = margin;
-        pagePDF.drawRectangle({
-          x: margin,
-          y: startY - rowHeight,
-          width: tableWidth,
-          height: rowHeight,
-          color: rgb(0.95, 0.95, 0.95),
-          borderColor: rgb(0.8, 0.8, 0.8),
-          borderWidth: 1,
-        });
-        headers.forEach((header, idx) => {
-          const headerX =
-            currentX +
-            colWidths[idx] / 2 - boldFont.widthOfTextAtSize(header, fontSize) / 2;
-          pagePDF.drawText(header, {
-            x: headerX,
-            y: startY - rowHeight + 6,
-            size: fontSize,
-            font: boldFont,
-            color: rgb(0, 0, 0),
+          startY -= 20;
+          const headers = [
+            "Fecha",
+            "Código",
+            "Nombre",
+            "Total",
+            "Carga Máxima",
+            "Cabaleo",
+          ];
+          let currentX = margin;
+          pagePDF.drawRectangle({
+            x: margin,
+            y: startY - rowHeight,
+            width: tableWidth,
+            height: rowHeight,
+            color: rgb(0.95, 0.95, 0.95),
+            borderColor: rgb(0.8, 0.8, 0.8),
+            borderWidth: 1,
           });
-          if (idx > 0) {
-            pagePDF.drawLine({
-              start: { x: currentX, y: startY },
-              end: { x: currentX, y: startY - rowHeight * 2 },
-              color: rgb(0.8, 0.8, 0.8),
-              thickness: 1,
+          headers.forEach((header, idx) => {
+            const headerX =
+              currentX +
+              colWidths[idx] / 2 -
+              boldFont.widthOfTextAtSize(header, fontSize) / 2;
+            pagePDF.drawText(header, {
+              x: headerX,
+              y: startY - rowHeight + 6,
+              size: fontSize,
+              font: boldFont,
+              color: rgb(0, 0, 0),
             });
-          }
-          currentX += colWidths[idx];
-        });
-        pagePDF.drawLine({
-          start: { x: margin + tableWidth, y: startY },
-          end: { x: margin + tableWidth, y: startY - rowHeight * 2 },
-          color: rgb(0.8, 0.8, 0.8),
-          thickness: 1,
-        });
-        startY -= rowHeight;
-        const rowData = [
-          stat.fecha,
-          userData?.codigo || "-",
-          userData?.nombreCompleto || "-",
-          stat.total?.toString() || "0",
-          stat.cargaMaxima?.toString() || "0",
-          stat.cabaleo?.toString() || "0",
-        ];
-        pagePDF.drawRectangle({
-          x: margin,
-          y: startY - rowHeight,
-          width: tableWidth,
-          height: rowHeight,
-          color: rgb(1, 1, 1),
-          borderColor: rgb(0.8, 0.8, 0.8),
-          borderWidth: 1,
-        });
-        currentX = margin;
-        rowData.forEach((cell, idx) => {
-          const cellWidth = font.widthOfTextAtSize(cell, fontSize);
-          const cellX = currentX + colWidths[idx] / 2 - cellWidth / 2;
-          pagePDF.drawText(cell, {
-            x: cellX,
-            y: startY - rowHeight + 6,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
+            if (idx > 0) {
+              pagePDF.drawLine({
+                start: { x: currentX, y: startY },
+                end: { x: currentX, y: startY - rowHeight * 2 },
+                color: rgb(0.8, 0.8, 0.8),
+                thickness: 1,
+              });
+            }
+            currentX += colWidths[idx];
           });
-          currentX += colWidths[idx];
+          pagePDF.drawLine({
+            start: { x: margin + tableWidth, y: startY },
+            end: { x: margin + tableWidth, y: startY - rowHeight * 2 },
+            color: rgb(0.8, 0.8, 0.8),
+            thickness: 1,
+          });
+          startY -= rowHeight;
+          const rowData = [
+            stat.fecha,
+            userData?.codigo || "-",
+            userData?.nombreCompleto || "-",
+            stat.total?.toString() || "0",
+            stat.cargaMaxima?.toString() || "0",
+            stat.cabaleo?.toString() || "0",
+          ];
+          pagePDF.drawRectangle({
+            x: margin,
+            y: startY - rowHeight,
+            width: tableWidth,
+            height: rowHeight,
+            color: rgb(1, 1, 1),
+            borderColor: rgb(0.8, 0.8, 0.8),
+            borderWidth: 1,
+          });
+          currentX = margin;
+          rowData.forEach((cell, idx) => {
+            const cellWidth = font.widthOfTextAtSize(cell, fontSize);
+            const cellX = currentX + colWidths[idx] / 2 - cellWidth / 2;
+            pagePDF.drawText(cell, {
+              x: cellX,
+              y: startY - rowHeight + 6,
+              size: fontSize,
+              font,
+              color: rgb(0, 0, 0),
+            });
+            currentX += colWidths[idx];
+          });
+          startY -= rowHeight;
         });
-        startY -= rowHeight;
-      });
-    }
+      }
 
-    const pages = pdfDoc.getPages();
-    const currentPage = pages[pages.length - 1];
-    const dateTime = new Date().toLocaleString("es-ES", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-    const footerText = `Reporte generado el: ${dateTime}`;
-    currentPage.drawText(footerText, {
-      x: margin + contentWidth / 2 - font.widthOfTextAtSize(footerText, fontSize) / 2,
-      y: margin / 2,
-      size: fontSize,
-      font,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-    pages.forEach((page, index) => {
-      const pageSize = page.getSize();
-      const pageText = `Página ${index + 1} de ${pages.length}`;
-      page.drawText(pageText, {
-        x: pageSize.width - margin - font.widthOfTextAtSize(pageText, fontSize),
+      const pages = pdfDoc.getPages();
+      const currentPage = pages[pages.length - 1];
+      const dateTime = new Date().toLocaleString("es-ES", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      const footerText = `Reporte generado el: ${dateTime}`;
+      currentPage.drawText(footerText, {
+        x: margin + contentWidth / 2 - font.widthOfTextAtSize(footerText, fontSize) / 2,
         y: margin / 2,
         size: fontSize,
         font,
         color: rgb(0.5, 0.5, 0.5),
       });
-    });
-    const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    const urlBlob = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = urlBlob;
-    a.download = `Reporte-${userData?.nombreCompleto || "user"}-${new Date().toLocaleDateString()}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
 
-    // Cerrar la alerta de carga y mostrar éxito
-    Swal.close();
-    Swal.fire({
-      icon: "success",
-      title: "Reporte generado correctamente",
-      timer: 2000,
-      showConfirmButton: false,
-    });
+      pages.forEach((page, index) => {
+        const pageSize = page.getSize();
+        const pageText = `Página ${index + 1} de ${pages.length}`;
+        page.drawText(pageText, {
+          x: pageSize.width - margin - font.widthOfTextAtSize(pageText, fontSize),
+          y: margin / 2,
+          size: fontSize,
+          font,
+          color: rgb(0.5, 0.5, 0.5),
+        });
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const urlBlob = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = urlBlob;
+      a.download = `Reporte-${
+        userData?.nombreCompleto || "user"
+      }-${new Date().toLocaleDateString()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Cerrar la alerta de carga y mostrar éxito
+      Swal.close();
+      Swal.fire({
+        icon: "success",
+        title: "Reporte generado correctamente",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      // Cerrar la alerta de carga y mostrar error
+      Swal.close();
+      Swal.fire({
+        icon: "error",
+        title: "Error al generar reporte",
+        text: error?.message || "Ocurrió un error inesperado.",
+      });
+    }
   };
 
   return (
@@ -344,7 +393,7 @@ export default function Profile() {
         <button
           onClick={() => router.push("/")}
           className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
-        >   
+        >
           <FaArrowLeft size={20} />
         </button>
         <h1 className="text-xl font-bold text-gray-800">Perfil de Usuario</h1>
@@ -360,7 +409,9 @@ export default function Profile() {
           />
           {userData ? (
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-800">{userData.nombreCompleto}</h2>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {userData.nombreCompleto}
+              </h2>
               <p className="text-gray-600 mt-2">{userData.role?.name || "N/A"}</p>
               <p className="text-gray-600">Código: {userData.codigo || "N/A"}</p>
             </div>
@@ -371,10 +422,14 @@ export default function Profile() {
 
         {/* Filtro */}
         <section className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Filtrar por Fecha</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            Filtrar por Fecha
+          </h2>
           <form onSubmit={handleFilter} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-gray-700 font-medium">Fecha Inicio</label>
+              <label className="block text-gray-700 font-medium">
+                Fecha Inicio
+              </label>
               <input
                 type="date"
                 value={startDate}
@@ -383,7 +438,9 @@ export default function Profile() {
               />
             </div>
             <div>
-              <label className="block text-gray-700 font-medium">Fecha Final</label>
+              <label className="block text-gray-700 font-medium">
+                Fecha Final
+              </label>
               <input
                 type="date"
                 value={endDate}
@@ -392,7 +449,10 @@ export default function Profile() {
               />
             </div>
             <div className="flex items-end">
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition">
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition"
+              >
                 Filtrar
               </button>
             </div>
@@ -401,7 +461,9 @@ export default function Profile() {
 
         {/* Estadísticas Globales */}
         <section className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Estadísticas Globales</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            Estadísticas Globales
+          </h2>
           {loading ? (
             <div className="flex justify-center items-center h-32">
               <p className="text-gray-500">Cargando...</p>
@@ -410,19 +472,27 @@ export default function Profile() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <p className="text-sm text-gray-500">Total Registros</p>
-                <p className="mt-2 text-2xl font-bold text-gray-800">{globalStats?.total || 0}</p>
+                <p className="mt-2 text-2xl font-bold text-gray-800">
+                  {globalStats?.total || 0}
+                </p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <p className="text-sm text-gray-500">Total Realizados</p>
-                <p className="mt-2 text-2xl font-bold text-gray-800">{globalStats?.totalRegistros || 0}</p>
+                <p className="mt-2 text-2xl font-bold text-gray-800">
+                  {globalStats?.totalRegistros || 0}
+                </p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <p className="text-sm text-gray-500">Cabaleo</p>
-                <p className="mt-2 text-2xl font-bold text-gray-800">{globalStats?.totalCabaleo || 0}</p>
+                <p className="mt-2 text-2xl font-bold text-gray-800">
+                  {globalStats?.totalCabaleo || 0}
+                </p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <p className="text-sm text-gray-500">Carga Máxima</p>
-                <p className="mt-2 text-2xl font-bold text-gray-800">{globalStats?.totalCargaMaxima || 0}</p>
+                <p className="mt-2 text-2xl font-bold text-gray-800">
+                  {globalStats?.totalCargaMaxima || 0}
+                </p>
               </div>
             </div>
           )}
@@ -462,7 +532,10 @@ export default function Profile() {
                     ))
                   ) : (
                     <tr>
-                      <td className="px-6 py-4 text-center text-sm text-gray-500" colSpan="2">
+                      <td
+                        className="px-6 py-4 text-center text-sm text-gray-500"
+                        colSpan="2"
+                      >
                         No hay registros
                       </td>
                     </tr>
@@ -496,7 +569,9 @@ export default function Profile() {
         {dailyStats?.length > 0 && userData && (
           <section className="mb-8">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Estadísticas Diarias</h2>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Estadísticas Diarias
+              </h2>
               <button
                 onClick={handleDownloadPDF}
                 className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition mt-4 sm:mt-0"
