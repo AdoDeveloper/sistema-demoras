@@ -739,15 +739,16 @@ export default function AnalisisPage() {
   return (
     <div className="p-4">
       {/* Botón Regresar */}
-      <button
-        onClick={() => (window.location.href = "/")}
-        className="mb-4 rounded-full inline-flex items-center"
-      >
-        <span className="bg-blue-600 p-2 rounded-full text-white flex items-center justify-center">
+      <div className="flex items-center mb-3">
+          <button
+            onClick={() => (window.location.href = "/")}
+            className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+            title="Volver"
+          >
           <FiArrowLeft size={20} />
-        </span>
-        <span className="ml-2 text-blue-600 font-semibold">Análisis de Datos</span>
-      </button>
+          </button>
+        <h1 className="text-xl font-bold">Analisis de Datos</h1>
+      </div>
 
       {/* Filtros */}
       <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

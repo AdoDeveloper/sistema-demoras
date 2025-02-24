@@ -39,13 +39,6 @@ function timeStrToSeconds(timeStr: string) {
   return parts[0] * 3600 + parts[1] * 60 + parts[2];
 }
 
-function secondsToTimeStr(totalSeconds: number) {
-  const hh = Math.floor(totalSeconds / 3600);
-  const mm = Math.floor((totalSeconds % 3600) / 60);
-  const ss = totalSeconds % 60;
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-}
-
 function filterDetailData(data: any) {
   if (!data) return data;
   const excludedKeys = ["id", "createdAt", "updatedAt", "demoraId"];
@@ -186,7 +179,7 @@ export default function DemorasPage() {
   // Función para exportar el reporte completo con alerta y spinner
   const handleExportarExcel = async () => {
     if (!fechaInicio || !fechaFinal) {
-      Swal.fire("Información", "Debe seleccionar las fechas de inicio y final", "warning");
+      Swal.fire("Información", "Debe seleccionar la fecha de Inicio y Final.", "warning");
       return;
     }
     setExportLoading(true);
@@ -215,7 +208,7 @@ export default function DemorasPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      Swal.fire("Éxito", "Archivo exportado correctamente", "success");
+      Swal.fire("Éxito", "Archivo generado correctamente.", "success");
     } catch (error: any) {
       Swal.fire("Error", "Error exportando Excel: " + error.message, "error");
     } finally {
@@ -449,12 +442,7 @@ const handleDescargarPDF = async () => {
     // Cerrar la alerta de carga y esperar 300ms antes de mostrar la alerta de éxito
     Swal.close();
     await delay(300);
-    Swal.fire({
-      icon: "success",
-      title: "Generado con éxito",
-      timer: 2000,
-      showConfirmButton: false,
-    });
+    Swal.fire("Éxito", "Archivo generado correctamente.", "success");
   } catch (error: any) {
     Swal.close();
     await delay(300);
@@ -508,10 +496,10 @@ const handleDescargarPDF = async () => {
     }
     // Filtro por fecha (comparando item.fechaInicio)
     if (fechaInicio) {
-      if (!(item.fechaInicio && item.fechaInicio >= fechaInicio)) return false;
+      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion >= fechaInicio)) return false;
     }
     if (fechaFinal) {
-      if (!(item.fechaInicio && item.fechaInicio <= fechaFinal)) return false;
+      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion <= fechaFinal)) return false;
     }
     return true;
   });
@@ -531,7 +519,7 @@ const handleDescargarPDF = async () => {
       {/* Encabezado */}
       <header className="bg-gradient-to-r bg-orange-400 text-white shadow-lg md:sticky md:top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex flex-col md:flex-row justify-between">
             <div className="flex items-center">
               <button
                 onClick={() => (window.location.href = "/")}
@@ -540,7 +528,7 @@ const handleDescargarPDF = async () => {
               >
                 <FiArrowLeft size={20} />
               </button>
-              <h1 className="text-2xl font-bold">Registro de Tiempos</h1>
+              <h1 className="text-xl font-bold">Registro de Tiempos</h1>
             </div>
             <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
               <button
@@ -1083,6 +1071,10 @@ const handleDescargarPDF = async () => {
             <option value="25">25</option>
             <option value="50">50</option>
             <option value="100">100</option>
+            <option value="200">200</option>
+            <option value="400">400</option>
+            <option value="800">800</option>
+            <option value="1200">1200</option>
           </select>
         </div>
       </div>

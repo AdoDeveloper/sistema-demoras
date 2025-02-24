@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import Swal from "sweetalert2";
 
 // Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
 const Select = dynamic(() => import("react-select"), { ssr: false });
@@ -23,7 +24,6 @@ const porteriaOptions: OptionType[] = [
   { value: "Porteria 6", label: "Porteria 6" },
 ];
 
-// Opciones para los selects
 const ejesOptions: OptionType[] = [
   { value: "Camión", label: "Camión" },
   { value: "2", label: "2" },
@@ -31,10 +31,10 @@ const ejesOptions: OptionType[] = [
 ];
 
 const condicionOptions: OptionType[] = [
-{ value: "NORMAL", label: "NORMAL" },
-{ value: "LLUVIA", label: "LLUVIA" },
-{ value: "RECEPECION DE MELAZA", label: "RECEPECION DE MELAZA" },
-{ value: "RECEPECION DE CEREALES/BARCO", label: "RECEPECION DE CEREALES/BARCO" },
+  { value: "NORMAL", label: "NORMAL" },
+  { value: "LLUVIA", label: "LLUVIA" },
+  { value: "RECEPECION DE MELAZA", label: "RECEPECION DE MELAZA" },
+  { value: "RECEPECION DE CEREALES/BARCO", label: "RECEPECION DE CEREALES/BARCO" },
 ];
 
 const puntoDespachoOptions = [
@@ -154,8 +154,8 @@ export default function PrimerProceso() {
     if (!stored) {
       const initialData = {
         fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
-        userId:localStorage.getItem("userId"),
-        userName:localStorage.getItem("userName"),
+        userId: localStorage.getItem("userId"),
+        userName: localStorage.getItem("userName"),
         primerProceso: {},
         segundoProceso: {},
         tercerProceso: {},
@@ -224,10 +224,23 @@ export default function PrimerProceso() {
     router.push("/proceso/iniciar/step2");
   };
 
-  // Cancelar y regresar a Home
+  // Cancelar y regresar a Home con confirmación usando SweetAlert2
   const handleCancelar = () => {
-    localStorage.removeItem("demorasProcess");
-    router.push("/");
+    Swal.fire({
+      title: "¿Está seguro?",
+      text: "Se perderán los cambios realizados.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sí, cancelar",
+      cancelButtonText: "No, continuar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem("demorasProcess");
+        router.push("/");
+      }
+    });
   };
 
   return (
@@ -373,7 +386,7 @@ export default function PrimerProceso() {
             />
           </div>
           <div>
-          <div className="text-sm sm:text-base text-blue-600 mb-2">
+            <div className="text-sm sm:text-base text-blue-600 mb-2">
               <strong>NORMAL:</strong> Si el flujo de unidades es normal y no afecta los procesos de despacho.
             </div>
             <div className="text-sm sm:text-base text-orange-600 mt-2 mb-1">

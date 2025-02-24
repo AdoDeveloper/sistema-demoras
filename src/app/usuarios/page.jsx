@@ -297,30 +297,26 @@ export default function UserRoleManagement() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 p-4 sm:p-6">
       {/* Header */}
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.push("/")}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full p-3 transition-transform transform hover:scale-110"
-          >
-            <FiArrowLeft size={24} />
+      <div className="flex items-center pb-3">
+              <button
+                onClick={() => (window.location.href = "/")}
+                className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+                title="Volver"
+              >
+              <FiArrowLeft size={20} />
           </button>
-          <h1 className="text-xl sm:text-3xl font-extrabold text-gray-800 text-center flex-1">
-            Administración de Usuarios y Roles
-          </h1>
-          <div className="w-12"></div>
-        </div>
-      </header>
+        <h1 className="text-xl font-bold">Gestion Usuarios</h1>
+      </div>
 
       {/* Contenido principal */}
       <main className="space-y-8">
         {/* Sección de Usuarios */}
         <section>
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-            <h2 className="text-lg sm:text-2xl font-semibold text-gray-700">Usuarios</h2>
+          <div className="flex flex-row items-center justify-between mb-4 gap-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Usuarios</h2>
             <button
               onClick={handleShowCreateUserModal}
-              className="flex items-center bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md transition"
+              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
             >
               <FaPlus className="mr-2" />
               Nuevo Usuario
@@ -377,11 +373,11 @@ export default function UserRoleManagement() {
 
         {/* Sección de Roles */}
         <section>
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-            <h2 className="text-lg sm:text-2xl font-semibold text-gray-700">Roles</h2>
+          <div className="flex flex-row items-center justify-between mb-4 gap-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Roles</h2>
             <button
               onClick={handleShowCreateRoleModal}
-              className="flex items-center bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md transition"
+              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
             >
               <FaPlus className="mr-2" />
               Nuevo Rol

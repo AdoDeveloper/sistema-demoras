@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { FaArrowLeft, FaFilePdf } from "react-icons/fa";
+import { FaFilePdf } from "react-icons/fa";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { FiArrowLeft } from "react-icons/fi";
 
 export default function Profile() {
   const router = useRouter();
@@ -405,18 +406,19 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header con flecha izquierda */}
-      <header className="bg-white shadow p-4 flex items-center">
-        <button
-          onClick={() => router.push("/")}
-          className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
-        >
-          <FaArrowLeft size={20} />
-        </button>
-        <h1 className="text-xl font-bold text-gray-800">Perfil de Usuario</h1>
-      </header>
+      <div className="flex items-center py-4 px-3">
+              <button
+                onClick={() => (window.location.href = "/")}
+                className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+                title="Volver"
+              >
+              <FiArrowLeft size={20} />
+          </button>
+        <h1 className="text-xl font-bold">Perfil de Usuario</h1>
+      </div>
 
       {/* Vista de perfil en formato de tarjeta */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="container mx-auto px-4 sm:px-4 lg:px-4 py-1">
         <div className="bg-white rounded-lg shadow p-6 mb-8 flex flex-col items-center">
           <img
             src="/user.webp"

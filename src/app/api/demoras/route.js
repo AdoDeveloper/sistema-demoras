@@ -92,7 +92,7 @@ export async function POST(request) {
             !horaEntradaBascula.trim() ||
             !horaSalidaBascula.trim()
           ) {
-            const errorMsg = "Error: Faltan horas obligatorias en la vuelta 1. Regrese al paso anterior.";
+            const errorMsg = "Faltan horas obligatorias en la vuelta 1. Regrese al paso anterior y verifique.";
             console.error(">>> [API Debug]", errorMsg);
             return NextResponse.json({ error: errorMsg }, { status: 400 });
           }
