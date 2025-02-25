@@ -99,7 +99,6 @@ const puntoDespachoOptions = [
 ];
 
 const basculaEntradaOptions: OptionType[] = [
-  { value: "", label: "Seleccione Báscula" },
   { value: "Báscula 1", label: "Báscula 1" },
   { value: "Báscula 2", label: "Báscula 2" },
   { value: "Báscula 3", label: "Báscula 3" },
@@ -264,7 +263,7 @@ export default function PrimerProceso() {
               Número de Transacción
             </label>
             <input
-              type="text"
+              type="number"
               className="border w-full p-2 text-sm sm:text-base"
               value={numeroTransaccion}
               onChange={(e) => setNumeroTransaccion(e.target.value)}

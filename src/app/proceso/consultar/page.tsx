@@ -1023,10 +1023,11 @@ const handleDescargarPDF = async () => {
       </div>
 
       {/* Fila del paginador y cantidad de registros mostrados */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mt-4">
-        <div className="flex space-x-2 mb-2 sm:mb-0">
+      <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-2 sm:space-y-0">
+        {/* Contenedor de botones con scroll horizontal en móviles */}
+        <div className="flex overflow-x-auto space-x-2 w-full sm:w-auto">
           <button
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-3 py-1 border rounded disabled:opacity-50 flex-shrink-0"
             onClick={() => setCurrentPage((prev) => prev - 1)}
             disabled={currentPage === 1}
           >
@@ -1035,7 +1036,7 @@ const handleDescargarPDF = async () => {
           {Array.from({ length: totalPages }, (_, index) => (
             <button
               key={index}
-              className={`px-3 py-1 border rounded ${
+              className={`px-3 py-1 border rounded flex-shrink-0 ${
                 currentPage === index + 1 ? "bg-blue-500 text-white" : ""
               }`}
               onClick={() => setCurrentPage(index + 1)}
@@ -1044,38 +1045,42 @@ const handleDescargarPDF = async () => {
             </button>
           ))}
           <button
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-3 py-1 border rounded disabled:opacity-50 flex-shrink-0"
             onClick={() => setCurrentPage((prev) => prev + 1)}
             disabled={currentPage === totalPages}
           >
             Siguiente
           </button>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Contenedor de información y selección de registros */}
+        <div className="flex flex-col sm:flex-row items-center gap-2 text-center">
           <span className="text-sm">
             Mostrando {filteredDemoras.length} de {totalCount} registros
           </span>
-          <label htmlFor="recordsPerPage" className="text-sm">
-            Mostrar:
-          </label>
-          <select
-            id="recordsPerPage"
-            value={recordsPerPage}
-            onChange={(e) => {
-              setRecordsPerPage(parseInt(e.target.value, 10));
-              setCurrentPage(1);
-            }}
-            className="text-black px-2 py-1 rounded"
-          >
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="200">200</option>
-            <option value="400">400</option>
-            <option value="800">800</option>
-            <option value="1200">1200</option>
-          </select>
+          <div className="flex items-center gap-1">
+            <label htmlFor="recordsPerPage" className="text-sm">
+              Mostrar:
+            </label>
+            <select
+              id="recordsPerPage"
+              value={recordsPerPage}
+              onChange={(e) => {
+                setRecordsPerPage(parseInt(e.target.value, 10));
+                setCurrentPage(1);
+              }}
+              className="text-black px-2 py-1 rounded"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="400">400</option>
+              <option value="800">800</option>
+              <option value="1200">1200</option>
+            </select>
+          </div>
         </div>
       </div>
 
