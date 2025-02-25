@@ -338,13 +338,16 @@ export default function ProcesoFinal() {
       return "No se encontraron datos en caché.";
     }
     const { primerProceso, segundoProceso, tercerProceso } = dataResumen;
-    if (!primerProceso || !primerProceso.numeroTransaccion) {
+    if (!primerProceso || !primerProceso.numeroTransaccion || !primerProceso.numeroEjes ||
+        !primerProceso.metodoCarga || !primerProceso.porteriaEntrada || !primerProceso.pesadorEntrada ||
+        !primerProceso.condicion || !primerProceso.basculaEntrada || !primerProceso.puntoDespacho) {
       return "El Primer Proceso está incompleto o faltan campos obligatorios.";
     }
-    if (!segundoProceso || !segundoProceso.enlonador || !segundoProceso.operador) {
+    if (!segundoProceso || !segundoProceso.enlonador || !segundoProceso.operador || !segundoProceso.personalAsignado ||
+        !segundoProceso.modeloEquipo){
       return "El Segundo Proceso está incompleto o faltan campos obligatorios.";
     }
-    if (!tercerProceso || !tercerProceso.pesadorSalida || !tercerProceso.vueltas) {
+    if (!tercerProceso || !tercerProceso.pesadorSalida || !tercerProceso.vueltas || !tercerProceso.basculaSalida) {
       return "El Tercer Proceso está incompleto o faltan campos obligatorios.";
     }
     if (!tiempoLlegadaPorteria.hora || !tiempoSalidaPlanta.hora || !porteriaSalida) {
