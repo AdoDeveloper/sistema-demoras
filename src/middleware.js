@@ -52,17 +52,19 @@ export async function middleware(req) {
 export const config = {
   matcher: [
     "/",
-    "/proceso/consultar",
+    "/proceso/consultar/granel",
     "/api/demoras/granel",
     "/api/auth/session",
     "/proceso/iniciar",
-    "/proceso/iniciar/step2",
-    "/proceso/iniciar/step3",
-    "/proceso/iniciar/step4",
+    "/proceso/iniciar/granel",
+    "/proceso/iniciar/granel/step2",
+    "/proceso/iniciar/granel/step3",
+    "/proceso/iniciar/granel/step4",
     "/proceso/analisis",
     "/perfil",
     "/usuarios",
     "/api/users/:path*",
     "/api/roles/:path*",
+    "/building",
   ],
 };
