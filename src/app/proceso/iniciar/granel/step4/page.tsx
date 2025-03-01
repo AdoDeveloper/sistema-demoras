@@ -418,7 +418,7 @@ export default function ProcesoFinal() {
         // Debug: imprimir el payload a enviar
         console.log("Payload a enviar:", JSON.stringify({ demorasProcess: parsed }, null, 2));
 
-        const res = await fetch("/api/demoras", {
+        const res = await fetch("/api/demoras/granel", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ demorasProcess: parsed }),
@@ -452,7 +452,7 @@ export default function ProcesoFinal() {
     // Guardamos los datos del Proceso Final en localStorage
     guardarDatosProcesoFinal();
     // Luego, navegamos a la página del Tercer Proceso
-    router.push("/proceso/iniciar/step3");
+    router.push("/proceso/iniciar/granel/step3");
   };
 
   // Toggles de acordeón

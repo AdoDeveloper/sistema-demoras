@@ -13,12 +13,13 @@ export async function middleware(req) {
   const protectedRoutes = [
     "/",
     "/proceso/consultar",
-    "/api/demoras",
+    "/api/demoras/granel",
     "/perfil",
     "/proceso/iniciar",
-    "/proceso/iniciar/step2",
-    "/proceso/iniciar/step3",
-    "/proceso/iniciar/step4",
+    "/proceso/iniciar/granel",
+    "/proceso/iniciar/granel/step2",
+    "/proceso/iniciar/granel/step3",
+    "/proceso/iniciar/granel/step4",
     "/proceso/analisis",
   ];
 
@@ -52,7 +53,7 @@ export const config = {
   matcher: [
     "/",
     "/proceso/consultar",
-    "/api/demoras",
+    "/api/demoras/granel",
     "/api/auth/session",
     "/proceso/iniciar",
     "/proceso/iniciar/step2",

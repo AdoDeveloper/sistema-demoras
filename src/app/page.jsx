@@ -1,18 +1,14 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import {
-  FiHome,
-  FiLogOut,
-  FiUser,
-  FiHelpCircle,
-  FiChevronDown,
-  FiUsers,
-} from "react-icons/fi";
-import { FaPlay, FaList, FaChartBar } from "react-icons/fa";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { FaPlay, FaChartBar } from "react-icons/fa";
+import { PiTruckTrailerFill, PiBarnFill } from "react-icons/pi";
+import { FiUsers } from "react-icons/fi";
 import { HiOutlineUserCircle } from "react-icons/hi";
 
 // Dynamic imports con no SSR para evitar mismatches de hidratación
@@ -28,8 +24,6 @@ export default function Dashboard() {
   const router = useRouter();
   const [cachedUser, setCachedUser] = useState(null);
   const [roleId, setRoleId] = useState(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const menuRef = useRef(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -50,29 +44,6 @@ export default function Dashboard() {
     }
   }, [status, session, router]);
 
-  // Cerrar menú al hacer clic fuera
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowUserMenu(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [menuRef]);
-
-  function logOut() {
-    sessionStorage.removeItem("user");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("roleId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("demorasProcess");
-    localStorage.removeItem("nextauth.message");
-    signOut();
-  }
-
   if (typeof window === "undefined" || status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
@@ -83,66 +54,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 relative">
-      {/* Header fijo con botón de inicio */}
-      <header className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <button onClick={() => router.push("/")} className="mr-4">
-              <FiHome size={28} className="text-blue-600" />
-            </button>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-800">
-                Control de Tiempos
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Panel de Control
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4 mt-2 sm:mt-0">
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center space-x-1 rounded-full transition-all duration-300 transform hover:scale-105"
-                title="Opciones de usuario"
-              >
-                <FiUser size={20} className="text-gray-700" />
-                <span className="uppercase hidden sm:inline text-gray-700">
-                  {cachedUser?.username || "Usuario"}
-                </span>
-                <FiChevronDown size={16} className="text-gray-700" />
-              </button>
-
-              {/* Menú desplegable */}
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
-                  {/* En móviles se muestra el username en el menú */}
-                  {cachedUser && (
-                    <div className="block sm:hidden px-4 py-2 text-sm uppercase text-gray-900 border-b border-gray-100">
-                      {cachedUser.username}
-                    </div>
-                  )}
-                  <a
-                    href="/perfil"
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <FiUser className="mr-2" size={16} />
-                    Perfil
-                  </a>
-                  <div className="border-t border-gray-100 my-1"></div>
-                  <button
-                    onClick={logOut}
-                    className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                  >
-                    <FiLogOut className="mr-2" size={16} />
-                    Cerrar sesión
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header integrado */}
+      <Header />
 
       {/* Contenedor principal */}
       <main className="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -174,11 +87,18 @@ export default function Dashboard() {
             <span>Iniciar Proceso</span>
           </button>
           <button
-            onClick={() => router.push("/proceso/consultar")}
+            onClick={() => router.push("/proceso/consultar/granel")}
             className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
           >
-            <FaList size={20} className="mr-2" />
-            <span>Registros</span>
+            <PiBarnFill size={20} className="mr-2" />
+            <span>Registros Granel</span>
+          </button>
+          <button
+            onClick={() => router.push("/building")}
+            className="flex items-center justify-center w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
+          >
+            <PiTruckTrailerFill size={20} className="mr-2" />
+            <span>Registros Envasado</span>
           </button>
           <button
             onClick={() => router.push("/proceso/analisis")}
@@ -200,12 +120,7 @@ export default function Dashboard() {
         </section>
       </main>
 
-      {/* Pie de página fijo */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white py-3 shadow-inner">
-        <div className="max-w-7xl mx-auto text-center text-xs sm:text-sm text-gray-500">
-          © {new Date().getFullYear()} Todos los derechos reservados.
-        </div>
-      </footer>
+    <Footer />
     </div>
   );
 }

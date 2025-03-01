@@ -150,10 +150,10 @@ export default function AnalisisPage() {
   const [recordsPerPage, setRecordsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Cargar data desde /api/demoras con paginación
+  // Cargar data desde /api/demoras/granel con paginación
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/demoras?page=${currentPage}&limit=${recordsPerPage}`)
+    fetch(`/api/demoras/granel?page=${currentPage}&limit=${recordsPerPage}`)
       .then((res) => res.json())
       .then((result) => {
         // Se asume que el endpoint retorna { data, totalCount }

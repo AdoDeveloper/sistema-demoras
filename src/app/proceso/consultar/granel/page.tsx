@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Loader from "../../../components/Loader";
+import Loader from "../../../../components/Loader";
 import { FiArrowLeft, FiDownload, FiFileText, FiRefreshCw } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -145,7 +145,7 @@ export default function DemorasPage() {
         limit: recordsPerPage.toString(),
       });
 
-      const res = await fetch(`/api/demoras?${queryParams.toString()}`);
+      const res = await fetch(`/api/demoras/granel?${queryParams.toString()}`);
       if (!res.ok) {
         Swal.fire("Error", "Error al obtener registros: " + res.status, "error");
         if (!isRefresh) setLoading(false);
@@ -192,7 +192,7 @@ export default function DemorasPage() {
     });
     try {
       const response = await fetch(
-        `/api/demoras/export-excel?fechaInicio=${fechaInicio}&fechaFinal=${fechaFinal}`
+        `/api/demoras/granel/export-excel?fechaInicio=${fechaInicio}&fechaFinal=${fechaFinal}`
       );
       if (!response.ok) {
         Swal.fire("Error", "Error en la exportación: " + response.status, "error");
@@ -672,7 +672,7 @@ const handleDescargarPDF = async () => {
                 Báscula Entrada
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Precheq.
+                Hora Precheq.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Fecha Precheq.
@@ -681,7 +681,7 @@ const handleDescargarPDF = async () => {
                 Obs Precheq.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Scanner
+                Hora Scanner
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Fecha Scanner
@@ -693,7 +693,7 @@ const handleDescargarPDF = async () => {
                 Fecha Autorización
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Autorizac.
+                Hora Autorizac.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Fecha Autorizac.
@@ -702,25 +702,25 @@ const handleDescargarPDF = async () => {
                 Obs Autorizac.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Ing. Planta
+                Hora Ing. Planta
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Ingreso
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Lleg. Básq. (P1)
+                Hora Lleg. Básq. (P1)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Lleg. Básq. (P1)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Entr. Básq. (P1)
+                Hora Entr. Básq. (P1)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Entr. Básq. (P1)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Sal. Básq. (P1)
+                Hora Sal. Básq. (P1)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Sal. Básq. (P1)
@@ -741,43 +741,43 @@ const handleDescargarPDF = async () => {
                 Obs Personal Asig.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Lleg. Punto
+                Hora Lleg. Punto
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Lleg. Punto
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Lleg. Oper.
+                Hora Lleg. Oper.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Lleg. Oper.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Lleg. Enlon.
+                Hora Lleg. Enlon.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Lleg. Enlon.
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Lleg. Equipo
+                Hora Lleg. Equipo
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Lleg. Equipo
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Inicio Carga
+                Hora Inicio Carga
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Inicio Carga
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Term. Carga
+                Hora Term. Carga
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Term. Carga
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Salida Punto
+                Hora Salida Punto
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Salida Punto
@@ -789,19 +789,19 @@ const handleDescargarPDF = async () => {
                 Pesador Salida
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Lleg. Básq. (P3)
+                Hora Lleg. Básq. (P3)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Lleg. Básq. (P3)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Entr. Básq. (P3)
+                Hora Entr. Básq. (P3)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Entr. Básq. (P3)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Sal. Básq. (P3)
+                Hora Sal. Básq. (P3)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Sal. Básq. (P3)
@@ -840,7 +840,7 @@ const handleDescargarPDF = async () => {
                 Obs Sal. Básq. (V)
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Salida Planta
+                Hora Salida Planta
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Salida Planta
@@ -849,7 +849,7 @@ const handleDescargarPDF = async () => {
                 Portería Salida
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Lleg. Portería
+                Hora Lleg. Portería
               </th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">
                 Obs Lleg. Portería

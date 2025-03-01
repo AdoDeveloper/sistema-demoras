@@ -232,7 +232,7 @@ export default function SegundoProceso() {
       };
       localStorage.setItem("demorasProcess", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar/step3");
+    router.push("/proceso/iniciar/granel/step3");
   };
 
   // ---------------------------------------
@@ -258,7 +258,7 @@ export default function SegundoProceso() {
       };
       localStorage.setItem("demorasProcess", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar"); // Regresa al Primer Proceso
+    router.push("/proceso/iniciar/granel"); // Regresa al Primer Proceso
   };
 
   // Patrón para validar formato HH:MM:SS (24 horas)

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"; 
-import prisma from "../../../../lib/prisma";
+import prisma from "../../../../../lib/prisma";
 
 function parseFechaInicio(fechaStr) {
   // Se guarda la fecha de inicio directamente como string

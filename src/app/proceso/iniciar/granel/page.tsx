@@ -220,7 +220,7 @@ export default function PrimerProceso() {
       };
       localStorage.setItem("demorasProcess", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar/step2");
+    router.push("/proceso/iniciar/granel/step2");
   };
 
   // Cancelar y regresar a Home con confirmación usando SweetAlert2
@@ -237,7 +237,7 @@ export default function PrimerProceso() {
     }).then((result) => {
       if (result.isConfirmed) {
         localStorage.removeItem("demorasProcess");
-        router.push("/");
+        router.push("/proceso/iniciar");
       }
     });
   };

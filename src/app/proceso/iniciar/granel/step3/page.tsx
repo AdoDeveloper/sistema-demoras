@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import Swal from "sweetalert2";
 
 // Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
 const Select = dynamic(() => import("react-select"), { ssr: false });
@@ -83,9 +84,9 @@ export default function TercerProceso() {
     if (!stored) {
       // Crear estructura base si no existe
       const initialData = {
-        fechaInicio: new Date().toLocaleString("en-GB", {timeZone: "America/El_Salvador"}),
-        userId:localStorage.getItem("userId"),
-        userName:localStorage.getItem("userName"),
+        fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
+        userId: localStorage.getItem("userId"),
+        userName: localStorage.getItem("userName"),
         primerProceso: {},
         segundoProceso: {},
         tercerProceso: {},
@@ -279,13 +280,24 @@ export default function TercerProceso() {
   };
 
   // ---------------------------------------
-  // Eliminar una vuelta (solo si no es la Vuelta 1)
+  // Eliminar una vuelta (solo si no es la Vuelta 1) con alerta de confirmación
   // ---------------------------------------
-  const handleEliminarVuelta = (indexToRemove: number) => {
-    setVueltas((prev) => {
-      const newVueltas = prev.filter((_, i) => i !== indexToRemove);
-      return newVueltas.map((v, i) => ({ ...v, numeroVuelta: i + 1 }));
+  const handleEliminarVuelta = async (indexToRemove: number) => {
+    const result = await Swal.fire({
+      title: "¿Está seguro?",
+      text: "Esta acción eliminará la vuelta.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
     });
+
+    if (result.isConfirmed) {
+      setVueltas((prev) => {
+        const newVueltas = prev.filter((_, i) => i !== indexToRemove);
+        return newVueltas.map((v, i) => ({ ...v, numeroVuelta: i + 1 }));
+      });
+    }
   };
 
   // ---------------------------------------
@@ -293,7 +305,7 @@ export default function TercerProceso() {
   // ---------------------------------------
   const handleGuardarYContinuar = () => {
     guardarDatosEnLocalStorage();
-    router.push("/proceso/iniciar/step4");
+    router.push("/proceso/iniciar/granel/step4");
   };
 
   // ---------------------------------------
@@ -301,7 +313,7 @@ export default function TercerProceso() {
   // ---------------------------------------
   const handleAtras = () => {
     guardarDatosEnLocalStorage();
-    router.push("/proceso/iniciar/step2");
+    router.push("/proceso/iniciar/granel/step2");
   };
 
   return (
