@@ -1,16 +1,15 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { FaFilePdf } from "react-icons/fa";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { FiArrowLeft } from "react-icons/fi";
+import { FiArrowLeft, FiLoader } from "react-icons/fi";
 
 export default function Profile() {
   const router = useRouter();
 
-  // Estados para perfil
+  // Estados para perfil y datos
   const [loading, setLoading] = useState(true);
   const [dailyStats, setDailyStats] = useState([]);
   const [globalStats, setGlobalStats] = useState(null);
@@ -29,7 +28,7 @@ export default function Profile() {
   // Estado para controlar la generación del PDF y evitar doble clic
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Cargar datos del perfil y dashboard
+  // Función para obtener los datos
   const fetchData = async (pageToLoad = 1) => {
     setLoading(true);
     try {
@@ -70,7 +69,7 @@ export default function Profile() {
     }
   }, []);
 
-  // Funciones de paginación
+  // Funciones de paginación y filtro
   const handleFilter = (e) => {
     e.preventDefault();
     fetchData(1);
@@ -86,12 +85,11 @@ export default function Profile() {
   // Función para introducir una demora
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  // Función para generar reporte PDF con alerta de carga y manejo de éxito/error
+  // Función para generar reporte PDF con encabezado unificado y alerta de carga
   const handleDownloadPDF = async () => {
-    if (isGenerating) return; // Prevenir ejecuciones múltiples
+    if (isGenerating) return;
     setIsGenerating(true);
 
-    // Mostrar alerta de "Generando reporte..."
     Swal.fire({
       title: "Generando reporte...",
       text: "Por favor espere mientras se genera el PDF.",
@@ -113,40 +111,47 @@ export default function Profile() {
       const titleFontSize = 16;
       const subtitleFontSize = 14;
 
-      // Encabezado
-      pagePDF.drawText("ALMAPAC S.A. de C.V.", {
-        x:
-          margin +
-          contentWidth / 2 -
-          boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) / 2,
-        y: height - margin,
-        size: titleFontSize,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      });
-      pagePDF.drawText("Reporte de Actividades", {
-        x:
-          margin +
-          contentWidth / 2 -
-          boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) /
-            2,
-        y: height - margin - 25,
-        size: subtitleFontSize,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      });
-      pagePDF.drawText("Toma de Tiempos", {
-        x:
-          margin +
-          contentWidth / 2 -
-          font.widthOfTextAtSize("Toma de Tiempos", 12) / 2,
-        y: height - margin - 45,
-        size: 12,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      });
+      // Función para dibujar el encabezado en cada página
+      const drawPDFHeader = (page, currentY) => {
+        page.drawText("ALMAPAC S.A. de C.V.", {
+          x:
+            margin +
+            contentWidth / 2 -
+            boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) / 2,
+          y: currentY,
+          size: titleFontSize,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        currentY -= 20;
+        page.drawText("Reporte de Actividades", {
+          x:
+            margin +
+            contentWidth / 2 -
+            boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) / 2,
+          y: currentY,
+          size: subtitleFontSize,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        currentY -= 20;
+        page.drawText("Toma de Tiempos", {
+          x:
+            margin +
+            contentWidth / 2 -
+            boldFont.widthOfTextAtSize("Toma de Tiempos", 12) / 2,
+          y: currentY,
+          size: 12,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        return currentY - 20;
+      };
 
-      const userInfoY = height - margin - 80;
+      let startY = drawPDFHeader(pagePDF, height - margin);
+
+      // Información del usuario
+      const userInfoY = startY;
       pagePDF.drawText(`${userData?.nombreCompleto || "N/A"}`, {
         x: margin,
         y: userInfoY,
@@ -169,7 +174,6 @@ export default function Profile() {
         color: rgb(0, 0, 0),
       });
 
-      // Si rol 1, mostrar resumen por usuario; de lo contrario, detalle completo
       if (userData?.role?.id === 1) {
         const totalRegistros = globalStats?.totalRegistros || 0;
         pagePDF.drawText(`Total Registros: ${totalRegistros}`, {
@@ -218,8 +222,8 @@ export default function Profile() {
           color: rgb(0, 0, 0),
         });
 
-        // Dibujar reporte detallado (tabla)
-        let startY = userInfoY - 80;
+        // Reporte detallado (tabla)
+        let startTableY = userInfoY - 80;
         const rowHeight = 20;
         const tableWidth = contentWidth;
         const colWidths = [
@@ -232,27 +236,20 @@ export default function Profile() {
         ];
 
         dailyStats.forEach((stat, index) => {
-          if (startY < margin + 100) {
+          if (startTableY < margin + 100) {
             pagePDF = pdfDoc.addPage();
-            startY = height - margin - 40;
-            pagePDF.drawText("ALMAPAC S.A. de C.V. - Reporte de Actividades", {
-              x: margin,
-              y: height - margin,
-              size: 12,
-              font: boldFont,
-              color: rgb(0, 0, 0),
-            });
-            startY -= 30;
+            startTableY = drawPDFHeader(pagePDF, height - margin);
+            startTableY -= 20;
           }
-          if (index > 0) startY -= 30;
+          if (index > 0) startTableY -= 30;
           pagePDF.drawText(`Registro del día ${stat.fecha}`, {
             x: margin,
-            y: startY,
+            y: startTableY,
             size: 12,
             font: boldFont,
             color: rgb(0, 0, 0),
           });
-          startY -= 20;
+          startTableY -= 20;
           const headers = [
             "Fecha",
             "Código",
@@ -264,7 +261,7 @@ export default function Profile() {
           let currentX = margin;
           pagePDF.drawRectangle({
             x: margin,
-            y: startY - rowHeight,
+            y: startTableY - rowHeight,
             width: tableWidth,
             height: rowHeight,
             color: rgb(0.95, 0.95, 0.95),
@@ -278,15 +275,15 @@ export default function Profile() {
               boldFont.widthOfTextAtSize(header, fontSize) / 2;
             pagePDF.drawText(header, {
               x: headerX,
-              y: startY - rowHeight + 6,
+              y: startTableY - rowHeight + 6,
               size: fontSize,
               font: boldFont,
               color: rgb(0, 0, 0),
             });
             if (idx > 0) {
               pagePDF.drawLine({
-                start: { x: currentX, y: startY },
-                end: { x: currentX, y: startY - rowHeight * 2 },
+                start: { x: currentX, y: startTableY },
+                end: { x: currentX, y: startTableY - rowHeight * 2 },
                 color: rgb(0.8, 0.8, 0.8),
                 thickness: 1,
               });
@@ -294,12 +291,12 @@ export default function Profile() {
             currentX += colWidths[idx];
           });
           pagePDF.drawLine({
-            start: { x: margin + tableWidth, y: startY },
-            end: { x: margin + tableWidth, y: startY - rowHeight * 2 },
+            start: { x: margin + tableWidth, y: startTableY },
+            end: { x: margin + tableWidth, y: startTableY - rowHeight * 2 },
             color: rgb(0.8, 0.8, 0.8),
             thickness: 1,
           });
-          startY -= rowHeight;
+          startTableY -= rowHeight;
           const rowData = [
             stat.fecha,
             userData?.codigo || "-",
@@ -310,7 +307,7 @@ export default function Profile() {
           ];
           pagePDF.drawRectangle({
             x: margin,
-            y: startY - rowHeight,
+            y: startTableY - rowHeight,
             width: tableWidth,
             height: rowHeight,
             color: rgb(1, 1, 1),
@@ -323,14 +320,14 @@ export default function Profile() {
             const cellX = currentX + colWidths[idx] / 2 - cellWidth / 2;
             pagePDF.drawText(cell, {
               x: cellX,
-              y: startY - rowHeight + 6,
+              y: startTableY - rowHeight + 6,
               size: fontSize,
               font,
               color: rgb(0, 0, 0),
             });
             currentX += colWidths[idx];
           });
-          startY -= rowHeight;
+          startTableY -= rowHeight;
         });
       }
 
@@ -380,7 +377,6 @@ export default function Profile() {
       a.click();
       document.body.removeChild(a);
 
-      // Cerrar la alerta de carga y esperar un breve tiempo
       Swal.close();
       await delay(300);
       await Swal.fire({
@@ -390,7 +386,6 @@ export default function Profile() {
         showConfirmButton: false,
       });
     } catch (error) {
-      // Cerrar la alerta de carga y esperar un breve tiempo
       Swal.close();
       await delay(300);
       await Swal.fire({
@@ -404,21 +399,29 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header con flecha izquierda */}
+    <div className="min-h-screen bg-gray-100 relative">
+      {/* Loader global hasta que se cargue el perfil */}
+      {loading && !userData && (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+          <FiLoader className="animate-spin mr-2" size={40} />
+          <span className="text-xl text-gray-600">Cargando...</span>
+        </div>
+      )}
+
+      {/* Encabezado con flecha para volver */}
       <div className="flex items-center py-4 px-3">
-              <button
-                onClick={() => (window.location.href = "/")}
-                className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
-                title="Volver"
-              >
-              <FiArrowLeft size={20} />
-          </button>
+        <button
+          onClick={() => (window.location.href = "/")}
+          className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+          title="Volver"
+        >
+          <FiArrowLeft size={20} />
+        </button>
         <h1 className="text-xl font-bold">Perfil de Usuario</h1>
       </div>
 
-      {/* Vista de perfil en formato de tarjeta */}
       <main className="container mx-auto px-4 sm:px-4 lg:px-4 py-1">
+        {/* Tarjeta de perfil */}
         <div className="bg-white rounded-lg shadow p-6 mb-8 flex flex-col items-center">
           <img
             src="/user.webp"
@@ -430,15 +433,21 @@ export default function Profile() {
               <h2 className="text-2xl font-bold text-gray-800">
                 {userData.nombreCompleto}
               </h2>
-              <p className="text-gray-600 mt-2">{userData.role?.name || "N/A"}</p>
-              <p className="text-gray-600">Código: {userData.codigo || "N/A"}</p>
+              <p className="text-gray-600 mt-2">
+                {userData.role?.name || "N/A"}
+              </p>
+              <p className="text-gray-600">
+                Código: {userData.codigo || "N/A"}
+              </p>
             </div>
           ) : (
-            <p className="text-gray-500">Cargando perfil...</p>
+            <p className="text-gray-500 flex items-center justify-center gap-2">
+              <FiLoader className="animate-spin" /> Cargando perfil...
+            </p>
           )}
         </div>
 
-        {/* Filtro */}
+        {/* Filtro por fechas */}
         <section className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
             Filtrar por Fecha
@@ -484,7 +493,8 @@ export default function Profile() {
           </h2>
           {loading ? (
             <div className="flex justify-center items-center h-32">
-              <p className="text-gray-500">Cargando...</p>
+              <FiLoader className="animate-spin mr-2" size={24} />
+              <span className="text-gray-500">Cargando...</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
@@ -521,7 +531,8 @@ export default function Profile() {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Registros</h2>
           {loading ? (
             <div className="flex justify-center items-center h-32">
-              <p className="text-gray-500">Cargando registros...</p>
+              <FiLoader className="animate-spin mr-2" size={24} />
+              <span className="text-gray-500">Cargando registros...</span>
             </div>
           ) : (
             <div className="bg-white shadow rounded-lg overflow-x-auto">
@@ -583,7 +594,7 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* Estadísticas Diarias y PDF */}
+        {/* Estadísticas Diarias y opción para PDF */}
         {dailyStats?.length > 0 && userData && (
           <section className="mb-8">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4">

@@ -1,5 +1,4 @@
 "use client";
-
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -8,13 +7,10 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { FaPlay, FaChartBar } from "react-icons/fa";
 import { PiTruckTrailerFill, PiBarnFill } from "react-icons/pi";
-import { FiUsers } from "react-icons/fi";
+import { FiUsers, FiLoader } from "react-icons/fi";
 import { HiOutlineUserCircle } from "react-icons/hi";
 
 // Dynamic imports con no SSR para evitar mismatches de hidratación
-const AnalysisLoader = dynamic(() => import("../components/AnalysisLoader"), {
-  ssr: false,
-});
 const WeatherWidget = dynamic(() => import("../components/WeatherWidget"), {
   ssr: false,
 });
@@ -46,8 +42,9 @@ export default function Dashboard() {
 
   if (typeof window === "undefined" || status === "loading") {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
-        <div>Cargando...</div>
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+        <FiLoader className="animate-spin mr-2" size={40} />
+        <span className="text-xl text-gray-600">Cargando...</span>
       </div>
     );
   }
@@ -120,7 +117,7 @@ export default function Dashboard() {
         </section>
       </main>
 
-    <Footer />
+      <Footer />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Header from "../../../components/Header";
-import { FiArrowLeft } from "react-icons/fi";
+import { FiArrowLeft, FiLoader } from "react-icons/fi";
 import { PiTruckTrailerFill, PiBarnFill } from "react-icons/pi";
 import Footer from "../../../components/Footer";
 import Swal from "sweetalert2";
@@ -36,8 +36,9 @@ export default function Proceso() {
 
   if (typeof window === "undefined" || status === "loading") {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-500 to-purple-500">
-        <div className="text-white text-lg font-semibold">Cargando...</div>
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+        <FiLoader className="animate-spin mr-2" size={40} />
+        <span className="text-xl text-gray-600">Cargando...</span>
       </div>
     );
   }
@@ -49,9 +50,10 @@ export default function Proceso() {
       text: `Está a punto de iniciar un proceso de ${processName}. ¿Desea continuar?`,
       icon: "warning",
       showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
       confirmButtonText: "Sí, continuar",
       cancelButtonText: "Cancelar",
-      reverseButtons: true,
     }).then((result) => {
       if (result.isConfirmed) {
         router.push(route);
@@ -70,23 +72,23 @@ export default function Proceso() {
               onClick={() =>
                 handleProcessConfirm("/proceso/iniciar/granel", "Granel")
               }
-              className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-md shadow transition transform hover:-translate-y-1"
+              className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
             >
               <PiBarnFill size={24} className="mr-3" />
-              <span>Granel</span>
+              <span>Iniciar Granel</span>
             </button>
             <button
               onClick={() =>
                 handleProcessConfirm("/building", "Envasado")
               }
-              className="flex items-center justify-center w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-4 rounded-md shadow transition transform hover:-translate-y-1"
+              className="flex items-center justify-center w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
             >
               <PiTruckTrailerFill size={24} className="mr-3" />
-              <span>Envasado</span>
+              <span>Iniciar Envasado</span>
             </button>
             <button
               onClick={() => router.push("/")}
-              className="flex items-center justify-center w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-md shadow transition transform hover:-translate-y-1"
+              className="flex items-center justify-center w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
             >
               <FiArrowLeft size={24} className="mr-3" />
               <span>Regresar</span>

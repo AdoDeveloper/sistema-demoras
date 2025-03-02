@@ -1,9 +1,8 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { FiArrowLeft, FiEdit, FiTrash2 } from "react-icons/fi";
+import { FiArrowLeft, FiEdit, FiTrash2, FiLoader } from "react-icons/fi";
 import { FaPlus } from "react-icons/fa";
 
 export default function UserRoleManagement() {
@@ -14,6 +13,8 @@ export default function UserRoleManagement() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
+  // Estado para saber si se han cargado todos los datos
+  const [allLoaded, setAllLoaded] = useState(false);
 
   // Función para cargar usuarios
   const fetchUsers = async () => {
@@ -41,9 +42,13 @@ export default function UserRoleManagement() {
     setLoadingRoles(false);
   };
 
+  // Cargar todos los datos al montar el componente
   useEffect(() => {
-    fetchUsers();
-    fetchRoles();
+    async function loadAllData() {
+      await Promise.all([fetchUsers(), fetchRoles()]);
+      setAllLoaded(true);
+    }
+    loadAllData();
   }, []);
 
   // Modal para crear usuario
@@ -142,12 +147,7 @@ export default function UserRoleManagement() {
           <input id="swal-input5" class="swal2-input" type="password" placeholder="Password (opcional)">
           <select id="swal-input6" class="swal2-input">
             <option value="">Seleccione un rol</option>
-            ${roles
-              .map(
-                (role) =>
-                  `<option value="${role.id}" ${role.id === user.role?.id ? "selected" : ""}>${role.name}</option>`
-              )
-              .join("")}
+            ${roles.map((role) => `<option value="${role.id}" ${role.id === user.role?.id ? "selected" : ""}>${role.name}</option>`).join("")}
           </select>
         </div>
       `,
@@ -294,17 +294,27 @@ export default function UserRoleManagement() {
     }
   };
 
+  // Mostrar loader global hasta que se carguen todos los datos
+  if (!allLoaded) {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+        <FiLoader className="animate-spin mr-2" size={40} />
+        <span className="text-xl text-gray-600">Cargando...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 p-4 sm:p-6">
       {/* Header */}
       <div className="flex items-center pb-3">
-              <button
-                onClick={() => (window.location.href = "/")}
-                className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
-                title="Volver"
-              >
-              <FiArrowLeft size={20} />
-          </button>
+        <button
+          onClick={() => (window.location.href = "/")}
+          className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+          title="Volver"
+        >
+          <FiArrowLeft size={20} />
+        </button>
         <h1 className="text-xl font-bold">Gestion Usuarios</h1>
       </div>
 
@@ -312,7 +322,7 @@ export default function UserRoleManagement() {
       <main className="space-y-8">
         {/* Sección de Usuarios */}
         <section>
-          <div className="flex flex-row items-center justify-between mb-4 gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Usuarios</h2>
             <button
               onClick={handleShowCreateUserModal}
@@ -373,7 +383,7 @@ export default function UserRoleManagement() {
 
         {/* Sección de Roles */}
         <section>
-          <div className="flex flex-row items-center justify-between mb-4 gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Roles</h2>
             <button
               onClick={handleShowCreateRoleModal}

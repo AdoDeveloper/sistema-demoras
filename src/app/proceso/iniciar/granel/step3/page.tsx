@@ -287,6 +287,8 @@ export default function TercerProceso() {
       title: "¿Está seguro?",
       text: "Esta acción eliminará la vuelta.",
       icon: "warning",
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
