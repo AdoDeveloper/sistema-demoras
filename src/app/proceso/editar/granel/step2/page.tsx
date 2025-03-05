@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import Swal from "sweetalert2";
 
 // Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
 const Select = dynamic(() => import("react-select"), { ssr: false });
@@ -54,10 +55,10 @@ const enlonadorOptions: OptionType[] = [
   { value: "MIGUEL CRESPIN", label: "MIGUEL CRESPIN" },
   { value: "MOISES ALVAREZ", label: "MOISES ALVAREZ" },
   { value: "RAFAEL JIMENEZ", label: "RAFAEL JIMENEZ" },
-  { value: "RICARDO CLEMENTE", label: "RICARDO CLEMENTE"},
+  { value: "RICARDO CLEMENTE", label: "RICARDO CLEMENTE" },
   { value: "ROBERTO CALDERON", label: "ROBERTO CALDERON" },
   { value: "TOMAS CADENA", label: "TOMAS CADENA" },
-  { value: "WALDIR PINEDA", label: "WALDIR PINEDA" }
+  { value: "WALDIR PINEDA", label: "WALDIR PINEDA" },
 ];
 
 const operadorOptions: OptionType[] = [
@@ -101,20 +102,19 @@ const operadorOptions: OptionType[] = [
   { value: "MIGUEL CRESPIN", label: "MIGUEL CRESPIN" },
   { value: "MOISES ALVAREZ", label: "MOISES ALVAREZ" },
   { value: "RAFAEL JIMENEZ", label: "RAFAEL JIMENEZ" },
-  { value: "RICARDO CLEMENTE", label: "RICARDO CLEMENTE"},
+  { value: "RICARDO CLEMENTE", label: "RICARDO CLEMENTE" },
   { value: "ROBERTO CALDERON", label: "ROBERTO CALDERON" },
   { value: "TOMAS CADENA", label: "TOMAS CADENA" },
   { value: "WALDIR PINEDA", label: "WALDIR PINEDA" }
 ];
 
-// Opciones para el modelo de equipo
 const modeloEquipoOptions: OptionType[] = [
   { value: "NO REQUIERE", label: "NO REQUIERE" },
   { value: "J", label: "J" },
   { value: "K", label: "K" },
 ];
-// Función para aplicar la máscara de tiempo (HH:MM:SS)
-// Se remueven caracteres no numéricos, se limita a 6 dígitos y se formatea.
+
+// Función para aplicar máscara de tiempo (HH:MM:SS)
 const handleTimeInputChange = (
   e: React.ChangeEvent<HTMLInputElement>,
   setter: Function
@@ -136,17 +136,27 @@ const handleTimeInputChange = (
   setter((prev: any) => ({ ...prev, hora: formatted }));
 };
 
+// Helper para asignar la fecha actual (formato YYYY-MM-DD)
+const handleSetNowDate = (setter: Function) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const fecha = `${year}-${month}-${day}`;
+  setter((prev: any) => ({ ...prev, fecha }));
+};
+
 export default function SegundoProceso() {
   const router = useRouter();
 
-  // Campos principales
+  // Estados para campos principales
   const [enlonador, setEnlonador] = useState("");
   const [operador, setOperador] = useState("");
   const [personalAsignado, setPersonalAsignado] = useState("");
   const [personalAsignadoObservaciones, setPersonalAsignadoObservaciones] = useState("");
   const [modeloEquipo, setModeloEquipo] = useState("NO REQUIERE");
 
-  // Tiempos (cada uno con { hora, comentarios })
+  // Estados para los tiempos (cada uno es un objeto { hora, comentarios })
   const [tiempoLlegadaPunto, setTiempoLlegadaPunto] = useState({ hora: "", comentarios: "" });
   const [tiempoLlegadaOperador, setTiempoLlegadaOperador] = useState({ hora: "", comentarios: "" });
   const [tiempoLlegadaEnlonador, setTiempoLlegadaEnlonador] = useState({ hora: "", comentarios: "" });
@@ -156,27 +166,27 @@ export default function SegundoProceso() {
   const [tiempoSalidaPunto, setTiempoSalidaPunto] = useState({ hora: "", comentarios: "" });
 
   // ---------------------------------------
-  // useEffect: Cargar/crear "demorasProcess" en localStorage
+  // useEffect: Cargar o crear la estructura de "editDemora" en el storage y extraer el segundo proceso
   // ---------------------------------------
   useEffect(() => {
     cargarDatosDeLocalStorage();
   }, []);
 
   function cargarDatosDeLocalStorage() {
-    let stored = localStorage.getItem("demorasProcess");
+    let stored = localStorage.getItem("editDemora");
     if (!stored) {
-      // Crear estructura base si no existe
+      // Si no existe, crear estructura base
       const initialData = {
-        fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador"}),
-        userId:localStorage.getItem("userId"),
-        userName:localStorage.getItem("userName"),
+        fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
+        userId: localStorage.getItem("userId"),
+        userName: localStorage.getItem("userName"),
         primerProceso: {},
         segundoProceso: {},
         tercerProceso: {},
         procesoFinal: {},
       };
-      localStorage.setItem("demorasProcess", JSON.stringify(initialData));
-      stored = localStorage.getItem("demorasProcess");
+      localStorage.setItem("editDemora", JSON.stringify(initialData));
+      stored = localStorage.getItem("editDemora");
     }
     if (stored) {
       const parsed = JSON.parse(stored);
@@ -200,22 +210,22 @@ export default function SegundoProceso() {
   }
 
   // ---------------------------------------
-  // Helper: Asignar "Ahora" en formato HH:mm:ss (UTC-6)
+  // Helper: Asignar "Ahora" (HH:mm:ss) a un campo de tiempo
   // ---------------------------------------
   const handleSetNow = (setter: Function) => {
     const now = new Date();
-    const hora = now.toLocaleTimeString("en-GB", {
-      hour12: false,
-      timeZone: "America/El_Salvador",
-    });
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    const hora = `${hh}:${mm}:${ss}`;
     setter((prev: any) => ({ ...prev, hora }));
   };
 
   // ---------------------------------------
-  // Guardar en localStorage y pasar al Tercer Proceso
+  // Guardar los cambios en la propiedad segundoProceso de "editDemora" y continuar al siguiente paso
   // ---------------------------------------
   const handleGuardarYContinuar = () => {
-    const stored = localStorage.getItem("demorasProcess");
+    let stored = localStorage.getItem("editDemora");
     if (stored) {
       const parsed = JSON.parse(stored);
       parsed.segundoProceso = {
@@ -232,16 +242,16 @@ export default function SegundoProceso() {
         tiempoTerminaCarga,
         tiempoSalidaPunto,
       };
-      localStorage.setItem("demorasProcess", JSON.stringify(parsed));
+      localStorage.setItem("editDemora", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar/granel/step3");
+    router.push("/proceso/editar/granel/step3");
   };
 
   // ---------------------------------------
-  // Botón "Anterior": guardar y regresar al Primer Proceso
+  // Botón "Anterior": guardar cambios y regresar al primer proceso
   // ---------------------------------------
   const handleAtras = () => {
-    const stored = localStorage.getItem("demorasProcess");
+    let stored = localStorage.getItem("editDemora");
     if (stored) {
       const parsed = JSON.parse(stored);
       parsed.segundoProceso = {
@@ -258,9 +268,9 @@ export default function SegundoProceso() {
         tiempoTerminaCarga,
         tiempoSalidaPunto,
       };
-      localStorage.setItem("demorasProcess", JSON.stringify(parsed));
+      localStorage.setItem("editDemora", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar/granel"); // Regresa al Primer Proceso
+    router.push("/proceso/editar/granel"); // Regresa al primer proceso
   };
 
   // Patrón para validar formato HH:MM:SS (24 horas)
@@ -276,33 +286,31 @@ export default function SegundoProceso() {
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center rounded-r-lg"></div>
         </div>
-        <h2 className="text-xl font-bold mb-4 text-orange-600">Segundo Proceso</h2>
+        <h2 className="text-xl font-bold mb-4 text-orange-600">
+          Segundo Proceso <span className="text-lg text-gray-400">[Modo Edicion]</span>
+        </h2>
 
         {/* Campos Principales */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Enlonador */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">Enlonador</label>
-            <Select
-              className="react-select-container"
-              classNamePrefix="react-select"
-              options={enlonadorOptions}
-              placeholder="Seleccione Enlonador"
-              value={enlonador ? { value: enlonador, label: enlonador } : null}
-              onChange={(option: OptionType | null) => setEnlonador(option ? option.value : "")}
+            <input
+              type="text"
+              className="border w-full p-2 text-sm sm:text-base"
+              value={enlonador}
+              onChange={(e) => setEnlonador(e.target.value)}
             />
           </div>
 
-          {/* Operador */}
+          {/* Operador/Electricista */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">Operador/Electricista</label>
-            <Select
-              className="react-select-container"
-              classNamePrefix="react-select"
-              options={operadorOptions}
-              placeholder="Seleccione Operador"
-              value={operador ? { value: operador, label: operador } : null}
-              onChange={(option: OptionType | null) => setOperador(option ? option.value : "")}
+            <input
+              type="text"
+              className="border w-full p-2 text-sm sm:text-base"
+              value={operador}
+              onChange={(e) => setOperador(e.target.value)}
             />
           </div>
 
@@ -318,7 +326,7 @@ export default function SegundoProceso() {
             />
           </div>
 
-          {/* Observaciones Personal Asignado */}
+          {/* Observaciones */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">Observaciones Personal Asignado</label>
             <textarea
@@ -338,16 +346,18 @@ export default function SegundoProceso() {
               options={modeloEquipoOptions}
               placeholder="Seleccione Modelo"
               value={modeloEquipo ? { value: modeloEquipo, label: modeloEquipo } : null}
-              onChange={(option: OptionType | null) => setModeloEquipo(option ? option.value : "")}
+              onChange={(option: OptionType | null) =>
+                setModeloEquipo(option ? option.value : "")
+              }
             />
           </div>
         </div>
 
         {/* Tiempos */}
         <div className="mt-6">
-          <h3 className="font-bold text-lg mb-2 sm:text-sm">Tiempos</h3>
+          <h3 className="font-bold text-xl mb-2 sm:text-sm">Tiempos</h3>
           <div className="text-sm sm:text-base text-orange-600 mb-2">
-              <strong>NOTA:</strong> Si no requiere ingresar 6 digitos de 0.
+            <strong>NOTA:</strong> Si no requiere ingresar 6 dígitos de 0.
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Llegada al Punto */}
@@ -380,7 +390,7 @@ export default function SegundoProceso() {
               />
             </div>
 
-            {/* Llegada del Operador */}
+            {/* Llegada del Operador/Electricista */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">Llegada del Operador/Electricista</label>
               <div className="flex gap-2 mt-1">
@@ -413,7 +423,7 @@ export default function SegundoProceso() {
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">Llegada del Enlonador</label>
               <div className="flex gap-2 mt-1">
-              <input
+                <input
                   type="text"
                   pattern={timePattern}
                   placeholder="HH:MM:SS"
@@ -443,14 +453,10 @@ export default function SegundoProceso() {
               <label className="block font-semibold text-sm sm:text-base">Llegada del Equipo</label>
               <div className="flex gap-2 mt-1">
                 <input
-                   type="text"
-                   pattern={timePattern}
-                   placeholder="HH:MM:SS"
-                   className="border p-1 w-full text-sm sm:text-base"
-                  // value={tiempoLlegadaEquipo.hora}
-                  // onChange={(e) =>
-                  //   setTiempoLlegadaEquipo((prev) => ({ ...prev, hora: e.target.value }))
-                  // }
+                  type="text"
+                  pattern={timePattern}
+                  placeholder="HH:MM:SS"
+                  className="border p-1 w-full text-sm sm:text-base"
                   value={tiempoLlegadaEquipo.hora}
                   onChange={(e) => handleTimeInputChange(e, setTiempoLlegadaEquipo)}
                 />
@@ -565,10 +571,16 @@ export default function SegundoProceso() {
 
         {/* Botones de Navegación */}
         <div className="mt-6 flex justify-between">
-          <button className="bg-gray-500 text-white px-4 py-2 rounded" onClick={handleAtras}>
+          <button
+            className="bg-gray-500 text-white px-4 py-2 rounded"
+            onClick={handleAtras}
+          >
             Anterior
           </button>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={handleGuardarYContinuar}>
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+            onClick={handleGuardarYContinuar}
+          >
             Siguiente
           </button>
         </div>

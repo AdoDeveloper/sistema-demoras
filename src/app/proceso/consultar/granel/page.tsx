@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import React from "react";
+import { FaEye, FaEdit } from "react-icons/fa";
 import Loader from "../../../../components/Loader";
-import { FiArrowLeft, FiDownload, FiFileText, FiRefreshCw } from "react-icons/fi";
+import { useRouter } from "next/navigation";
+import {
+  FiArrowLeft,
+  FiDownload,
+  FiFileText,
+  FiRefreshCw,
+} from "react-icons/fi";
 import Swal from "sweetalert2";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
@@ -29,7 +37,9 @@ function formatInterval(hoursDecimal: number): string {
   const hh = Math.floor(seconds / 3600);
   const mm = Math.floor((seconds % 3600) / 60);
   const ss = seconds % 60;
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(
+    ss
+  ).padStart(2, "0")}`;
 }
 
 function timeStrToSeconds(timeStr: string) {
@@ -71,7 +81,9 @@ function DetailTable({ title, data }: { title: string; data: any }) {
         <tbody>
           {entries.map(([key, value]) => (
             <tr key={key} className="border-b">
-              <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
+              <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">
+                {formatKey(key)}
+              </td>
               <td className="px-2 py-1 whitespace-nowrap">{String(value || "-")}</td>
             </tr>
           ))}
@@ -95,7 +107,9 @@ function VueltasDetail({ vueltas }: { vueltas: any[] }) {
               {Object.entries(vuelta).map(([key, value]) =>
                 ["id", "tercerProcesoId", "createdAt", "updatedAt"].includes(key) ? null : (
                   <tr key={key} className="border-b">
-                    <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
+                    <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">
+                      {formatKey(key)}
+                    </td>
                     <td className="px-2 py-1 whitespace-nowrap">{String(value || "-")}</td>
                   </tr>
                 )
@@ -107,6 +121,84 @@ function VueltasDetail({ vueltas }: { vueltas: any[] }) {
     </div>
   );
 }
+
+// -------------------------
+// Función para calcular intervalos
+// -------------------------
+const calcularIntervalos = (item: any) => {
+  const primer = item.primerProceso || {};
+  const segundo = item.segundoProceso || {};
+  const tercero = item.tercerProceso || {};
+  const final = item.procesoFinal || {};
+
+  // Cálculos del primer proceso
+  const calc1 = formatInterval(
+    diffEnHoras(parseHora(primer.tiempoEntradaBascula), parseHora(primer.tiempoSalidaBascula))
+  );
+  const calc2 = formatInterval(
+    diffEnHoras(parseHora(primer.tiempoSalidaBascula), parseHora(segundo.tiempoLlegadaPunto))
+  );
+  // Cálculo nuevo: Punto → Inicio Carga (segundo proceso)
+  const calc7 = formatInterval(
+    diffEnHoras(parseHora(segundo.tiempoLlegadaPunto), parseHora(segundo.tiempoInicioCarga))
+  );
+  const calc3 = formatInterval(
+    diffEnHoras(parseHora(segundo.tiempoInicioCarga), parseHora(segundo.tiempoTerminaCarga))
+  );
+
+  // Cálculos del tercer proceso: se basan en la última vuelta
+  let entradaBS = null;
+  let salidaBS = null;
+  if (tercero.vueltas && tercero.vueltas.length > 0) {
+    const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
+    entradaBS = parseHora(lastVuelta.tiempoEntradaBascula);
+    salidaBS = parseHora(lastVuelta.tiempoSalidaBascula);
+  }
+  const calc4 = formatInterval(diffEnHoras(parseHora(segundo.tiempoSalidaPunto), entradaBS));
+  const calc5 = formatInterval(diffEnHoras(entradaBS, salidaBS));
+  const calc6 = formatInterval(diffEnHoras(salidaBS, parseHora(final.tiempoSalidaPlanta)));
+
+  // Cálculos adicionales ya existentes
+  const calc8 = formatInterval(
+    diffEnHoras(parseHora(primer.tiempoAutorizacion), parseHora(primer.tiempoIngresoPlanta))
+  );
+  const calc12 = formatInterval(
+    diffEnHoras(parseHora(segundo.tiempoTerminaCarga), parseHora(segundo.tiempoSalidaPunto))
+  );
+  const calcIngresoBascula = formatInterval(
+    diffEnHoras(parseHora(primer.tiempoIngresoPlanta), parseHora(primer.tiempoLlegadaBascula))
+  );
+
+  // Nuevos cálculos solicitados
+  const calcExtra1 = formatInterval(
+    diffEnHoras(parseHora(primer.tiempoLlegadaBascula), parseHora(primer.tiempoEntradaBascula))
+  );
+  const calcExtra2 = formatInterval(
+    diffEnHoras(parseHora(tercero.tiempoLlegadaBascula), parseHora(tercero.tiempoEntradaBascula))
+  );
+  let calcExtra3 = "-";
+  if (tercero.vueltas && tercero.vueltas.length > 0) {
+    const firstVueltaEntrada = parseHora(tercero.vueltas[0].tiempoEntradaBascula);
+    const lastVueltaSalida = parseHora(tercero.vueltas[tercero.vueltas.length - 1].tiempoSalidaBascula);
+    calcExtra3 = formatInterval(diffEnHoras(firstVueltaEntrada, lastVueltaSalida));
+  }
+
+  return {
+    calc1,
+    calc2,
+    calc7,
+    calc3,
+    calc4,
+    calc5,
+    calc6,
+    calc8,
+    calc12,
+    calcIngresoBascula,
+    calcExtra1,
+    calcExtra2,
+    calcExtra3,
+  };
+};
 
 // -------------------------
 // Componente Principal: DemorasPage
@@ -135,6 +227,24 @@ export default function DemorasPage() {
   // Estado para paginación (backend)
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
+
+  // Estado para rol del usuario (tomado de la caché)
+  const [roleId, setRoleId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedRoleId = localStorage.getItem("roleId");
+      const storedUserId = localStorage.getItem("userId");
+      if (storedUserId) {
+        setUserId(Number(storedUserId));
+      }
+      if (storedRoleId) {
+        setRoleId(Number(storedRoleId));
+      }
+    }
+  }, []);
 
   // Función para obtener la data; sólo se envían al backend los parámetros de paginación
   const fetchDemoras = async (isRefresh = false) => {
@@ -270,198 +380,202 @@ export default function DemorasPage() {
     );
   };
 
-  const calcularIntervalos = (item: any) => {
-    const primer = item.primerProceso || {};
-    const segundo = item.segundoProceso || {};
-    const tercero = item.tercerProceso || {};
-    const final = item.procesoFinal || {};
-
-    const calc1 = formatInterval(
-      diffEnHoras(parseHora(primer.tiempoEntradaBascula), parseHora(primer.tiempoSalidaBascula))
-    );
-    const calc2 = formatInterval(
-      diffEnHoras(parseHora(primer.tiempoSalidaBascula), parseHora(segundo.tiempoLlegadaPunto))
-    );
-    const calc3 = formatInterval(
-      diffEnHoras(parseHora(segundo.tiempoInicioCarga), parseHora(segundo.tiempoTerminaCarga))
-    );
-    let entradaBS = null;
-    let salidaBS = null;
-    if (tercero.vueltas && tercero.vueltas.length > 0) {
-      const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
-      entradaBS = parseHora(lastVuelta.tiempoEntradaBascula);
-      salidaBS = parseHora(lastVuelta.tiempoSalidaBascula);
-    }
-    const calc4 = formatInterval(diffEnHoras(parseHora(segundo.tiempoSalidaPunto), entradaBS));
-    const calc5 = formatInterval(diffEnHoras(entradaBS, salidaBS));
-    const calc6 = formatInterval(diffEnHoras(salidaBS, parseHora(final.tiempoSalidaPlanta)));
-
-    return { calc1, calc2, calc3, calc4, calc5, calc6 };
-  };
-
-  // Función para descargar el detalle del registro actual en PDF usando pdf-lib
+  // Función para retrasar la ejecución
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const handleDescargarPDF = async () => {
-  if (!selectedDemora) {
-    Swal.fire("Error", "No hay registro seleccionado", "error");
-    return;
-  }
-  // Mostrar alerta de carga
-  Swal.fire({
-    title: "Generando PDF...",
-    allowOutsideClick: false,
-    didOpen: () => {
-      Swal.showLoading();
-    },
-  });
-  try {
-    // Crear documento PDF
-    const pdfDoc = await PDFDocument.create();
-    // Usamos Courier para lograr un efecto monoespaciado (ideal para tablas)
-    const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
-    const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-
-    let currentPagePdf = pdfDoc.addPage();
-    const { width, height } = currentPagePdf.getSize();
-    const margin = 50;
-    let yPosition = height - margin;
-    const lineHeight = 14;
-
-    // Función auxiliar para dibujar texto; reemplaza "→" por "->"
-    const drawText = (text: string, size: number = 10, font = timesRomanFont) => {
-      const sanitizedText = text.replace(/→/g, "->");
-      if (yPosition < margin + lineHeight) {
-        currentPagePdf = pdfDoc.addPage();
-        yPosition = currentPagePdf.getSize().height - margin;
+  // Función auxiliar para envolver texto según un ancho máximo
+  const wrapText = (
+    text: string,
+    maxWidth: number,
+    font: any,
+    size: number
+  ): string[] => {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+    words.forEach((word) => {
+      const testLine = currentLine ? currentLine + " " + word : word;
+      const testWidth = font.widthOfTextAtSize(testLine, size);
+      if (testWidth > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
       }
-      currentPagePdf.drawText(sanitizedText, {
-        x: margin,
-        y: yPosition,
-        size,
-        font,
-        color: rgb(0, 0, 0),
-      });
-      yPosition -= lineHeight;
-    };
-
-    // Función para centrar texto
-    const centerText = (text: string, size: number = 12, font = timesRomanFont) => {
-      const textWidth = font.widthOfTextAtSize(text, size);
-      const x = (width - textWidth) / 2;
-      if (yPosition < margin + lineHeight) {
-        currentPagePdf = pdfDoc.addPage();
-        yPosition = currentPagePdf.getSize().height - margin;
-      }
-      currentPagePdf.drawText(text, {
-        x,
-        y: yPosition,
-        size,
-        font,
-        color: rgb(0, 0, 0),
-      });
-      yPosition -= lineHeight;
-    };
-
-    // --- Encabezado ---
-    centerText("ALMAPAC S.A de C.V. - PLANTA ACAJUTLA", 16, timesRomanFont);
-    yPosition -= lineHeight * 0.5;
-    centerText("Control de Tiempos Despacho", 14, timesRomanFont);
-    yPosition -= lineHeight * 0.5;
-    centerText(`Detalle del Registro #${selectedDemora.id}`, 14, timesRomanFont);
-    yPosition -= lineHeight * 1.5;
-
-    // Función para agregar una sección en formato de tabla
-    const addTableSection = (sectionTitle: string, data: any) => {
-      drawText(sectionTitle, 12, timesRomanFont);
-      const header = `${"Campo".padEnd(30)} | Valor`;
-      drawText(header, 10, courierFont);
-      drawText("-".repeat(80), 10, courierFont);
-      for (const [key, value] of Object.entries(data)) {
-        const line = `${formatKey(key).padEnd(30)} | ${value || "-"}`;
-        drawText(line, 10, courierFont);
-      }
-      yPosition -= lineHeight;
-    };
-
-    addTableSection("Información General", {
-      Registro: selectedDemora.id,
-      "Fecha Inicio": selectedDemora.fechaInicio,
-      "Tiempo Total": selectedDemora.tiempoTotal || "-",
-      "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
-      Realizado: selectedDemora.userName || "-",
     });
+    if (currentLine) lines.push(currentLine);
+    return lines;
+  };
 
-    if (selectedDemora.primerProceso) {
-      addTableSection("Primer Proceso", filterDetailData(selectedDemora.primerProceso));
+  const handleDescargarPDF = async () => {
+    if (!selectedDemora) {
+      Swal.fire("Error", "No hay registro seleccionado", "error");
+      return;
     }
-    if (selectedDemora.segundoProceso) {
-      addTableSection("Segundo Proceso", filterDetailData(selectedDemora.segundoProceso));
-    }
-    if (selectedDemora.tercerProceso) {
-      addTableSection("Tercer Proceso", filterDetailData(selectedDemora.tercerProceso));
-      if (selectedDemora.tercerProceso.vueltas) {
-        drawText(`Total de Vueltas: ${selectedDemora.tercerProceso.vueltas.length}`, 12, timesRomanFont);
-        selectedDemora.tercerProceso.vueltas.forEach((vuelta: any, index: number) => {
-          addTableSection(`Vuelta ${index + 1}`, filterDetailData(vuelta));
+    Swal.fire({
+      title: "Generando PDF...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+    try {
+      const pdfDoc = await PDFDocument.create();
+      const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
+      const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+
+      let currentPagePdf = pdfDoc.addPage();
+      const { width, height } = currentPagePdf.getSize();
+      const margin = 40;
+      let yPosition = height - margin;
+      const lineHeight = 14;
+      const maxTextWidth = width - margin * 2;
+
+      // Función para dibujar texto con ajuste de salto de página y envolvimiento de líneas
+      const drawWrappedText = (
+        text: string,
+        size: number = 10,
+        font = timesRomanFont,
+        x = margin
+      ) => {
+        // Envuelve el texto si es muy largo
+        const lines = wrapText(text, maxTextWidth, font, size);
+        lines.forEach((line) => {
+          if (yPosition < margin + lineHeight * 2) {
+            // Agrega nueva página y dibuja el pie de página en la anterior
+            currentPagePdf = pdfDoc.addPage();
+            yPosition = currentPagePdf.getSize().height - margin;
+          }
+          currentPagePdf.drawText(line, { x, y: yPosition, size, font, color: rgb(0, 0, 0) });
+          yPosition -= lineHeight;
         });
+      };
+
+      // Función para centrar texto
+      const centerText = (text: string, size: number = 12, font = timesRomanFont) => {
+        const textWidth = font.widthOfTextAtSize(text, size);
+        const x = (width - textWidth) / 2;
+        if (yPosition < margin + lineHeight * 2) {
+          currentPagePdf = pdfDoc.addPage();
+          yPosition = currentPagePdf.getSize().height - margin;
+        }
+        currentPagePdf.drawText(text, { x, y: yPosition, size, font, color: rgb(0, 0, 0) });
+        yPosition -= lineHeight;
+      };
+
+      // Función para dibujar un separador
+      const drawSeparator = () => {
+        drawWrappedText("=".repeat(86), 10, courierFont);
+      };
+
+      // Encabezado del reporte (se dibuja en la primera página)
+      centerText("ALMAPAC S.A de C.V. - PLANTA ACAJUTLA", 16, timesRomanFont);
+      centerText("Control de Tiempos Despacho", 14, timesRomanFont);
+      centerText(`Detalle del Registro #${selectedDemora.id}`, 14, timesRomanFont);
+      yPosition -= lineHeight;
+      drawSeparator();
+
+      // Función para agregar una sección en formato de "tabla"
+      const addTableSection = (sectionTitle: string, data: any) => {
+        drawWrappedText(sectionTitle, 12, timesRomanFont);
+        // Encabezado de la “tabla”
+        drawWrappedText(`${"Campo".padEnd(30)} : Valor`, 10, courierFont);
+        drawWrappedText("-".repeat(86), 10, courierFont);
+        for (const [key, value] of Object.entries(data)) {
+          const line = `${formatKey(key).padEnd(30)} : ${value || "-"}`;
+          drawWrappedText(line, 10, courierFont);
+        }
+        drawSeparator();
+        yPosition -= lineHeight;
+      };
+
+      // Secciones del reporte
+      addTableSection("Información General", {
+        Registro: selectedDemora.id,
+        "Fecha Inicio": selectedDemora.fechaInicio,
+        "Tiempo Total": selectedDemora.tiempoTotal || "-",
+        "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
+        Realizado: selectedDemora.userName || "-",
+      });
+      if (selectedDemora.primerProceso) {
+        addTableSection("Primer Proceso", filterDetailData(selectedDemora.primerProceso));
       }
+      if (selectedDemora.segundoProceso) {
+        addTableSection("Segundo Proceso", filterDetailData(selectedDemora.segundoProceso));
+      }
+      if (selectedDemora.tercerProceso) {
+        addTableSection("Tercer Proceso", filterDetailData(selectedDemora.tercerProceso));
+        if (selectedDemora.tercerProceso.vueltas) {
+          drawWrappedText(`Total de Vueltas: ${selectedDemora.tercerProceso.vueltas.length}`, 12, timesRomanFont);
+          selectedDemora.tercerProceso.vueltas.forEach((vuelta: any, index: number) => {
+            addTableSection(`Vuelta ${index + 1}`, filterDetailData(vuelta));
+          });
+        }
+      }
+      if (selectedDemora.procesoFinal) {
+        addTableSection("Proceso Final", filterDetailData(selectedDemora.procesoFinal));
+      }
+      const intervalos = calcularIntervalos(selectedDemora);
+      addTableSection("Intervalos entre Procesos", {
+        "B.E. (Entr -> Sal)": intervalos.calc1,
+        "Sal. B.E. -> Lleg. Punto": intervalos.calc2,
+        "Llegada Punto -> Inicio Carga": intervalos.calc7,
+        "Tiempo Total Carga": intervalos.calc3,
+        "Salida Punto -> B.S. Entr.": intervalos.calc4,
+        "B.S. (Entr -> Sal)": intervalos.calc5,
+        "B.S. -> Salida Planta": intervalos.calc6,
+        "Autorizac -> Ing. Planta": intervalos.calc8,
+        "Termina Carga -> Salida Punto": intervalos.calc12,
+        "Ing. Planta -> Lleg. Básq.": intervalos.calcIngresoBascula,
+        "Llegada -> Entrada Básq. (P1)": intervalos.calcExtra1,
+        "Llegada -> Entrada Básq. (P3)": intervalos.calcExtra2,
+        "Entrada (P3) 1ra -> Salida (P3) Última": intervalos.calcExtra3,
+      });
+
+      // En lugar de "Fin del Reporte", se agregará el pie de página en cada página.
+      // Agregamos pie de página a todas las páginas con la fecha y hora de generación.
+      const pages = pdfDoc.getPages();
+      pages.forEach((page) => {
+        page.drawText(`Reporte generado: ${new Date().toLocaleString()}`, {
+          x: margin,
+          y: margin / 2,
+          size: 10,
+          font: timesRomanFont,
+          color: rgb(0, 0, 0),
+        });
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Detalle-Registro-${selectedDemora.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      Swal.close();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      Swal.fire("Éxito", "Archivo generado correctamente.", "success");
+    } catch (error: any) {
+      Swal.close();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      Swal.fire("Error", "Error generando PDF: " + error.message, "error");
     }
-    if (selectedDemora.procesoFinal) {
-      addTableSection("Proceso Final", filterDetailData(selectedDemora.procesoFinal));
-    }
-    const intervalos = calcularIntervalos(selectedDemora);
-    addTableSection("Intervalos entre Procesos", {
-      "B.E. (Entr → Sal)": intervalos.calc1,
-      "Sal. B.E. → Lleg. Punto": intervalos.calc2,
-      "Tiempo Total Carga": intervalos.calc3,
-      "Sal. Punto → B.S. Entr.": intervalos.calc4,
-      "B.S. (Entr → Sal)": intervalos.calc5,
-      "B.S. → Salida Planta": intervalos.calc6,
-    });
-
-    currentPagePdf.drawText(`Reporte: ${new Date().toLocaleString()}`, {
-      x: margin,
-      y: margin / 2,
-      size: 10,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
-
-    const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Detalle-Registro-${selectedDemora.id}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-
-    // Cerrar la alerta de carga y esperar 300ms antes de mostrar la alerta de éxito
-    Swal.close();
-    await delay(300);
-    Swal.fire("Éxito", "Archivo generado correctamente.", "success");
-  } catch (error: any) {
-    Swal.close();
-    await delay(300);
-    Swal.fire("Error", "Error generando PDF: " + error.message, "error");
-  }
-};
+  };
 
   // Aplicación de filtros en el frontend sobre la data ya traída (paginada)
-  const filteredDemoras = demoras.filter(item => {
-    // Filtro de texto (busca en todos los campos)
+  const filteredDemoras = demoras.filter((item) => {
     if (filterText) {
       const haystack = JSON.stringify(item).toLowerCase();
       if (!haystack.includes(filterText.toLowerCase())) return false;
     }
-    // Filtro Tiempo Total
     if (filterTiempoTotal) {
-      if (!(item.tiempoTotal && item.tiempoTotal.includes(filterTiempoTotal))) return false;
+      if (!(item.tiempoTotal && item.tiempoTotal.includes(filterTiempoTotal)))
+        return false;
     }
-    // Filtro Nº Transacción (buscando en primerProceso)
     if (filterTransaccion) {
       if (
         !(
@@ -472,7 +586,6 @@ const handleDescargarPDF = async () => {
       )
         return false;
     }
-    // Filtro Condición (en primerProceso)
     if (filterCondicion) {
       if (
         !(
@@ -483,7 +596,6 @@ const handleDescargarPDF = async () => {
       )
         return false;
     }
-    // Filtro Método de Carga (en primerProceso)
     if (filterMetodo) {
       if (
         !(
@@ -494,17 +606,38 @@ const handleDescargarPDF = async () => {
       )
         return false;
     }
-    // Filtro por fecha (comparando item.fechaInicio)
     if (fechaInicio) {
-      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion >= fechaInicio)) return false;
+      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion >= fechaInicio))
+        return false;
     }
     if (fechaFinal) {
-      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion <= fechaFinal)) return false;
+      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion <= fechaFinal))
+        return false;
     }
     return true;
   });
 
   const totalPages = Math.ceil(totalCount / recordsPerPage) || 1;
+
+  // Función para iniciar la edición del registro
+  const handleEditRecord = (record: any) => {
+    const transactionNumber = record.primerProceso?.numeroTransaccion || "-";
+    const userName = record.userName || "-";
+    Swal.fire({
+      title: `¿Desea editar el registro #${record.id}?`,
+      html: `<p><strong>N° Transacción:</strong> ${transactionNumber}</p>
+            <p><strong>Realizado por:</strong> ${userName}</p>`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, editar",
+      cancelButtonText: "Cancelar",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.setItem("demoraId", record.id);
+        router.push(`/proceso/editar/granel`);
+      }
+    });
+  };
 
   if (loading) {
     return (
@@ -518,7 +651,7 @@ const handleDescargarPDF = async () => {
     <div className="p-1 bg-gray-50 min-h-screen text-gray-800 pb-6">
       {/* Encabezado */}
       <header className="bg-gradient-to-r bg-orange-400 text-white shadow-lg md:sticky md:top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+        <div className="mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row justify-between">
             <div className="flex items-center">
               <button
@@ -563,8 +696,8 @@ const handleDescargarPDF = async () => {
               <label className="text-sm">Fecha Inicio</label>
               <input
                 type="date"
-                 className="border text-black p-1 w-full rounded"
-                 placeholder="dd/mm/aaaa"
+                className="border text-black p-1 w-full rounded"
+                placeholder="dd/mm/aaaa"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
               />
@@ -573,8 +706,8 @@ const handleDescargarPDF = async () => {
               <label className="text-sm">Fecha Final</label>
               <input
                 type="date"
-                 className="border text-black p-1 w-full rounded"
-                 placeholder="dd/mm/aaaa"
+                className="border text-black p-1 w-full rounded"
+                placeholder="dd/mm/aaaa"
                 value={fechaFinal}
                 onChange={(e) => setFechaFinal(e.target.value)}
               />
@@ -610,7 +743,7 @@ const handleDescargarPDF = async () => {
               />
             </div>
             <div className="flex flex-col">
-              <label className="text-sm">Texto</label>
+              <label className="text-sm">General</label>
               <input
                 type="text"
                 placeholder="Buscar en todos los campos..."
@@ -633,7 +766,7 @@ const handleDescargarPDF = async () => {
         </div>
       </header>
 
-      {/* Tabla Principal */}
+      {/* Tabla de Registros */}
       <div className="overflow-x-auto bg-white shadow-md mt-6">
         <table
           id="demoras-table"
@@ -641,237 +774,18 @@ const handleDescargarPDF = async () => {
         >
           <thead>
             <tr className="bg-blue-50 text-blue-700 text-xs md:text-sm">
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Fecha Inicio
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Total
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                N° Transacción
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Condición
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Pesador Entrada
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Portería Entrada
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Método Carga
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                N° Ejes
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Punto Despacho
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Báscula Entrada
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Precheq.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Fecha Precheq.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Precheq.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Scanner
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Fecha Scanner
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Scanner
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Fecha Autorización
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Autorizac.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Fecha Autorizac.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Autorizac.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Ing. Planta
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Ingreso
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Lleg. Básq. (P1)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Básq. (P1)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Entr. Básq. (P1)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Entr. Básq. (P1)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Sal. Básq. (P1)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Sal. Básq. (P1)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Operador
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Enlonador
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Modelo Equipo
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Personal Asig.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Personal Asig.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Lleg. Punto
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Punto
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Lleg. Oper.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Oper.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Lleg. Enlon.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Enlon.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Lleg. Equipo
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Equipo
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Inicio Carga
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Inicio Carga
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Term. Carga
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Term. Carga
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Salida Punto
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Salida Punto
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Báscula Salida
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Pesador Salida
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Lleg. Básq. (P3)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Básq. (P3)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Entr. Básq. (P3)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Entr. Básq. (P3)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Sal. Básq. (P3)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Sal. Básq. (P3)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Últ. Vuelta - Nº
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Últ. Vuelta - Lleg. Punto
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Punto (V)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Últ. Vuelta - Sal. Punto
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Sal. Punto (V)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Últ. Vuelta - Lleg. Básq.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Básq. (V)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Últ. Vuelta - Entr. Básq.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Entr. Básq. (V)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Últ. Vuelta - Sal. Básq.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Sal. Básq. (V)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Salida Planta
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Salida Planta
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Portería Salida
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Hora Lleg. Portería
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Obs Lleg. Portería
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                B.E. (Entr → Sal)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Sal. B.E. → Lleg. Punto
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Tiempo Total Carga
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                Sal. Punto → B.S. Entr.
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                B.S. (Entr → Sal)
-              </th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">
-                B.S. → Salida Planta
-              </th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Fecha Inicio</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Tiempo Total</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">N° Transacción</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Fecha Autorización</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Hora Autorización</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Hora Ingreso Planta</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Hora Inicio Carga</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Hora Termina Carga</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Condición</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Método Carga</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Punto Despacho</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Hora Salida Planta</th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">Acción</th>
             </tr>
           </thead>
@@ -879,141 +793,38 @@ const handleDescargarPDF = async () => {
             {filteredDemoras.map((item) => {
               const primer = item.primerProceso || {};
               const segundo = item.segundoProceso || {};
-              const tercero = item.tercerProceso || {};
               const final = item.procesoFinal || {};
-              const { calc1, calc2, calc3, calc4, calc5, calc6 } = calcularIntervalos(item);
               return (
                 <tr key={item.id} className="border-b hover:bg-gray-50">
                   <td className="border px-2 py-1 whitespace-nowrap">{item.fechaInicio}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{item.tiempoTotal || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.numeroTransaccion || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.condicion || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.pesadorEntrada || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.porteriaEntrada || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.metodoCarga || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.numeroEjes || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.puntoDespacho || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.basculaEntrada || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoPrechequeo || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.fechaPrechequeo || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.prechequeoObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoScanner || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.fechaScanner || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.scannerObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {primer.fechaAutorizacion || "-"} {primer.tiempoAutorizacion || "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoAutorizacion || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.fechaAutorizacion || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.autorizacionObservaciones || "-"}</td>
+                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoAutorizacion || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoIngresoPlanta || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.ingresoPlantaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoLlegadaBascula || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.llegadaBasculaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoEntradaBascula || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.entradaBasculaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoSalidaBascula || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{primer.salidaBasculaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.operador || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.enlonador || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.modeloEquipo || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.personalAsignado != null ? segundo.personalAsignado : "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.personalAsignadoObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.tiempoLlegadaPunto || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.llegadaPuntoObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.tiempoLlegadaOperador || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.llegadaOperadorObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.tiempoLlegadaEnlonador || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.llegadaEnlonadorObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.tiempoLlegadaEquipo || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.llegadaEquipoObservaciones || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{segundo.tiempoInicioCarga || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.inicioCargaObservaciones || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{segundo.tiempoTerminaCarga || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.terminaCargaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.tiempoSalidaPunto || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{segundo.salidaPuntoObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{tercero.basculaSalida || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{tercero.pesadorSalida || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{tercero.tiempoLlegadaBascula || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{tercero.llegadaBasculaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{tercero.tiempoEntradaBascula || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{tercero.entradaBasculaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{tercero.tiempoSalidaBascula || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{tercero.salidaBasculaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].numeroVuelta
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].tiempoLlegadaPunto
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].llegadaPuntoObservaciones
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].tiempoSalidaPunto
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].salidaPuntoObservaciones
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].tiempoLlegadaBascula
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].llegadaBasculaObservaciones
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].tiempoEntradaBascula
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].entradaBasculaObservaciones
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].tiempoSalidaBascula
-                      : "-"}
-                  </td>
-                  <td className="border px-2 py-1 whitespace-nowrap">
-                    {tercero.vueltas && tercero.vueltas.length > 0
-                      ? tercero.vueltas[tercero.vueltas.length - 1].salidaBasculaObservaciones
-                      : "-"}
-                  </td>
+                  <td className="border px-2 py-1 whitespace-nowrap">{primer.condicion || "-"}</td>
+                  <td className="border px-2 py-1 whitespace-nowrap">{primer.metodoCarga || "-"}</td>
+                  <td className="border px-2 py-1 whitespace-nowrap">{primer.puntoDespacho || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{final.tiempoSalidaPlanta || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{final.salidaPlantaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{final.porteriaSalida || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{final.tiempoLlegadaPorteria || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{final.llegadaPorteriaObservaciones || "-"}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{calcularIntervalos(item).calc1}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{calcularIntervalos(item).calc2}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{calcularIntervalos(item).calc3}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{calcularIntervalos(item).calc4}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{calcularIntervalos(item).calc5}</td>
-                  <td className="border px-2 py-1 whitespace-nowrap">{calcularIntervalos(item).calc6}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">
                     <button
                       onClick={() => handleOpenModal(item)}
-                      className="bg-indigo-700 hover:bg-indigo-800 text-white px-2 py-1 rounded transition-all duration-300 transform hover:scale-105 text-xs"
+                      title="Ver Detalle"
+                      className="bg-indigo-700 hover:bg-indigo-800 text-white p-2 rounded transition-all duration-300 transform hover:scale-105 text-xs"
                     >
-                      Ver Detalle
+                      <FaEye size={18} />
                     </button>
+                    {(roleId === 1 || userId === item.userId) && (
+                      <button
+                        onClick={() => handleEditRecord(item)}
+                        title="Editar"
+                        className="bg-amber-500 hover:bg-amber-600 text-white p-2 rounded ml-2 transition-all duration-300 transform hover:scale-105 text-xs"
+                      >
+                        <FaEdit size={18} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -1022,9 +833,8 @@ const handleDescargarPDF = async () => {
         </table>
       </div>
 
-      {/* Fila del paginador y cantidad de registros mostrados */}
+      {/* Paginador */}
       <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-2 sm:space-y-0">
-        {/* Contenedor de botones con scroll horizontal en móviles */}
         <div className="flex overflow-x-auto space-x-2 w-full sm:w-auto">
           <button
             className="px-3 py-1 border rounded disabled:opacity-50 flex-shrink-0"
@@ -1052,8 +862,6 @@ const handleDescargarPDF = async () => {
             Siguiente
           </button>
         </div>
-
-        {/* Contenedor de información y selección de registros */}
         <div className="flex flex-col sm:flex-row items-center gap-2 text-center">
           <span className="text-sm">
             Mostrando {filteredDemoras.length} de {totalCount} registros
@@ -1084,7 +892,7 @@ const handleDescargarPDF = async () => {
         </div>
       </div>
 
-      {/* Modal Minimalista y Responsive */}
+      {/* Modal */}
       {showModal && selectedDemora && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
           <div className="bg-white w-full max-w-md md:max-w-4xl shadow-lg p-4 relative max-h-full overflow-y-auto">
@@ -1105,7 +913,7 @@ const handleDescargarPDF = async () => {
                   Registro: selectedDemora.id,
                   "Fecha Inicio": selectedDemora.fechaInicio,
                   "Tiempo Total": selectedDemora.tiempoTotal || "-",
-                  "Nº Transaccion": selectedDemora.primerProceso?.numeroTransaccion || "-",
+                  "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
                   Realizado: selectedDemora.userName || "-",
                 }}
               />
@@ -1139,10 +947,17 @@ const handleDescargarPDF = async () => {
                 data={{
                   "B.E. (Entr → Sal)": calcularIntervalos(selectedDemora).calc1,
                   "Sal. B.E. → Lleg. Punto": calcularIntervalos(selectedDemora).calc2,
+                  "Punto → Inicio Carga": calcularIntervalos(selectedDemora).calc7,
                   "Tiempo Total Carga": calcularIntervalos(selectedDemora).calc3,
                   "Sal. Punto → B.S. Entr.": calcularIntervalos(selectedDemora).calc4,
                   "B.S. (Entr → Sal)": calcularIntervalos(selectedDemora).calc5,
                   "B.S. → Salida Planta": calcularIntervalos(selectedDemora).calc6,
+                  "Autorizac → Ing. Planta": calcularIntervalos(selectedDemora).calc8,
+                  "Termina Carga → Salida Punto": calcularIntervalos(selectedDemora).calc12,
+                  "Ing. Planta → Lleg. Básq.": calcularIntervalos(selectedDemora).calcIngresoBascula,
+                  "Llegada → Entrada Básq. (P1)": calcularIntervalos(selectedDemora).calcExtra1,
+                  "Llegada → Entrada Básq. (P3)": calcularIntervalos(selectedDemora).calcExtra2,
+                  "Entrada (P3) 1ra → Salida (P3) Última": calcularIntervalos(selectedDemora).calcExtra3,
                 }}
               />
             </div>
