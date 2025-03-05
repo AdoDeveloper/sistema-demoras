@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../../../lib/prisma";
 import bcrypt from "bcryptjs";
+import { getToken } from "next-auth/jwt";
 
 export async function GET(request, { params }) {
-  const { id } = params;
+  // Validar que el usuario autenticado tenga rol de administrador (roleId === 1)
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  if (!token || token.roleId !== 1) {
+    return NextResponse.json({ error: "No tienes permiso para acceder a este endpoint" }, { status: 403 });
+  }
+  
+  const paramsData = await params;
+  const { id } = paramsData;
   try {
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id, 10) },
       include: { role: true },
     });
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     return NextResponse.json(user, { status: 200 });
   } catch (error) {
     console.error("Error fetching user:", error);
@@ -18,11 +27,17 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const { id } = params;
+  // Validar que el usuario autenticado tenga rol de administrador (roleId === 1)
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  if (!token || token.roleId !== 1) {
+    return NextResponse.json({ error: "No tienes permiso para actualizar este usuario" }, { status: 403 });
+  }
+  
+  const paramsData = await params;
+  const { id } = paramsData;
   try {
     const body = await request.json();
     const { username, nombreCompleto, codigo, email, password, roleId } = body;
-
     // Preparar los datos a actualizar
     const data = { username, nombreCompleto, codigo, email, roleId };
 
@@ -45,7 +60,14 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const { id } = params;
+  // Validar que el usuario autenticado tenga rol de administrador (roleId === 1)
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  if (!token || token.roleId !== 1) {
+    return NextResponse.json({ error: "No tienes permiso para eliminar este usuario" }, { status: 403 });
+  }
+  
+  const paramsData = await params;
+  const { id } = paramsData;
   try {
     const deletedUser = await prisma.user.delete({
       where: { id: parseInt(id, 10) },
