@@ -124,6 +124,52 @@ const handleSetNowDate = (setter: Function) => {
 
 export default function PrimerProceso() {
   const router = useRouter();
+
+  useEffect(() => {
+    // Agregar un estado al historial para interceptar la navegación atrás
+    window.history.pushState(null, "", window.location.href);
+
+    // Interceptar el botón "atrás"
+    const handlePopState = (event) => {
+      Swal.fire({
+        title: "¿Está seguro?",
+        text: "Debe cancelar para salir. Se perderán los cambios realizados.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, cancelar",
+        cancelButtonText: "No, continuar",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Si confirma, removemos el listener y navegamos a la ruta de salida
+          window.removeEventListener("popstate", handlePopState);
+          localStorage.removeItem("editDemora");
+          localStorage.removeItem("demoraId");
+          router.push("/proceso/consultar/granel");
+        } else {
+          // Si decide quedarse, se vuelve a insertar un estado en el historial
+          window.history.pushState(null, "", window.location.href);
+        }
+      });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    // Interceptar recargas o cierre de la pestaña
+    const handleBeforeUnload = (e) => {
+      // El mensaje personalizado es ignorado por la mayoría de navegadores modernos
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [router]);
+
   const [editDemora, setEditDemora] = useState<any>(null);
 
   // Estados para campos principales
@@ -434,7 +480,7 @@ export default function PrimerProceso() {
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center rounded-r-lg"></div>
         </div>
-        <h2 className="text-lg sm:text-xl font-bold mb-4 text-orange-600 text-center sm:text-left">
+        <h2 className="text-xl font-bold mb-4 text-orange-600">
           Primer Proceso <span className="text-lg text-gray-400">[Modo Edicion]</span>
         </h2>
 

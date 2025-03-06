@@ -6,7 +6,6 @@ import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Loader from "./Loader"; // Ajusta la ruta según la ubicación de tu Loader.jsx
-import Footer from "./Footer";
 
 export default function LoginForm() {
   const [username, setUsername] = useState("");
@@ -116,7 +115,6 @@ export default function LoginForm() {
           </button>
         </form>
       </div>
-      <Footer />
     </div>
   );
 }

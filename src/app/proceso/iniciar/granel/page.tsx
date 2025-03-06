@@ -125,6 +125,50 @@ const handleSetNowDate = (setter: Function) => {
 export default function PrimerProceso() {
   const router = useRouter();
 
+    useEffect(() => {
+      // Agregar un estado al historial para interceptar la navegación atrás
+      window.history.pushState(null, "", window.location.href);
+  
+      // Interceptar el botón "atrás"
+      const handlePopState = (event) => {
+        Swal.fire({
+          title: "¿Está seguro?",
+          text: "Debe cancelar para salir. Se perderán los cambios realizados.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Sí, cancelar",
+          cancelButtonText: "No, continuar",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Si confirma, removemos el listener y navegamos a la ruta de salida
+            window.removeEventListener("popstate", handlePopState);
+            localStorage.removeItem("demorasProcess");
+            router.push("/proceso/iniciar");
+          } else {
+            // Si decide quedarse, se vuelve a insertar un estado en el historial
+            window.history.pushState(null, "", window.location.href);
+          }
+        });
+      };
+  
+      window.addEventListener("popstate", handlePopState);
+  
+      // Interceptar recargas o cierre de la pestaña
+      const handleBeforeUnload = (e) => {
+        // El mensaje personalizado es ignorado por la mayoría de navegadores modernos
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      };
+  
+      window.addEventListener("beforeunload", handleBeforeUnload);
+  
+      return () => {
+        window.removeEventListener("popstate", handlePopState);
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+      };
+    }, [router]);
+
   // Estados para campos principales (según el nuevo modelo)
   const [numeroTransaccion, setNumeroTransaccion] = useState("");
   const [pesadorEntrada, setPesadorEntrada] = useState("");
