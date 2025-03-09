@@ -13,19 +13,40 @@ export async function middleware(req) {
   const protectedRoutes = [
     "/",
     "/proceso/consultar",
+
+    // GRANEL
     "/api/demoras/granel",
     "/api/demoras/granel/:path*",
-    "/perfil",
-    "/proceso/iniciar",
     "/proceso/iniciar/granel",
     "/proceso/iniciar/granel/step2",
     "/proceso/iniciar/granel/step3",
     "/proceso/iniciar/granel/step4",
+
+    // ENVASADO (nuevo)
+    "/api/demoras/envasado",
+    "/api/demoras/envasado/:path*",
+    "/proceso/iniciar/envasado",
+    "/proceso/iniciar/envasado/step2",
+    "/proceso/iniciar/envasado/step3",
+    "/proceso/iniciar/envasado/step4",
+    "/proceso/analisis/envasado",
+    "/proceso/editar/envasado",
+    "/proceso/editar/envasado/step2",
+    "/proceso/editar/envasado/step3",
+    "/proceso/editar/envasado/step4",
+
+    // Otras rutas protegidas
+    "/perfil",
     "/proceso/analisis",
+    "/proceso/iniciar",
   ];
 
   // Rutas exclusivas para administradores
-  const adminRoutes = ["/usuarios", "/api/users", "/api/roles"];
+  const adminRoutes = [
+    "/usuarios",
+    "/api/users",
+    "/api/roles",
+  ];
 
   // Validar rutas de administración: se requiere sesión y rol de admin (roleId === 1)
   if (adminRoutes.some(route => path.startsWith(route))) {
@@ -52,21 +73,43 @@ export async function middleware(req) {
 // Configuración para que el middleware actúe en las rutas indicadas
 export const config = {
   matcher: [
+    // Rutas genéricas
     "/",
+    "/login",
+    "/perfil",
+
+    // GRANEL
     "/proceso/consultar/granel",
     "/api/demoras/granel",
     "/api/demoras/granel/:path*",
-    "/api/auth/session",
-    "/proceso/iniciar",
     "/proceso/iniciar/granel",
     "/proceso/iniciar/granel/step2",
     "/proceso/iniciar/granel/step3",
     "/proceso/iniciar/granel/step4",
+
+    // ENVASADO (nuevo)
+    "/api/demoras/envasado",
+    "/api/demoras/envasado/:path*",
+    "/proceso/iniciar/envasado",
+    "/proceso/iniciar/envasado/step2",
+    "/proceso/iniciar/envasado/step3",
+    "/proceso/iniciar/envasado/step4",
+    "/proceso/analisis/envasado",
+    "/proceso/editar/envasado",
+    "/proceso/editar/envasado/step2",
+    "/proceso/editar/envasado/step3",
+    "/proceso/editar/envasado/step4",
+
+    // Otras rutas protegidas
     "/proceso/analisis",
-    "/perfil",
+    "/proceso/iniciar",
+
+    // Rutas de administración
     "/usuarios",
     "/api/users/:path*",
     "/api/roles/:path*",
+
+    // Ejemplo de ruta de construcción/mantenimiento
     "/building",
   ],
 };
