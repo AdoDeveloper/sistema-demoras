@@ -1,11 +1,10 @@
-// /app/api/user/profile/route.js
 import { NextResponse } from "next/server";
 import prisma from "../../../../../lib/prisma";
+import { getToken } from "next-auth/jwt";
 
 // Función para convertir una fecha ISO (YYYY-MM-DD) al formato "dd/mm/yyyy"
 // utilizando la zona horaria de El Salvador (UTC-6)
 function convertIsoToCustom(isoDate) {
-  // Se crea la fecha forzando que se interprete en la zona horaria de El Salvador
   const dateObj = new Date(`${isoDate}T00:00:00-06:00`);
   return dateObj.toLocaleDateString("es-SV", {
     timeZone: "America/El_Salvador",
@@ -18,7 +17,14 @@ function convertIsoToCustom(isoDate) {
 export async function GET(request) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const userId = parseInt(searchParams.get("id") || "0");
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    
+    if (!token) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+    
+    const userId = token.id;
+    console.log("user id(session)", userId);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     
@@ -26,7 +32,6 @@ export async function GET(request) {
     let startDateParam = searchParams.get("startDate");
     let endDateParam = searchParams.get("endDate");
 
-    // Si se proporciona solo una fecha, se utiliza para ambas (inicio y fin)
     if (startDateParam && !endDateParam) {
       endDateParam = startDateParam;
     }
@@ -34,7 +39,6 @@ export async function GET(request) {
       startDateParam = endDateParam;
     }
     
-    // Validar que se haya proporcionado un ID de usuario
     if (!userId) {
       return NextResponse.json({ error: "ID de usuario requerido" }, { status: 400 });
     }
@@ -50,23 +54,18 @@ export async function GET(request) {
         codigo: true,
         email: true,
         role: {
-          select: {
-            name: true,
-          },
+          select: { name: true },
         },
       },
     });
-
-    // console.log("Usuario encontrado:", userExists);
 
     if (!userExists) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
 
-    // Condición base de filtrado
+    // ------------------- Demoras -------------------
+    // Condición base de filtrado para demoras
     const whereCondition = { userId };
-
-    // Si se proporcionan los filtros de fecha, se aplican; de lo contrario se muestran todos los registros.
     if (startDateParam && endDateParam) {
       const formattedStartDate = `${convertIsoToCustom(startDateParam)}, 00:00:00`;
       const formattedEndDate = `${convertIsoToCustom(endDateParam)}, 23:59:59`;
@@ -76,12 +75,10 @@ export async function GET(request) {
       };
     }
 
-    // Obtener total de registros según filtro
-    const totalRegistros = await prisma.demora.count({
-      where: whereCondition,
-    });
+    // Obtener total de registros según filtro en demoras
+    const totalRegistros = await prisma.demora.count({ where: whereCondition });
 
-    // Estadísticas generales por método de carga
+    // Estadísticas generales por método de carga en demoras
     const cabaleoStats = await prisma.demora.count({
       where: {
         ...whereCondition,
@@ -95,13 +92,13 @@ export async function GET(request) {
       },
     });
 
-    // Obtener todos los registros para agrupar por día
+    // Obtener todos los registros de demoras para agrupar por día
     const demoras = await prisma.demora.findMany({
       where: whereCondition,
       include: { primerProceso: true },
     });
 
-    // Agrupar resultados por día (se extrae la parte "dd/mm/yyyy" de fechaInicio)
+    // Agrupar resultados por día para demoras
     const dailyStatsMap = {};
     demoras.forEach((demora) => {
       const fechaDia = demora.fechaInicio.substring(0, 10);
@@ -117,7 +114,6 @@ export async function GET(request) {
       }
     });
 
-    // Convertir el objeto de agrupación a un arreglo ordenado cronológicamente
     const dailyStats = Object.keys(dailyStatsMap)
       .sort((a, b) => {
         const [dayA, monthA, yearA] = a.split("/");
@@ -131,7 +127,7 @@ export async function GET(request) {
         cargaMaxima: dailyStatsMap[fecha].cargaMaxima,
       }));
 
-    // Obtener registros paginados para la respuesta principal
+    // Obtener registros paginados de demoras
     const registrosPaginados = await prisma.demora.findMany({
       where: whereCondition,
       skip: (page - 1) * limit,
@@ -139,6 +135,71 @@ export async function GET(request) {
       include: { primerProceso: true },
       orderBy: { fechaInicio: "asc" },
     });
+
+    // ------------------- Envasados -------------------
+    // Condición base de filtrado para envasados
+    const envasadoWhereCondition = { userId };
+    if (startDateParam && endDateParam) {
+      const formattedStartDate = `${convertIsoToCustom(startDateParam)}, 00:00:00`;
+      const formattedEndDate = `${convertIsoToCustom(endDateParam)}, 23:59:59`;
+      envasadoWhereCondition.fechaInicio = {
+        gte: formattedStartDate,
+        lte: formattedEndDate,
+      };
+    }
+
+    // Contar total de registros en envasados
+    const totalEnvasados = await prisma.envasado.count({
+      where: envasadoWhereCondition,
+    });
+
+    // Obtener registros paginados de envasados
+    const envasadosPaginados = await prisma.envasado.findMany({
+      where: envasadoWhereCondition,
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        primerProceso: true,  // PrimerProcesoEnv
+        segundoProceso: true, // SegundoProcesoEnv
+        tercerProceso: true,  // TercerProcesoEnv
+        procesoFinal: true,   // ProcesoFinalEnv
+      },
+      orderBy: { fechaInicio: "asc" },
+    });
+
+    // Calcular dailyStats para envasados
+    const envasadosAll = await prisma.envasado.findMany({
+      where: envasadoWhereCondition,
+      include: { primerProceso: true },
+    });
+
+    const dailyStatsEnvasadosMap = {};
+    envasadosAll.forEach((envasado) => {
+      const fechaDia = envasado.fechaInicio.substring(0, 10);
+      if (!dailyStatsEnvasadosMap[fechaDia]) {
+        dailyStatsEnvasadosMap[fechaDia] = { total: 0, cabaleo: 0, cargaMaxima: 0 };
+      }
+      dailyStatsEnvasadosMap[fechaDia].total++;
+      if (envasado.primerProceso && envasado.primerProceso.metodoCarga === "Cabaleo") {
+        dailyStatsEnvasadosMap[fechaDia].cabaleo++;
+      }
+      if (envasado.primerProceso && envasado.primerProceso.metodoCarga === "Carga Máxima") {
+        dailyStatsEnvasadosMap[fechaDia].cargaMaxima++;
+      }
+    });
+
+    const dailyStatsEnvasados = Object.keys(dailyStatsEnvasadosMap)
+      .sort((a, b) => {
+        const [dayA, monthA, yearA] = a.split("/");
+        const [dayB, monthB, yearB] = b.split("/");
+        return new Date(`${yearA}-${monthA}-${dayA}`) - new Date(`${yearB}-${monthB}-${dayB}`);
+      })
+      .map((fecha) => ({
+        fecha,
+        total: dailyStatsEnvasadosMap[fecha].total,
+        cabaleo: dailyStatsEnvasadosMap[fecha].cabaleo,
+        cargaMaxima: dailyStatsEnvasadosMap[fecha].cargaMaxima,
+      }));
 
     return NextResponse.json({
       pagination: {
@@ -156,6 +217,16 @@ export async function GET(request) {
       user: userExists,
       dailyStats,
       registros: registrosPaginados,
+      envasados: {
+        pagination: {
+          total: totalEnvasados,
+          page,
+          limit,
+          totalPages: Math.ceil(totalEnvasados / limit),
+        },
+        dailyStats: dailyStatsEnvasados,
+        registros: envasadosPaginados,
+      }
     });
   } catch (error) {
     console.error("Error al obtener perfil de usuario:", error);
