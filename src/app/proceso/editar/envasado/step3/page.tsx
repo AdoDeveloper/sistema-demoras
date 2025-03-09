@@ -60,14 +60,14 @@ export default function TercerProceso() {
   // Registro de vueltas
   const [vueltas, setVueltas] = useState<any[]>([]);
 
-  // useEffect: Cargar datos desde localStorage (key "editDemora") y sincronizar la Vuelta 1
+  // useEffect: Cargar datos desde localStorage (key "editEnvasado") y sincronizar la Vuelta 1
   useEffect(() => {
     cargarDatosDeLocalStorage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function cargarDatosDeLocalStorage() {
-    let stored = localStorage.getItem("editDemora");
+    let stored = localStorage.getItem("editEnvasado");
     if (!stored) {
       // Si no existe, crear estructura base
       const initialData = {
@@ -79,8 +79,8 @@ export default function TercerProceso() {
         tercerProceso: {},
         procesoFinal: {},
       };
-      localStorage.setItem("editDemora", JSON.stringify(initialData));
-      stored = localStorage.getItem("editDemora");
+      localStorage.setItem("editEnvasado", JSON.stringify(initialData));
+      stored = localStorage.getItem("editEnvasado");
     }
     const parsed = JSON.parse(stored || "{}");
 
@@ -137,9 +137,9 @@ export default function TercerProceso() {
     }
   }
 
-  // Función para guardar los cambios en el objeto "editDemora" (tercerProceso)
+  // Función para guardar los cambios en el objeto "editEnvasado" (tercerProceso)
   function guardarDatosEnLocalStorage() {
-    const stored = localStorage.getItem("editDemora");
+    const stored = localStorage.getItem("editEnvasado");
     if (!stored) return;
     const parsed = JSON.parse(stored);
 
@@ -179,7 +179,7 @@ export default function TercerProceso() {
         tiempoSalidaBascula,
         vueltas: finalVState,
       };
-      localStorage.setItem("editDemora", JSON.stringify(parsed));
+      localStorage.setItem("editEnvasado", JSON.stringify(parsed));
     }, 0);
   }
 
@@ -224,13 +224,13 @@ export default function TercerProceso() {
   // Guardar cambios en storage y navegar al siguiente paso (Proceso Final)
   const handleGuardarYContinuar = () => {
     guardarDatosEnLocalStorage();
-    router.push("/proceso/editar/granel/step4");
+    router.push("/proceso/editar/envasado/step4");
   };
 
   // Guardar cambios en storage y regresar al Segundo Proceso
   const handleAtras = () => {
     guardarDatosEnLocalStorage();
-    router.push("/proceso/editar/granel/step2");
+    router.push("/proceso/editar/envasado/step2");
   };
 
   // Patrón para validar formato HH:MM:SS (24 horas)

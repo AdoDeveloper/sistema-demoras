@@ -98,6 +98,19 @@ const puntoDespachoOptions = [
   },
 ];
 
+const puntoEnvasadoOptions = [
+  { value: "MOLINO", label: "MOLINO" },
+  { value: "TERMINAL 1", label: "TERMINAL 1" },
+  { value: "TERMINAL 2", label: "TERMINAL 2" },
+  { value: "ZONA BANDA 1", label: "ZONA BANDA 1" },
+  { value: "ZONA BODEGA 2 PUERTA 2", label: "ZONA BODEGA 2 PUERTA 2" },
+  { value: "ZONA BODEGA 5", label: "ZONA BODEGA 5" },
+  { value: "ZONA BODEGA 6", label: "ZONA BODEGA 6" },
+  { value: "ZONA BOULEVAR", label: "ZONA BOULEVAR" },
+  { value: "ZONA MODULO 1 Y 2", label: "ZONA MODULO 1 Y 2" },
+  { value: "ZONA MODULO 3", label: "ZONA MODULO 3" }
+];
+
 const basculaEntradaOptions: OptionType[] = [
   { value: "Báscula 1", label: "Báscula 1" },
   { value: "Báscula 2", label: "Báscula 2" },
@@ -142,7 +155,7 @@ export default function PrimerProceso() {
           if (result.isConfirmed) {
             // Si confirma, removemos el listener y navegamos a la ruta de salida
             window.removeEventListener("popstate", handlePopState);
-            localStorage.removeItem("demorasProcess");
+            localStorage.removeItem("envasadoProcess");
             router.push("/proceso/iniciar");
           } else {
             // Si decide quedarse, se vuelve a insertar un estado en el historial
@@ -171,9 +184,11 @@ export default function PrimerProceso() {
 
   // Estados para campos principales (según el nuevo modelo)
   const [numeroTransaccion, setNumeroTransaccion] = useState("");
+  const [numeroOrden, setNumeroOrden] = useState("");
   const [pesadorEntrada, setPesadorEntrada] = useState("");
   const [porteriaEntrada, setPorteriaEntrada] = useState("");
   const [puntoDespacho, setPuntoDespacho] = useState("");
+  const [puntoEnvasado, setPuntoEnvasado] = useState("");
   const [basculaEntrada, setBasculaEntrada] = useState("");
   const [metodoCarga, setMetodoCarga] = useState("");
   const [numeroEjes, setNumeroEjes] = useState("");
@@ -193,7 +208,7 @@ export default function PrimerProceso() {
   }, []);
 
   function cargarDatosDeLocalStorage() {
-    let stored = localStorage.getItem("demorasProcess");
+    let stored = localStorage.getItem("envasadoProcess");
     if (!stored) {
       const initialData = {
         fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
@@ -204,17 +219,19 @@ export default function PrimerProceso() {
         tercerProceso: {},
         procesoFinal: {},
       };
-      localStorage.setItem("demorasProcess", JSON.stringify(initialData));
-      stored = localStorage.getItem("demorasProcess");
+      localStorage.setItem("envasadoProcess", JSON.stringify(initialData));
+      stored = localStorage.getItem("envasadoProcess");
     }
     if (stored) {
       const parsed = JSON.parse(stored);
       if (parsed.primerProceso) {
         const p = parsed.primerProceso;
         setNumeroTransaccion(p.numeroTransaccion || "");
+        setNumeroOrden(p.numeroOrden || "");
         setPesadorEntrada(p.pesadorEntrada || "");
         setPorteriaEntrada(p.porteriaEntrada || "");
         setPuntoDespacho(p.puntoDespacho || "");
+        setPuntoEnvasado(p.puntoEnvasado || "");
         setBasculaEntrada(p.basculaEntrada || "");
         setMetodoCarga(p.metodoCarga || "");
         setNumeroEjes(p.numeroEjes || "");
@@ -242,14 +259,16 @@ export default function PrimerProceso() {
 
   // Guardar y continuar
   const handleGuardarYContinuar = () => {
-    const stored = localStorage.getItem("demorasProcess");
+    const stored = localStorage.getItem("envasadoProcess");
     if (stored) {
       const parsed = JSON.parse(stored);
       parsed.primerProceso = {
         numeroTransaccion,
+        numeroOrden,
         pesadorEntrada,
         porteriaEntrada,
         puntoDespacho,
+        puntoEnvasado,
         basculaEntrada,
         metodoCarga,
         numeroEjes,
@@ -262,9 +281,9 @@ export default function PrimerProceso() {
         tiempoEntradaBascula,
         tiempoSalidaBascula,
       };
-      localStorage.setItem("demorasProcess", JSON.stringify(parsed));
+      localStorage.setItem("envasadoProcess", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar/granel/step2");
+    router.push("/proceso/iniciar/envasado/step2");
   };
 
   // Cancelar y regresar a Home con confirmación usando SweetAlert2
@@ -280,7 +299,7 @@ export default function PrimerProceso() {
       cancelButtonText: "No, continuar",
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.removeItem("demorasProcess");
+        localStorage.removeItem("envasadoProcess");
         router.push("/proceso/iniciar");
       }
     });
@@ -311,6 +330,19 @@ export default function PrimerProceso() {
               className="border w-full p-2 text-sm sm:text-base"
               value={numeroTransaccion}
               onChange={(e) => setNumeroTransaccion(e.target.value)}
+            />
+          </div>
+
+          {/* Número de Transacción */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Número de Orden
+            </label>
+            <input
+              type="number"
+              className="border w-full p-2 text-sm sm:text-base"
+              value={numeroOrden}
+              onChange={(e) => setNumeroOrden(e.target.value)}
             />
           </div>
 
@@ -357,6 +389,23 @@ export default function PrimerProceso() {
               value={puntoDespacho ? { value: puntoDespacho, label: puntoDespacho } : null}
               onChange={(option: OptionType | null) =>
                 setPuntoDespacho(option ? option.value : "")
+              }
+            />
+          </div>
+
+          {/* Punto de Envasado */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Punto de Envasado
+            </label>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={puntoEnvasadoOptions}
+              placeholder="Seleccione Punto"
+              value={puntoEnvasado ? { value: puntoEnvasado, label: puntoEnvasado } : null}
+              onChange={(option: OptionType | null) =>
+                setPuntoEnvasado(option ? option.value : "")
               }
             />
           </div>

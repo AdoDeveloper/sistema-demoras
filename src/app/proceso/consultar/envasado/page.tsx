@@ -5,12 +5,7 @@ import React from "react";
 import { FaEye, FaEdit } from "react-icons/fa";
 import Loader from "../../../../components/Loader";
 import { useRouter } from "next/navigation";
-import {
-  FiArrowLeft,
-  FiDownload,
-  FiFileText,
-  FiRefreshCw,
-} from "react-icons/fi";
+import { FiArrowLeft, FiDownload, FiFileText, FiRefreshCw } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
@@ -37,9 +32,7 @@ function formatInterval(hoursDecimal: number): string {
   const hh = Math.floor(seconds / 3600);
   const mm = Math.floor((seconds % 3600) / 60);
   const ss = seconds % 60;
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(
-    ss
-  ).padStart(2, "0")}`;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 }
 
 function timeStrToSeconds(timeStr: string) {
@@ -49,19 +42,17 @@ function timeStrToSeconds(timeStr: string) {
   return parts[0] * 3600 + parts[1] * 60 + parts[2];
 }
 
-function filterDetailData(data: any) {
+// Para el modal, en el detalle del primer proceso se omiten "id", "createdAt", "updatedAt"
+function filterModalDetailData(data: any) {
   if (!data) return data;
-  const excludedKeys = ["id", "createdAt", "updatedAt", "demoraId"];
-  if (data.hasOwnProperty("vueltas")) {
-    excludedKeys.push("vueltas");
-  }
+  const excludeKeys = ["id", "createdAt", "updatedAt", "parosEnv", "vueltasEnv", "envasadoId"];
   return Object.fromEntries(
-    Object.entries(data).filter(([key]) => !excludedKeys.includes(key))
+    Object.entries(data).filter(([key]) => !excludeKeys.includes(key))
   );
 }
 
 // -------------------------
-// Componentes para el Modal
+// Componentes para Arrays: Paros y Vueltas
 // -------------------------
 function formatKey(key: string) {
   return key
@@ -71,6 +62,65 @@ function formatKey(key: string) {
     .trim();
 }
 
+function ParosDetail({ paros }: { paros: any[] }) {
+  if (!paros || paros.length === 0) return null;
+  return (
+    <div className="mb-4">
+      <h3 className="text-lg font-semibold text-blue-700 mb-1">Paros</h3>
+      {paros.map((paro, index) => (
+        <div key={paro.id} className="mb-2 border rounded">
+          <div className="bg-blue-50 px-2 py-1 font-bold text-xs whitespace-nowrap">
+            Paro {index + 1}
+          </div>
+          <table className="w-full text-xs border-collapse">
+            <tbody>
+              {Object.entries(paro)
+                .filter(([key]) => !["id", "createdAt", "updatedAt", "segundoProcesoEnvId"].includes(key))
+                .map(([key, value]) => (
+                  <tr key={key} className="border-b">
+                    <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">{String(value)}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function VueltasDetail({ vueltas }: { vueltas: any[] }) {
+  if (!vueltas || vueltas.length === 0) return null;
+  return (
+    <div className="mb-4">
+      <h3 className="text-lg font-semibold text-blue-700 mb-1">Vueltas</h3>
+      {vueltas.map((vuelta, index) => (
+        <div key={vuelta.id} className="mb-2 border rounded">
+          <div className="bg-blue-50 px-2 py-1 font-bold text-xs whitespace-nowrap">
+            Vuelta {index + 1}
+          </div>
+          <table className="w-full text-xs border-collapse">
+            <tbody>
+              {Object.entries(vuelta)
+                .filter(([key]) => !["id", "createdAt", "updatedAt", "tercerProcesoEnvId"].includes(key))
+                .map(([key, value]) => (
+                  <tr key={key} className="border-b">
+                    <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">{String(value)}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// -------------------------
+// Componente para mostrar datos planos en el modal
+// -------------------------
 function DetailTable({ title, data }: { title: string; data: any }) {
   if (!data) return null;
   const entries = Object.entries(data);
@@ -81,10 +131,8 @@ function DetailTable({ title, data }: { title: string; data: any }) {
         <tbody>
           {entries.map(([key, value]) => (
             <tr key={key} className="border-b">
-              <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">
-                {formatKey(key)}
-              </td>
-              <td className="px-2 py-1 whitespace-nowrap">{String(value || "-")}</td>
+              <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
+              <td className="px-2 py-1 whitespace-nowrap">{String(value)}</td>
             </tr>
           ))}
         </tbody>
@@ -93,37 +141,8 @@ function DetailTable({ title, data }: { title: string; data: any }) {
   );
 }
 
-function VueltasDetail({ vueltas }: { vueltas: any[] }) {
-  if (!vueltas || vueltas.length === 0) return null;
-  return (
-    <div className="mb-4">
-      {vueltas.map((vuelta, index) => (
-        <div key={vuelta.id} className="mb-2 border rounded">
-          <div className="bg-blue-50 px-2 py-1 font-bold text-xs whitespace-nowrap">
-            Vuelta {index + 1}
-          </div>
-          <table className="w-full text-xs border-collapse">
-            <tbody>
-              {Object.entries(vuelta).map(([key, value]) =>
-                ["id", "tercerProcesoId", "createdAt", "updatedAt"].includes(key) ? null : (
-                  <tr key={key} className="border-b">
-                    <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">
-                      {formatKey(key)}
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap">{String(value || "-")}</td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // -------------------------
-// Función para calcular intervalos
+// Función para calcular intervalos (sin cambios respecto al ejemplo)
 // -------------------------
 const calcularIntervalos = (item: any) => {
   const primer = item.primerProceso || {};
@@ -131,14 +150,12 @@ const calcularIntervalos = (item: any) => {
   const tercero = item.tercerProceso || {};
   const final = item.procesoFinal || {};
 
-  // Cálculos del primer proceso
   const calc1 = formatInterval(
     diffEnHoras(parseHora(primer.tiempoEntradaBascula), parseHora(primer.tiempoSalidaBascula))
   );
   const calc2 = formatInterval(
     diffEnHoras(parseHora(primer.tiempoSalidaBascula), parseHora(segundo.tiempoLlegadaPunto))
   );
-  // Cálculo nuevo: Punto → Inicio Carga (segundo proceso)
   const calc7 = formatInterval(
     diffEnHoras(parseHora(segundo.tiempoLlegadaPunto), parseHora(segundo.tiempoInicioCarga))
   );
@@ -146,11 +163,10 @@ const calcularIntervalos = (item: any) => {
     diffEnHoras(parseHora(segundo.tiempoInicioCarga), parseHora(segundo.tiempoTerminaCarga))
   );
 
-  // Cálculos del tercer proceso: se basan en la última vuelta
   let entradaBS = null;
   let salidaBS = null;
-  if (tercero.vueltas && tercero.vueltas.length > 0) {
-    const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
+  if (tercero.vueltasEnv && tercero.vueltasEnv.length > 0) {
+    const lastVuelta = tercero.vueltasEnv[tercero.vueltasEnv.length - 1];
     entradaBS = parseHora(lastVuelta.tiempoEntradaBascula);
     salidaBS = parseHora(lastVuelta.tiempoSalidaBascula);
   }
@@ -158,7 +174,6 @@ const calcularIntervalos = (item: any) => {
   const calc5 = formatInterval(diffEnHoras(entradaBS, salidaBS));
   const calc6 = formatInterval(diffEnHoras(salidaBS, parseHora(final.tiempoSalidaPlanta)));
 
-  // Cálculos adicionales ya existentes
   const calc8 = formatInterval(
     diffEnHoras(parseHora(primer.tiempoAutorizacion), parseHora(primer.tiempoIngresoPlanta))
   );
@@ -169,7 +184,6 @@ const calcularIntervalos = (item: any) => {
     diffEnHoras(parseHora(primer.tiempoIngresoPlanta), parseHora(primer.tiempoLlegadaBascula))
   );
 
-  // Nuevos cálculos solicitados
   const calcExtra1 = formatInterval(
     diffEnHoras(parseHora(primer.tiempoLlegadaBascula), parseHora(primer.tiempoEntradaBascula))
   );
@@ -177,9 +191,9 @@ const calcularIntervalos = (item: any) => {
     diffEnHoras(parseHora(tercero.tiempoLlegadaBascula), parseHora(tercero.tiempoEntradaBascula))
   );
   let calcExtra3 = "-";
-  if (tercero.vueltas && tercero.vueltas.length > 0) {
-    const firstVueltaEntrada = parseHora(tercero.vueltas[0].tiempoEntradaBascula);
-    const lastVueltaSalida = parseHora(tercero.vueltas[tercero.vueltas.length - 1].tiempoSalidaBascula);
+  if (tercero.vueltasEnv && tercero.vueltasEnv.length > 0) {
+    const firstVueltaEntrada = parseHora(tercero.vueltasEnv[0].tiempoEntradaBascula);
+    const lastVueltaSalida = parseHora(tercero.vueltasEnv[tercero.vueltasEnv.length - 1].tiempoSalidaBascula);
     calcExtra3 = formatInterval(diffEnHoras(firstVueltaEntrada, lastVueltaSalida));
   }
 
@@ -201,6 +215,47 @@ const calcularIntervalos = (item: any) => {
 };
 
 // -------------------------
+// Función auxiliar para PDF: buildAddTableSection
+// (Se omiten en arrays "id", "createdAt" y "updatedAt")
+// -------------------------
+const buildAddTableSection = (
+  drawWrappedText: (text: string, size?: number, font?: any, x?: number) => void,
+  drawSeparator: () => void,
+  timesRomanFont: any,
+  courierFont: any,
+  lineHeight: number,
+  margin: number,
+  width: number,
+  formatKey: (key: string) => string
+) => {
+  return (sectionTitle: string, data: any) => {
+    drawWrappedText(sectionTitle, 12, timesRomanFont);
+    drawWrappedText(`${"Campo".padEnd(30)} : Valor`, 10, courierFont);
+    drawWrappedText("-".repeat(86), 10, courierFont);
+    for (const [key, value] of Object.entries(data)) {
+      if (Array.isArray(value) && (key === "parosEnv" || key === "vueltasEnv")) {
+        drawWrappedText(`${formatKey(key)}:`, 10, courierFont);
+        value.forEach((item: any, index: number) => {
+          drawWrappedText(`  Item ${index + 1}:`, 10, courierFont);
+          for (const [k, v] of Object.entries(item)) {
+            if (["id", "createdAt", "updatedAt", "segundoProcesoEnvId", "tercerProcesoEnvId"].includes(k)) continue;
+            const subLine = `    ${formatKey(k).padEnd(28)} : ${v || "-"}`;
+            drawWrappedText(subLine, 10, courierFont);
+          }
+          drawWrappedText("-".repeat(86), 10, courierFont);
+        });
+      } else {
+        const line = `${formatKey(key).padEnd(30)} : ${value || "-"}`;
+        drawWrappedText(line, 10, courierFont);
+      }
+    }
+    drawSeparator();
+    // Espacio extra entre secciones
+    drawWrappedText("", 10, courierFont);
+  };
+};
+
+// -------------------------
 // Componente Principal: DemorasPage
 // -------------------------
 export default function DemorasPage() {
@@ -210,25 +265,25 @@ export default function DemorasPage() {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Estados para loader en botones
+  // Estados para botones
   const [exportLoading, setExportLoading] = useState(false);
-  const [downloadLoading, setDownloadLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
 
-  // Estados para Filtros (se aplican en el frontend)
+  // Estados para filtros
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFinal, setFechaFinal] = useState("");
   const [filterText, setFilterText] = useState("");
   const [filterTiempoTotal, setFilterTiempoTotal] = useState("");
   const [filterTransaccion, setFilterTransaccion] = useState("");
+  const [filterOrden, setFilterOrden] = useState("");
   const [filterCondicion, setFilterCondicion] = useState("");
   const [filterMetodo, setFilterMetodo] = useState("");
 
-  // Estado para paginación (backend)
+  // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
 
-  // Estado para rol del usuario (tomado de la caché)
+  // Rol y usuario
   const [roleId, setRoleId] = useState<number | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const router = useRouter();
@@ -237,16 +292,12 @@ export default function DemorasPage() {
     if (typeof window !== "undefined") {
       const storedRoleId = localStorage.getItem("roleId");
       const storedUserId = localStorage.getItem("userId");
-      if (storedUserId) {
-        setUserId(Number(storedUserId));
-      }
-      if (storedRoleId) {
-        setRoleId(Number(storedRoleId));
-      }
+      if (storedUserId) setUserId(Number(storedUserId));
+      if (storedRoleId) setRoleId(Number(storedRoleId));
     }
   }, []);
 
-  // Función para obtener la data; sólo se envían al backend los parámetros de paginación
+  // Obtener data desde el backend (endpoint "envasado")
   const fetchDemoras = async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
@@ -254,8 +305,7 @@ export default function DemorasPage() {
         page: currentPage.toString(),
         limit: recordsPerPage.toString(),
       });
-
-      const res = await fetch(`/api/demoras/granel?${queryParams.toString()}`);
+      const res = await fetch(`/api/demoras/envasado?${queryParams.toString()}`);
       if (!res.ok) {
         Swal.fire("Error", "Error al obtener registros: " + res.status, "error");
         if (!isRefresh) setLoading(false);
@@ -271,7 +321,6 @@ export default function DemorasPage() {
     }
   };
 
-  // Se dispara la consulta al backend únicamente cuando cambia la paginación
   useEffect(() => {
     fetchDemoras();
   }, [currentPage, recordsPerPage]);
@@ -286,7 +335,7 @@ export default function DemorasPage() {
     setSelectedDemora(null);
   };
 
-  // Función para exportar el reporte completo con alerta y spinner
+  // Exportar Excel
   const handleExportarExcel = async () => {
     if (!fechaInicio || !fechaFinal) {
       Swal.fire("Información", "Debe seleccionar la fecha de Inicio y Final.", "warning");
@@ -296,13 +345,11 @@ export default function DemorasPage() {
     Swal.fire({
       title: "Generando Reporte",
       allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
+      didOpen: () => Swal.showLoading(),
     });
     try {
       const response = await fetch(
-        `/api/demoras/granel/export-excel?fechaInicio=${fechaInicio}&fechaFinal=${fechaFinal}`
+        `/api/demoras/envasado/export-excel?fechaInicio=${fechaInicio}&fechaFinal=${fechaFinal}`
       );
       if (!response.ok) {
         Swal.fire("Error", "Error en la exportación: " + response.status, "error");
@@ -312,7 +359,7 @@ export default function DemorasPage() {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.download = `Granel-${fechaInicio}-${fechaFinal}.xlsx`;
+      a.download = `Envasado-${fechaInicio}-${fechaFinal}.xlsx`;
       a.href = url;
       document.body.appendChild(a);
       a.click();
@@ -326,7 +373,7 @@ export default function DemorasPage() {
     }
   };
 
-  // Función para refrescar la data sin mostrar el loader de pantalla completa
+  // Refrescar data
   const handleRefresh = async () => {
     setRefreshLoading(true);
     await fetchDemoras(true);
@@ -334,7 +381,7 @@ export default function DemorasPage() {
     Swal.fire("Actualizado", "Datos actualizados", "success");
   };
 
-  // Funciones para campos compuestos en la tabla
+  // Funciones para renderizar campos compuestos de básculas
   const renderBasculaEntrada = (primer: any) => (
     <div>
       <p className="whitespace-nowrap">
@@ -356,8 +403,8 @@ export default function DemorasPage() {
     let entradaObs = "";
     let salida = tercero.tiempoSalidaBascula || "-";
     let salidaObs = "";
-    if (tercero.vueltas && tercero.vueltas.length > 0) {
-      const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
+    if (tercero.vueltasEnv && tercero.vueltasEnv.length > 0) {
+      const lastVuelta = tercero.vueltasEnv[tercero.vueltasEnv.length - 1];
       entrada = lastVuelta.entradaBascula || entrada;
       entradaObs = lastVuelta.entradaBasculaObservaciones || "";
       salida = lastVuelta.salidaBascula || salida;
@@ -380,16 +427,10 @@ export default function DemorasPage() {
     );
   };
 
-  // Función para retrasar la ejecución
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  // Función auxiliar para envolver texto según un ancho máximo
-  const wrapText = (
-    text: string,
-    maxWidth: number,
-    font: any,
-    size: number
-  ): string[] => {
+  // Función para envolver texto en PDF
+  const wrapText = (text: string, maxWidth: number, font: any, size: number): string[] => {
     const words = text.split(" ");
     const lines: string[] = [];
     let currentLine = "";
@@ -407,6 +448,7 @@ export default function DemorasPage() {
     return lines;
   };
 
+  // Generación y descarga de PDF
   const handleDescargarPDF = async () => {
     if (!selectedDemora) {
       Swal.fire("Error", "No hay registro seleccionado", "error");
@@ -415,9 +457,7 @@ export default function DemorasPage() {
     Swal.fire({
       title: "Generando PDF...",
       allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
+      didOpen: () => Swal.showLoading(),
     });
     try {
       const pdfDoc = await PDFDocument.create();
@@ -431,18 +471,15 @@ export default function DemorasPage() {
       const lineHeight = 14;
       const maxTextWidth = width - margin * 2;
 
-      // Función para dibujar texto con ajuste de salto de página y envolvimiento de líneas
       const drawWrappedText = (
         text: string,
         size: number = 10,
         font = timesRomanFont,
         x = margin
       ) => {
-        // Envuelve el texto si es muy largo
         const lines = wrapText(text, maxTextWidth, font, size);
         lines.forEach((line) => {
           if (yPosition < margin + lineHeight * 2) {
-            // Agrega nueva página y dibuja el pie de página en la anterior
             currentPagePdf = pdfDoc.addPage();
             yPosition = currentPagePdf.getSize().height - margin;
           }
@@ -451,7 +488,6 @@ export default function DemorasPage() {
         });
       };
 
-      // Función para centrar texto
       const centerText = (text: string, size: number = 12, font = timesRomanFont) => {
         const textWidth = font.widthOfTextAtSize(text, size);
         const x = (width - textWidth) / 2;
@@ -463,65 +499,63 @@ export default function DemorasPage() {
         yPosition -= lineHeight;
       };
 
-      // Función para dibujar un separador
       const drawSeparator = () => {
         drawWrappedText("=".repeat(86), 10, courierFont);
       };
 
-      // Encabezado del reporte (se dibuja en la primera página)
+      // Función auxiliar para agregar secciones en PDF que soporte arrays (omite id, createdAt y updatedAt)
+      const addTableSection = buildAddTableSection(
+        drawWrappedText,
+        drawSeparator,
+        timesRomanFont,
+        courierFont,
+        lineHeight,
+        margin,
+        width,
+        formatKey
+      );
+
+      // Encabezado del PDF
       centerText("ALMAPAC S.A de C.V. - PLANTA ACAJUTLA", 16, timesRomanFont);
       centerText("Control de Tiempos Despacho", 14, timesRomanFont);
       centerText(`Detalle del Registro #${selectedDemora.id}`, 14, timesRomanFont);
       yPosition -= lineHeight;
       drawSeparator();
 
-      // Función para agregar una sección en formato de "tabla"
-      const addTableSection = (sectionTitle: string, data: any) => {
-        drawWrappedText(sectionTitle, 12, timesRomanFont);
-        // Encabezado de la “tabla”
-        drawWrappedText(`${"Campo".padEnd(30)} : Valor`, 10, courierFont);
-        drawWrappedText("-".repeat(86), 10, courierFont);
-        for (const [key, value] of Object.entries(data)) {
-          const line = `${formatKey(key).padEnd(30)} : ${value || "-"}`;
-          drawWrappedText(line, 10, courierFont);
-        }
-        drawSeparator();
-        yPosition -= lineHeight;
-      };
-
-      // Secciones del reporte
-      addTableSection("Información General - Granel", {
+      // Sección "Información General": incluye Número de Orden debajo de N° Transacción
+      addTableSection("Información General - Envasado", {
         Registro: selectedDemora.id,
         "Fecha Inicio": selectedDemora.fechaInicio,
         "Tiempo Total": selectedDemora.tiempoTotal || "-",
-        "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
+        "N° Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
+        "N° Orden": selectedDemora.primerProceso?.numeroOrden || "-",
         Realizado: selectedDemora.userName || "-",
       });
       if (selectedDemora.primerProceso) {
-        addTableSection("Primer Proceso", filterDetailData(selectedDemora.primerProceso));
+        addTableSection("Primer Proceso", filterModalDetailData(selectedDemora.primerProceso));
       }
       if (selectedDemora.segundoProceso) {
-        addTableSection("Segundo Proceso", filterDetailData(selectedDemora.segundoProceso));
+        addTableSection("Segundo Proceso", filterModalDetailData(selectedDemora.segundoProceso));
+        if (selectedDemora.segundoProceso.parosEnv && selectedDemora.segundoProceso.parosEnv.length > 0) {
+          addTableSection("Segundo Proceso - Paros", { parosEnv: selectedDemora.segundoProceso.parosEnv });
+        }
       }
       if (selectedDemora.tercerProceso) {
-        addTableSection("Tercer Proceso", filterDetailData(selectedDemora.tercerProceso));
-        if (selectedDemora.tercerProceso.vueltas) {
-          drawWrappedText(`Total de Vueltas: ${selectedDemora.tercerProceso.vueltas.length}`, 12, timesRomanFont);
-          selectedDemora.tercerProceso.vueltas.forEach((vuelta: any, index: number) => {
-            addTableSection(`Vuelta ${index + 1}`, filterDetailData(vuelta));
-          });
+        addTableSection("Tercer Proceso", filterModalDetailData(selectedDemora.tercerProceso));
+        if (selectedDemora.tercerProceso.vueltasEnv && selectedDemora.tercerProceso.vueltasEnv.length > 0) {
+          addTableSection("Tercer Proceso - Vueltas", { vueltasEnv: selectedDemora.tercerProceso.vueltasEnv });
         }
       }
       if (selectedDemora.procesoFinal) {
-        addTableSection("Proceso Final", filterDetailData(selectedDemora.procesoFinal));
+        addTableSection("Proceso Final", filterModalDetailData(selectedDemora.procesoFinal));
       }
       const intervalos = calcularIntervalos(selectedDemora);
-      addTableSection("Intervalos entre Procesos", {
+      const intervalosLegibles = {
         "B.E. (Entr -> Sal)": intervalos.calc1,
         "Sal. B.E. -> Lleg. Punto": intervalos.calc2,
-        "Llegada Punto -> Inicio Carga": intervalos.calc7,
+        "Punto -> Inicio Carga": intervalos.calc7,
         "Tiempo Total Carga": intervalos.calc3,
-        "Salida Punto -> B.S. Entr.": intervalos.calc4,
+        "Sal. Punto -> B.S. Entr.": intervalos.calc4,
         "B.S. (Entr -> Sal)": intervalos.calc5,
         "B.S. -> Salida Planta": intervalos.calc6,
         "Autorizac -> Ing. Planta": intervalos.calc8,
@@ -530,10 +564,12 @@ export default function DemorasPage() {
         "Llegada -> Entrada Básq. (P1)": intervalos.calcExtra1,
         "Llegada -> Entrada Básq. (P3)": intervalos.calcExtra2,
         "Entrada (P3) 1ra -> Salida (P3) Última": intervalos.calcExtra3,
-      });
+      };
+      
+      addTableSection("Intervalos entre Procesos", intervalosLegibles);
+      
 
-      // En lugar de "Fin del Reporte", se agregará el pie de página en cada página.
-      // Agregamos pie de página a todas las páginas con la fecha y hora de generación.
+      // Pie de página en todas las páginas
       const pages = pdfDoc.getPages();
       pages.forEach((page) => {
         page.drawText(`Reporte generado: ${new Date().toLocaleString()}`, {
@@ -550,91 +586,65 @@ export default function DemorasPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Detalle-Granel-N-${selectedDemora.id}.pdf`;
+      a.download = `Detalle-Envasado-N-${selectedDemora.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
 
       Swal.close();
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await delay(300);
       Swal.fire("Éxito", "Archivo generado correctamente.", "success");
     } catch (error: any) {
       Swal.close();
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await delay(300);
       Swal.fire("Error", "Error generando PDF: " + error.message, "error");
     }
   };
 
-  // Aplicación de filtros en el frontend sobre la data ya traída (paginada)
+  // Filtros en el frontend
   const filteredDemoras = demoras.filter((item) => {
-    if (filterText) {
-      const haystack = JSON.stringify(item).toLowerCase();
-      if (!haystack.includes(filterText.toLowerCase())) return false;
-    }
-    if (filterTiempoTotal) {
-      if (!(item.tiempoTotal && item.tiempoTotal.includes(filterTiempoTotal)))
-        return false;
-    }
+    if (filterText && !JSON.stringify(item).toLowerCase().includes(filterText.toLowerCase())) return false;
+    if (filterTiempoTotal && !(item.tiempoTotal && item.tiempoTotal.includes(filterTiempoTotal))) return false;
     if (filterTransaccion) {
-      if (
-        !(
-          item.primerProceso &&
-          item.primerProceso.numeroTransaccion &&
-          item.primerProceso.numeroTransaccion.toString().includes(filterTransaccion)
-        )
-      )
-        return false;
+      if (!(item.primerProceso && item.primerProceso.numeroTransaccion && item.primerProceso.numeroTransaccion.toString().includes(filterTransaccion))) return false;
+    }
+    if (filterOrden) {
+      if (!(item.primerProceso && item.primerProceso.numeroOrden && item.primerProceso.numeroOrden.toString().includes(filterOrden))) return false;
     }
     if (filterCondicion) {
-      if (
-        !(
-          item.primerProceso &&
-          item.primerProceso.condicion &&
-          item.primerProceso.condicion.toLowerCase().includes(filterCondicion.toLowerCase())
-        )
-      )
-        return false;
+      if (!(item.primerProceso && item.primerProceso.condicion && item.primerProceso.condicion.toLowerCase().includes(filterCondicion.toLowerCase()))) return false;
     }
     if (filterMetodo) {
-      if (
-        !(
-          item.primerProceso &&
-          item.primerProceso.metodoCarga &&
-          item.primerProceso.metodoCarga.toLowerCase().includes(filterMetodo.toLowerCase())
-        )
-      )
-        return false;
+      if (!(item.primerProceso && item.primerProceso.metodoCarga && item.primerProceso.metodoCarga.toLowerCase().includes(filterMetodo.toLowerCase()))) return false;
     }
     if (fechaInicio) {
-      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion >= fechaInicio))
-        return false;
+      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion >= fechaInicio)) return false;
     }
     if (fechaFinal) {
-      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion <= fechaFinal))
-        return false;
+      if (!(item.primerProceso.fechaAutorizacion && item.primerProceso.fechaAutorizacion <= fechaFinal)) return false;
     }
     return true;
   });
 
   const totalPages = Math.ceil(totalCount / recordsPerPage) || 1;
 
-  // Función para iniciar la edición del registro
+  // Función para editar registro (ruta actualizada)
   const handleEditRecord = (record: any) => {
     const transactionNumber = record.primerProceso?.numeroTransaccion || "-";
     const userName = record.userName || "-";
     Swal.fire({
       title: `¿Desea editar el registro #${record.id}?`,
       html: `<p><strong>N° Transacción:</strong> ${transactionNumber}</p>
-            <p><strong>Realizado por:</strong> ${userName}</p>`,
+             <p><strong>Realizado por:</strong> ${userName}</p>`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Sí, editar",
       cancelButtonText: "Cancelar",
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.setItem("demoraId", record.id);
-        router.push(`/proceso/editar/granel`);
+        localStorage.setItem("envasadoId", record.id);
+        router.push(`/proceso/editar/envasado`);
       }
     });
   };
@@ -661,7 +671,7 @@ export default function DemorasPage() {
               >
                 <FiArrowLeft size={20} />
               </button>
-              <h1 className="text-xl font-bold">Registros Granel</h1>
+              <h1 className="text-xl font-bold">Registros Envasado</h1>
             </div>
             <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
               <button
@@ -723,6 +733,16 @@ export default function DemorasPage() {
               />
             </div>
             <div className="flex flex-col">
+              <label className="text-sm">Nº Orden</label>
+              <input
+                type="text"
+                placeholder="Buscar orden..."
+                className="text-black px-2 py-1 rounded"
+                value={filterOrden}
+                onChange={(e) => setFilterOrden(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col">
               <label className="text-sm">Condición</label>
               <input
                 type="text"
@@ -768,15 +788,14 @@ export default function DemorasPage() {
 
       {/* Tabla de Registros */}
       <div className="overflow-x-auto bg-white shadow-md mt-6">
-        <table
-          id="demoras-table"
-          className="min-w-full border-collapse table-auto text-sm"
-        >
+        <table id="demoras-table" className="min-w-full border-collapse table-auto text-sm">
           <thead>
             <tr className="bg-blue-50 text-blue-700 text-xs md:text-sm">
               <th className="border px-2 py-1 whitespace-nowrap text-left">Fecha Inicio</th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">Tiempo Total</th>
-              <th className="border px-2 py-1 whitespace-nowrap text-left">N° Transacción</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Nº Transacción</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">N° Orden</th>
+              <th className="border px-2 py-1 whitespace-nowrap text-left">Punto Envasado</th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">Fecha Autorización</th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">Hora Autorización</th>
               <th className="border px-2 py-1 whitespace-nowrap text-left">Hora Ingreso Planta</th>
@@ -799,6 +818,8 @@ export default function DemorasPage() {
                   <td className="border px-2 py-1 whitespace-nowrap">{item.fechaInicio}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{item.tiempoTotal || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.numeroTransaccion || "-"}</td>
+                  <td className="border px-2 py-1 whitespace-nowrap">{primer.numeroOrden || "-"}</td>
+                  <td className="border px-2 py-1 whitespace-nowrap">{primer.puntoEnvasado || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.fechaAutorizacion || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoAutorizacion || "-"}</td>
                   <td className="border px-2 py-1 whitespace-nowrap">{primer.tiempoIngresoPlanta || "-"}</td>
@@ -862,7 +883,7 @@ export default function DemorasPage() {
             Siguiente
           </button>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-2 text-center">
+        <div className="flex flex-col sm:flex-row items-center gap-1 text-center">
           <span className="text-sm">
             Mostrando {filteredDemoras.length} de {totalCount} registros
           </span>
@@ -892,7 +913,7 @@ export default function DemorasPage() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal de Detalle */}
       {showModal && selectedDemora && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
           <div className="bg-white w-full max-w-md md:max-w-4xl shadow-lg p-4 relative max-h-full overflow-y-auto">
@@ -903,9 +924,7 @@ export default function DemorasPage() {
             >
               &times;
             </button>
-            <h2 className="text-xl font-bold mb-4 text-blue-700 text-center">
-              Detalle del Registro
-            </h2>
+            <h2 className="text-xl font-bold mb-4 text-blue-700 text-center">Detalle del Registro</h2>
             <div className="space-y-4">
               <DetailTable
                 title="Información General"
@@ -913,34 +932,32 @@ export default function DemorasPage() {
                   Registro: selectedDemora.id,
                   "Fecha Inicio": selectedDemora.fechaInicio,
                   "Tiempo Total": selectedDemora.tiempoTotal || "-",
-                  "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
+                  "N° Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
+                  "N° Orden": selectedDemora.primerProceso?.numeroOrden || "-",
                   Realizado: selectedDemora.userName || "-",
                 }}
               />
               <DetailTable
                 title="Primer Proceso"
-                data={filterDetailData(selectedDemora.primerProceso)}
+                data={filterModalDetailData(selectedDemora.primerProceso)}
               />
               <DetailTable
                 title="Segundo Proceso"
-                data={filterDetailData(selectedDemora.segundoProceso)}
+                data={filterModalDetailData(selectedDemora.segundoProceso)}
               />
+              {selectedDemora.segundoProceso.parosEnv && (
+                <ParosDetail paros={selectedDemora.segundoProceso.parosEnv} />
+              )}
               <DetailTable
                 title="Tercer Proceso"
-                data={filterDetailData(selectedDemora.tercerProceso)}
+                data={filterModalDetailData(selectedDemora.tercerProceso)}
               />
-              {selectedDemora.tercerProceso &&
-                selectedDemora.tercerProceso.vueltas && (
-                  <div>
-                    <p className="text-sm font-bold mb-2">
-                      Total de Vueltas: {selectedDemora.tercerProceso.vueltas.length}
-                    </p>
-                    <VueltasDetail vueltas={selectedDemora.tercerProceso.vueltas} />
-                  </div>
+              {selectedDemora.tercerProceso.vueltasEnv && (
+                <VueltasDetail vueltas={selectedDemora.tercerProceso.vueltasEnv} />
               )}
               <DetailTable
                 title="Proceso Final"
-                data={filterDetailData(selectedDemora.procesoFinal)}
+                data={filterModalDetailData(selectedDemora.procesoFinal)}
               />
               <DetailTable
                 title="Intervalos entre Procesos"

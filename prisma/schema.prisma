@@ -7,26 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==================== MODELOS ORIGINALES (GRANEL) ====================
+
 model User {
-  id        Int       @id @default(autoincrement()) @map("id")
-  username  String    @unique @map("username")
-  nombreCompleto String @map("nombre_completo")
-  codigo    String    @unique @map("codigo")
-  email     String?   @unique @map("email")
-  password  String?   @map("password")
-  createdAt DateTime  @default(now()) @map("created_at")
-  demoras   Demora[]
-  sessions  Session[]
-  roleId    Int       @map("role_id")
-  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  id             Int       @id @default(autoincrement()) @map("id")
+  username       String    @unique @map("username")
+  nombreCompleto String    @map("nombre_completo")
+  codigo         String    @unique @map("codigo")
+  email          String?   @unique @map("email")
+  password       String?   @map("password")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  demoras        Demora[]
+  envasados      Envasado[]
+  sessions       Session[]
+  roleId         Int       @map("role_id")
+  role           Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@map("users")
 }
 
 model Role {
-  id        Int       @id @default(autoincrement()) @map("id")
-  name      String    @unique @map("name")
-  users     User[]
+  id    Int     @id @default(autoincrement()) @map("id")
+  name  String  @unique @map("name")
+  users User[]
 
   @@map("roles")
 }
@@ -52,9 +55,9 @@ model Demora {
   updatedAt      DateTime        @updatedAt @map("updated_at")
   user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   primerProceso  PrimerProceso?
-  procesoFinal   ProcesoFinal?
   segundoProceso SegundoProceso?
   tercerProceso  TercerProceso?
+  procesoFinal   ProcesoFinal?
 
   @@index([userId], map: "demoras_user_id_fkey")
   @@map("demoras")
@@ -180,9 +183,181 @@ model ProcesoFinal {
   porteriaSalida               String   @map("porteria_salida")
   tiempoLlegadaPorteria        String?  @map("tiempo_llegada_porteria")
   llegadaPorteriaObservaciones String?  @map("llegada_porteria_obs") @db.LongText
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
 
-  createdAt                    DateTime @default(now()) @map("created_at")
-  updatedAt                    DateTime @updatedAt @map("updated_at")
   demora                       Demora   @relation(fields: [demoraId], references: [id], onDelete: Cascade)
   @@map("proceso_final")
+}
+
+// ==================== NUEVOS MODELOS PARA ENVASADO ====================
+
+model Envasado {
+  id             Int          @id @default(autoincrement()) @map("id")
+  userId         Int?         @map("user_id")
+  userName       String?      @map("user_name")
+  fechaInicio    String       @map("fecha_inicio")
+  tiempoTotal    String?      @map("tiempo_total")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  user           User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primerProceso  PrimerProcesoEnv?
+  segundoProceso SegundoProcesoEnv?
+  tercerProceso  TercerProcesoEnv?
+  procesoFinal   ProcesoFinalEnv?
+
+  @@index([userId], map: "envasados_user_id_fkey")
+  @@map("envasados")
+}
+
+model PrimerProcesoEnv {
+  id                          Int      @id @default(autoincrement()) @map("id")
+  envasadoId                  Int      @unique @map("envasado_id")
+  numeroTransaccion           String   @unique @map("numero_transaccion")
+  numeroOrden                 String   @map("numero_orden")
+  pesadorEntrada              String   @map("pesador_entrada")
+  porteriaEntrada             String   @map("porteria_entrada")
+  metodoCarga                 String   @map("metodo_carga")
+  numeroEjes                  String   @map("numero_ejes")
+  puntoDespacho               String   @map("punto_despacho")
+  puntoEnvasado               String   @map("punto_envasado")
+  basculaEntrada              String   @map("bascula_entrada")
+  condicion                   String?  @map("condicion")
+  tiempoScanner               String?  @map("tiempo_scanner")
+  fechaScanner                String?  @map("fecha_scanner")
+  scannerObservaciones        String?  @map("scanner_obs") @db.LongText
+  tiempoPrechequeo            String?  @map("tiempo_prechequeo")
+  fechaPrechequeo             String?  @map("fecha_prechequeo")
+  prechequeoObservaciones     String?  @map("prechequeo_obs") @db.LongText
+  tiempoAutorizacion          String?  @map("tiempo_autorizacion")
+  fechaAutorizacion           String?  @map("fecha_autorizacion")
+  autorizacionObservaciones   String?  @map("autorizacion_obs") @db.LongText
+  tiempoIngresoPlanta         String?  @map("tiempo_ingreso_planta")
+  ingresoPlantaObservaciones  String?  @map("ingreso_obs") @db.LongText
+  tiempoLlegadaBascula        String?  @map("tiempo_llegada_bascula")
+  llegadaBasculaObservaciones String?  @map("llegada_bascula_obs") @db.LongText
+  tiempoEntradaBascula        String?  @map("tiempo_entrada_bascula")
+  entradaBasculaObservaciones String?  @map("entrada_obs") @db.LongText
+  tiempoSalidaBascula         String?  @map("tiempo_salida_bascula")
+  salidaBasculaObservaciones  String?  @map("salida_obs") @db.LongText
+
+  envasado                    Envasado   @relation(fields: [envasadoId], references: [id], onDelete: Cascade)
+
+  createdAt                   DateTime   @default(now()) @map("created_at")
+  updatedAt                   DateTime   @updatedAt @map("updated_at")
+  @@map("primer_proceso_env")
+}
+
+model SegundoProcesoEnv {
+  id                            Int      @id @default(autoincrement()) @map("id")
+  envasadoId                    Int      @unique @map("envasado_id")
+  operador                      String   @map("operador")
+  grupo                         String   @map("grupo")
+  modeloEquipo                  String   @map("modelo_equipo")
+  personalAsignado              Int      @map("personal_asignado")
+  personalAsignadoObservaciones String?  @map("personal_asignado_obs") @db.LongText
+  
+  parosStatsTotalParos          Int?     @map("total_paros")
+  parosStatsTiempoTotalParos    String?  @map("tiempo_total_paros")
+  
+  tiempoLlegadaPunto            String?  @map("tiempo_llegada_punto")
+  llegadaPuntoObservaciones     String?  @map("llegada_punto_obs") @db.LongText
+  tiempoLlegadaOperador         String?  @map("tiempo_llegada_operador")
+  llegadaOperadorObservaciones  String?  @map("llegada_operador_obs") @db.LongText
+  tiempoLlegadaGrupo            String?  @map("tiempo_llegada_grupo")
+  llegadaGrupoObservaciones     String?  @map("llegada_grupo_obs") @db.LongText
+  tiempoLlegadaEquipo           String?  @map("tiempo_llegada_equipo")
+  llegadaEquipoObservaciones    String?  @map("llegada_equipo_obs") @db.LongText
+  tiempoInicioCarga             String?  @map("tiempo_inicio_carga")
+  inicioCargaObservaciones      String?  @map("inicio_carga_obs") @db.LongText
+  tiempoTerminaCarga            String?  @map("tiempo_termina_carga")
+  terminaCargaObservaciones     String?  @map("termina_carga_obs") @db.LongText
+  tiempoSalidaPunto             String?  @map("tiempo_salida_punto")
+  salidaPuntoObservaciones      String?  @map("salida_punto_obs") @db.LongText
+
+  envasado                      Envasado   @relation(fields: [envasadoId], references: [id], onDelete: Cascade)
+
+  createdAt                     DateTime   @default(now()) @map("created_at")
+  updatedAt                     DateTime   @updatedAt @map("updated_at")
+  parosEnv                      ParosEnv[]
+
+  @@map("segundo_proceso_env")
+}
+
+model TercerProcesoEnv {
+  id                          Int      @id @default(autoincrement()) @map("id")
+  envasadoId                  Int      @unique @map("envasado_id")
+  basculaSalida               String   @map("bascula_salida")
+  pesadorSalida               String   @map("pesador_salida")
+
+  tiempoLlegadaBascula        String?  @map("tiempo_llegada_bascula")
+  llegadaBasculaObservaciones String?  @map("llegada_bascula_obs") @db.LongText
+  tiempoEntradaBascula        String?  @map("tiempo_entrada_bascula")
+  entradaBasculaObservaciones String?  @map("entrada_obs") @db.LongText
+  tiempoSalidaBascula         String?  @map("tiempo_salida_bascula")
+  salidaBasculaObservaciones  String?  @map("salida_obs") @db.LongText
+
+  envasado                    Envasado   @relation(fields: [envasadoId], references: [id], onDelete: Cascade)
+  vueltasEnv                  VueltasEnv[]
+
+  createdAt                   DateTime   @default(now()) @map("created_at")
+  updatedAt                   DateTime   @updatedAt @map("updated_at")
+  @@map("tercer_proceso_env")
+}
+
+model ProcesoFinalEnv {
+  id                           Int      @id @default(autoincrement()) @map("id")
+  envasadoId                   Int      @unique @map("envasado_id")
+  tiempoSalidaPlanta           String?  @map("tiempo_salida_planta")
+  salidaPlantaObservaciones    String?  @map("salida_planta_obs") @db.LongText
+  porteriaSalida               String   @map("porteria_salida")
+  tiempoLlegadaPorteria        String?  @map("tiempo_llegada_porteria")
+  llegadaPorteriaObservaciones String?  @map("llegada_porteria_obs") @db.LongText
+
+  envasado                     Envasado   @relation(fields: [envasadoId], references: [id], onDelete: Cascade)
+  
+  createdAt                    DateTime   @default(now()) @map("created_at")
+  updatedAt                    DateTime   @updatedAt @map("updated_at")
+  @@map("proceso_final_env")
+}
+
+model VueltasEnv {
+  id                          Int      @id @default(autoincrement()) @map("id")
+  tercerProcesoEnvId          Int      @map("tercer_proceso_env_id")
+  numeroVuelta                Int      @map("numero_vuelta")
+
+  tiempoLlegadaPunto          String?  @map("tiempo_llegada_punto")
+  llegadaPuntoObservaciones   String?  @map("llegada_punto_obs") @db.LongText
+  tiempoSalidaPunto           String?  @map("tiempo_salida_punto")
+  salidaPuntoObservaciones    String?  @map("salida_punto_obs") @db.LongText
+  tiempoLlegadaBascula        String?  @map("tiempo_llegada_bascula")
+  llegadaBasculaObservaciones String?  @map("llegada_bascula_obs") @db.LongText
+  tiempoEntradaBascula        String?  @map("tiempo_entrada_bascula")
+  entradaBasculaObservaciones String?  @map("entrada_bascula_obs") @db.LongText
+  tiempoSalidaBascula         String?  @map("tiempo_salida_bascula")
+  salidaBasculaObservaciones  String?  @map("salida_bascula_obs") @db.LongText
+
+  tercerProcesoEnv            TercerProcesoEnv @relation(fields: [tercerProcesoEnvId], references: [id], onDelete: Cascade)
+
+  createdAt                   DateTime   @default(now()) @map("created_at")
+  updatedAt                   DateTime   @updatedAt @map("updated_at")
+  @@index([tercerProcesoEnvId], map: "vueltas_env_tercer_proceso_env_id_fkey")
+  @@map("vueltas_env")
+}
+
+model ParosEnv {
+  id                  Int     @id @default(autoincrement()) @map("id")
+  segundoProcesoEnvId Int     @map("segundo_proceso_env_id")
+  inicio              String  @map("inicio")
+  fin                 String  @map("fin")
+  razon               String  @map("razon")
+  diffCargaInicio     String  @map("diff_carga_inicio")
+  duracionParo        String  @map("duracion_paro")
+
+  segundoProcesoEnv   SegundoProcesoEnv @relation(fields: [segundoProcesoEnvId], references: [id], onDelete: Cascade)
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  @@index([segundoProcesoEnvId], map: "paros_env_segundo_proceso_env_id_fkey")
+  @@map("paros_env")
 }

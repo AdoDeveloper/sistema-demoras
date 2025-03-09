@@ -79,7 +79,7 @@ export default function Proceso() {
             </button>
             <button
               onClick={() =>
-                handleProcessConfirm("/building", "Envasado")
+                handleProcessConfirm("/proceso/iniciar/envasado", "Envasado")
               }
               className="flex items-center justify-center w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
             >

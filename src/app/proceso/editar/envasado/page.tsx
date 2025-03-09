@@ -14,7 +14,6 @@ interface OptionType {
   label: string;
 }
 
-// Opciones para los selects
 const porteriaOptions: OptionType[] = [
   { value: "Porteria 1", label: "Porteria 1" },
   { value: "Porteria 2", label: "Porteria 2" },
@@ -35,6 +34,7 @@ const condicionOptions: OptionType[] = [
   { value: "LLUVIA", label: "LLUVIA" },
   { value: "RECEPECION DE MELAZA", label: "RECEPECION DE MELAZA" },
   { value: "RECEPECION DE CEREALES/BARCO", label: "RECEPECION DE CEREALES/BARCO" },
+  { value: "MALTA", label: "MALTA" },
 ];
 
 const puntoDespachoOptions = [
@@ -98,6 +98,20 @@ const puntoDespachoOptions = [
   },
 ];
 
+const puntoEnvasadoOptions = [
+  { value: "MOLINO", label: "MOLINO" },
+  { value: "TERMINAL 1", label: "TERMINAL 1" },
+  { value: "TERMINAL 2", label: "TERMINAL 2" },
+  { value: "ZONA BANDA 1", label: "ZONA BANDA 1" },
+  { value: "ZONA BODEGA 2 PUERTA 2", label: "ZONA BODEGA 2 PUERTA 2" },
+  { value: "ZONA BODEGA 5", label: "ZONA BODEGA 5" },
+  { value: "ZONA BODEGA 6", label: "ZONA BODEGA 6" },
+  { value: "ZONA BOULEVAR", label: "ZONA BOULEVAR" },
+  { value: "ZONA MODULO 1 Y 2", label: "ZONA MODULO 1 Y 2" },
+  { value: "ZONA MODULO 3", label: "ZONA MODULO 3" }
+];
+
+
 const basculaEntradaOptions: OptionType[] = [
   { value: "Báscula 1", label: "Báscula 1" },
   { value: "Báscula 2", label: "Báscula 2" },
@@ -125,55 +139,60 @@ const handleSetNowDate = (setter: Function) => {
 export default function PrimerProceso() {
   const router = useRouter();
 
-    useEffect(() => {
-      // Agregar un estado al historial para interceptar la navegación atrás
-      window.history.pushState(null, "", window.location.href);
-  
-      // Interceptar el botón "atrás"
-      const handlePopState = (event) => {
-        Swal.fire({
-          title: "¿Está seguro?",
-          text: "Debe cancelar para salir. Se perderán los cambios realizados.",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Sí, cancelar",
-          cancelButtonText: "No, continuar",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Si confirma, removemos el listener y navegamos a la ruta de salida
-            window.removeEventListener("popstate", handlePopState);
-            localStorage.removeItem("demorasProcess");
-            router.push("/proceso/iniciar");
-          } else {
-            // Si decide quedarse, se vuelve a insertar un estado en el historial
-            window.history.pushState(null, "", window.location.href);
-          }
-        });
-      };
-  
-      window.addEventListener("popstate", handlePopState);
-  
-      // Interceptar recargas o cierre de la pestaña
-      const handleBeforeUnload = (e) => {
-        // El mensaje personalizado es ignorado por la mayoría de navegadores modernos
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      };
-  
-      window.addEventListener("beforeunload", handleBeforeUnload);
-  
-      return () => {
-        window.removeEventListener("popstate", handlePopState);
-        window.removeEventListener("beforeunload", handleBeforeUnload);
-      };
-    }, [router]);
+  useEffect(() => {
+    // Agregar un estado al historial para interceptar la navegación atrás
+    window.history.pushState(null, "", window.location.href);
 
-  // Estados para campos principales (según el nuevo modelo)
+    // Interceptar el botón "atrás"
+    const handlePopState = (event) => {
+      Swal.fire({
+        title: "¿Está seguro?",
+        text: "Debe cancelar para salir. Se perderán los cambios realizados.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, cancelar",
+        cancelButtonText: "No, continuar",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Si confirma, removemos el listener y navegamos a la ruta de salida
+          window.removeEventListener("popstate", handlePopState);
+          localStorage.removeItem("editEnvasado");
+          localStorage.removeItem("envasadoId");
+          router.push("/proceso/consultar/envasado");
+        } else {
+          // Si decide quedarse, se vuelve a insertar un estado en el historial
+          window.history.pushState(null, "", window.location.href);
+        }
+      });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    // Interceptar recargas o cierre de la pestaña
+    const handleBeforeUnload = (e) => {
+      // El mensaje personalizado es ignorado por la mayoría de navegadores modernos
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [router]);
+
+  const [editEnvasado, setEditEnvasado] = useState<any>(null);
+
+  // Estados para campos principales
   const [numeroTransaccion, setNumeroTransaccion] = useState("");
+  const [numeroOrden, setNumeroOrden] = useState("");
   const [pesadorEntrada, setPesadorEntrada] = useState("");
   const [porteriaEntrada, setPorteriaEntrada] = useState("");
   const [puntoDespacho, setPuntoDespacho] = useState("");
+  const [puntoEnvasado, setPuntoEnvasado] = useState("");
   const [basculaEntrada, setBasculaEntrada] = useState("");
   const [metodoCarga, setMetodoCarga] = useState("");
   const [numeroEjes, setNumeroEjes] = useState("");
@@ -188,33 +207,232 @@ export default function PrimerProceso() {
   const [tiempoEntradaBascula, setTiempoEntradaBascula] = useState({ hora: "", comentarios: "" });
   const [tiempoSalidaBascula, setTiempoSalidaBascula] = useState({ hora: "", comentarios: "" });
 
+  // Función para consultar la API, transformar la respuesta y almacenar en localStorage con la key "editEnvasado"
+  async function fetchDemora() {
+    try {
+      const storedId = localStorage.getItem("envasadoId") || "0";
+      const userId = localStorage.getItem("userId");
+      const roleId = localStorage.getItem("roleId");
+  
+      const response = await fetch(`/api/demoras/envasado/${parseInt(storedId)}`, {
+        headers: {
+          userId,
+          roleId,
+        },
+      });
+  
+      if (response.status === 403) {
+        // Si la API retorna error 403, mostramos una alerta y redirigimos
+        Swal.fire({
+          title: "Acceso Denegado",
+          text: "No tienes permiso de editar este registro",
+          icon: "error",
+          confirmButtonText: "OK",
+        }).then(() => {
+          localStorage.removeItem("editEnvasado");
+          localStorage.removeItem("envasadoId");
+          setTimeout(() => {
+            window.location.href = "/proceso/consultar/envasado";
+          }, 3000); // Espera 3000 ms (3 segundos)
+        });
+        return;
+      }
+  
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("Error en API:", errorData);
+        Swal.fire("Error", errorData, "error");
+        return;
+      }
+  
+      const result = await response.json();
+  
+      if (result.envasado) {
+        const d = result.envasado;
+        const formattedEditEnvasado = {
+          // Campos de cabecera
+          fechaInicio: d.fechaInicio,
+          userId: String(d.userId),
+          userName: d.userName,
+          // Primer Proceso
+          primerProceso: {
+            numeroTransaccion: d.primerProceso?.numeroTransaccion || "",
+            numeroOrden: d.primerProceso?.numeroOrden || "",
+            pesadorEntrada: d.primerProceso?.pesadorEntrada || "",
+            porteriaEntrada: d.primerProceso?.porteriaEntrada || "",
+            puntoDespacho: d.primerProceso?.puntoDespacho || "",
+            puntoEnvasado: d.primerProceso?.puntoEnvasado || "",
+            basculaEntrada: d.primerProceso?.basculaEntrada || "",
+            metodoCarga: d.primerProceso?.metodoCarga || "",
+            numeroEjes: d.primerProceso?.numeroEjes || "",
+            condicion: d.primerProceso?.condicion || "",
+            tiempoPrechequeo: {
+              fecha: d.primerProceso?.fechaPrechequeo || "",
+              hora: d.primerProceso?.tiempoPrechequeo || "",
+              comentarios: d.primerProceso?.prechequeoObservaciones || "",
+            },
+            tiempoScanner: {
+              fecha: d.primerProceso?.fechaScanner || "",
+              hora: d.primerProceso?.tiempoScanner || "",
+              comentarios: d.primerProceso?.scannerObservaciones || "",
+            },
+            tiempoAutorizacion: {
+              fecha: d.primerProceso?.fechaAutorizacion || "",
+              hora: d.primerProceso?.tiempoAutorizacion || "",
+              comentarios: d.primerProceso?.autorizacionObservaciones || "",
+            },
+            tiempoIngresoPlanta: {
+              hora: d.primerProceso?.tiempoIngresoPlanta || "",
+              comentarios: d.primerProceso?.ingresoPlantaObservaciones || "",
+            },
+            tiempoLlegadaBascula: {
+              hora: d.primerProceso?.tiempoLlegadaBascula || "",
+              comentarios: d.primerProceso?.llegadaBasculaObservaciones || "",
+            },
+            tiempoEntradaBascula: {
+              hora: d.primerProceso?.tiempoEntradaBascula || "",
+              comentarios: d.primerProceso?.entradaBasculaObservaciones || "",
+            },
+            tiempoSalidaBascula: {
+              hora: d.primerProceso?.tiempoSalidaBascula || "",
+              comentarios: d.primerProceso?.salidaBasculaObservaciones || "",
+            },
+          },
+          // Segundo Proceso
+          segundoProceso: {
+            grupo: d.segundoProceso?.grupo || "",
+            operador: d.segundoProceso?.operador || "",
+            personalAsignado: String(d.segundoProceso?.personalAsignado || ""),
+            personalAsignadoObservaciones: d.segundoProceso?.personalAsignadoObservaciones || "",
+            modeloEquipo: d.segundoProceso?.modeloEquipo || "",
+            tiempoLlegadaPunto: {
+              hora: d.segundoProceso?.tiempoLlegadaPunto || "",
+              comentarios: d.segundoProceso?.llegadaPuntoObservaciones || "",
+            },
+            tiempoLlegadaOperador: {
+              hora: d.segundoProceso?.tiempoLlegadaOperador || "",
+              comentarios: d.segundoProceso?.llegadaOperadorObservaciones || "",
+            },
+            tiempoLlegadaGrupo: {
+              hora: d.segundoProceso?.tiempoLlegadaGrupo || "",
+              comentarios: d.segundoProceso?.llegadaGrupoObservaciones || "",
+            },
+            tiempoLlegadaEquipo: {
+              hora: d.segundoProceso?.tiempoLlegadaEquipo || "",
+              comentarios: d.segundoProceso?.llegadaEquipoObservaciones || "",
+            },
+            tiempoInicioCarga: {
+              hora: d.segundoProceso?.tiempoInicioCarga || "",
+              comentarios: d.segundoProceso?.inicioCargaObservaciones || "",
+            },
+            tiempoTerminaCarga: {
+              hora: d.segundoProceso?.tiempoTerminaCarga || "",
+              comentarios: d.segundoProceso?.terminaCargaObservaciones || "",
+            },
+            tiempoSalidaPunto: {
+              hora: d.segundoProceso?.tiempoSalidaPunto || "",
+              comentarios: d.segundoProceso?.salidaPuntoObservaciones || "",
+            },
+            paros: (d.segundoProceso?.parosEnv || []).map((paro: any) => ({
+              inicio: paro.inicio,
+              fin: paro.fin,
+              razon: paro.razon,
+              diffCargaInicio: paro.diffCargaInicio,
+              duracionParo: paro.duracionParo,
+            })),
+            parosStats: {
+              totalParos: d.segundoProceso?.parosStatsTotalParos || 0,
+              tiempoTotalParos: d.segundoProceso?.parosStatsTiempoTotalParos || "",
+            },
+          },
+          // Tercer Proceso
+          tercerProceso: {
+            pesadorSalida: d.tercerProceso?.pesadorSalida || "",
+            basculaSalida: d.tercerProceso?.basculaSalida || "",
+            tiempoLlegadaBascula: {
+              hora: d.tercerProceso?.tiempoLlegadaBascula || "",
+              comentarios: d.tercerProceso?.llegadaBasculaObservaciones || "",
+            },
+            tiempoEntradaBascula: {
+              hora: d.tercerProceso?.tiempoEntradaBascula || "",
+              comentarios: d.tercerProceso?.entradaBasculaObservaciones || "",
+            },
+            tiempoSalidaBascula: {
+              hora: d.tercerProceso?.tiempoSalidaBascula || "",
+              comentarios: d.tercerProceso?.salidaBasculaObservaciones || "",
+            },
+            vueltas: (d.tercerProceso?.vueltasEnv || []).map((vuelta: any) => ({
+              numeroVuelta: vuelta.numeroVuelta,
+              llegadaPunto: {
+                hora: vuelta.tiempoLlegadaPunto || "",
+                comentarios: vuelta.llegadaPuntoObservaciones || "",
+              },
+              salidaPunto: {
+                hora: vuelta.tiempoSalidaPunto || "",
+                comentarios: vuelta.salidaPuntoObservaciones || "",
+              },
+              llegadaBascula: {
+                hora: vuelta.tiempoLlegadaBascula || "",
+                comentarios: vuelta.llegadaBasculaObservaciones || "",
+              },
+              entradaBascula: {
+                hora: vuelta.tiempoEntradaBascula || "",
+                comentarios: vuelta.entradaBasculaObservaciones || "",
+              },
+              salidaBascula: {
+                hora: vuelta.tiempoSalidaBascula || "",
+                comentarios: vuelta.salidaBasculaObservaciones || "",
+              },
+            })),
+          },
+          // Proceso Final
+          procesoFinal: {
+            tiempoLlegadaPorteria: {
+              hora: d.procesoFinal?.tiempoLlegadaPorteria || "",
+              comentarios: d.procesoFinal?.llegadaPorteriaObservaciones || "",
+            },
+            tiempoSalidaPlanta: {
+              hora: d.procesoFinal?.tiempoSalidaPlanta || "",
+              comentarios: d.procesoFinal?.salidaPlantaObservaciones || "",
+            },
+            porteriaSalida: d.procesoFinal?.porteriaSalida || "",
+          },
+          tiempoTotal: d.tiempoTotal || "",
+        };
+      
+        localStorage.setItem("editEnvasado", JSON.stringify(formattedEditEnvasado));
+        setEditEnvasado(formattedEditEnvasado);
+      }      
+    } catch (error) {
+      console.error("Error al obtener la demora:", error);
+      Swal.fire("Error", "Error al obtener la demora: " + error.message, "error");
+    }
+  }
+
+  // useEffect: Consultar la API y luego cargar los datos desde localStorage ("editEnvasado")
   useEffect(() => {
-    cargarDatosDeLocalStorage();
+    (async () => {
+      const stored = localStorage.getItem("editEnvasado");
+      if(!stored){
+        await fetchDemora();
+      }
+      cargarDatosDeLocalStorage();
+    })();
   }, []);
 
+  // Función para cargar datos desde localStorage (key "editEnvasado") y actualizar los estados
   function cargarDatosDeLocalStorage() {
-    let stored = localStorage.getItem("demorasProcess");
-    if (!stored) {
-      const initialData = {
-        fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
-        userId: localStorage.getItem("userId"),
-        userName: localStorage.getItem("userName"),
-        primerProceso: {},
-        segundoProceso: {},
-        tercerProceso: {},
-        procesoFinal: {},
-      };
-      localStorage.setItem("demorasProcess", JSON.stringify(initialData));
-      stored = localStorage.getItem("demorasProcess");
-    }
+    const stored = localStorage.getItem("editEnvasado");
     if (stored) {
       const parsed = JSON.parse(stored);
       if (parsed.primerProceso) {
         const p = parsed.primerProceso;
         setNumeroTransaccion(p.numeroTransaccion || "");
+        setNumeroOrden(p.numeroOrden || "");
         setPesadorEntrada(p.pesadorEntrada || "");
         setPorteriaEntrada(p.porteriaEntrada || "");
         setPuntoDespacho(p.puntoDespacho || "");
+        setPuntoEnvasado(p.puntoEnvasado || "");
         setBasculaEntrada(p.basculaEntrada || "");
         setMetodoCarga(p.metodoCarga || "");
         setNumeroEjes(p.numeroEjes || "");
@@ -230,7 +448,7 @@ export default function PrimerProceso() {
     }
   }
 
-  // Helper: Asignar "Ahora" a un campo de tiempo (formato HH:mm:ss)
+  // Helper: Asignar "Ahora" a un campo de tiempo (HH:mm:ss)
   const handleSetNow = (setter: Function) => {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, "0");
@@ -240,16 +458,18 @@ export default function PrimerProceso() {
     setter((prev: any) => ({ ...prev, hora }));
   };
 
-  // Guardar y continuar
+  // Guardar cambios actualizando editEnvasado en localStorage y continuar a la siguiente etapa
   const handleGuardarYContinuar = () => {
-    const stored = localStorage.getItem("demorasProcess");
+    const stored = localStorage.getItem("editEnvasado");
     if (stored) {
       const parsed = JSON.parse(stored);
       parsed.primerProceso = {
         numeroTransaccion,
+        numeroOrden,
         pesadorEntrada,
         porteriaEntrada,
         puntoDespacho,
+        puntoEnvasado,
         basculaEntrada,
         metodoCarga,
         numeroEjes,
@@ -262,12 +482,12 @@ export default function PrimerProceso() {
         tiempoEntradaBascula,
         tiempoSalidaBascula,
       };
-      localStorage.setItem("demorasProcess", JSON.stringify(parsed));
+      localStorage.setItem("editEnvasado", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar/granel/step2");
+    router.push("/proceso/editar/envasado/step2");
   };
 
-  // Cancelar y regresar a Home con confirmación usando SweetAlert2
+  // Cancelar: confirmar y limpiar storage para regresar a la consulta
   const handleCancelar = () => {
     Swal.fire({
       title: "¿Está seguro?",
@@ -280,23 +500,25 @@ export default function PrimerProceso() {
       cancelButtonText: "No, continuar",
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.removeItem("demorasProcess");
-        router.push("/proceso/iniciar");
+        localStorage.removeItem("editEnvasado");
+        localStorage.removeItem("envasadoId");
+        router.push("/proceso/consultar/envasado");
       }
     });
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-4 px-2 sm:px-4 text-slate-900">
-      <div className="w-full max-w-2xl sm:max-w-4xl bg-white rounded-lg shadow p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 text-slate-900">
+      <div className="w-full max-w-4xl bg-white rounded-lg shadow p-6">
+        {/* Barra de Progreso */}
         <div className="flex items-center mb-4">
-          <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 rounded-l-lg text-center"></div>
+          <div className="flex-1 bg-orange-500 py-2 px-4 rounded-l-lg"></div>
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center rounded-r-lg"></div>
         </div>
         <h2 className="text-xl font-bold mb-4 text-orange-600">
-          Primer Proceso
+          Primer Proceso <span className="text-lg text-gray-400">[Modo Edicion]</span>
         </h2>
 
         {/* Campos Principales */}
@@ -311,6 +533,19 @@ export default function PrimerProceso() {
               className="border w-full p-2 text-sm sm:text-base"
               value={numeroTransaccion}
               onChange={(e) => setNumeroTransaccion(e.target.value)}
+            />
+          </div>
+
+          {/* Número de Transacción */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Número de Orden
+            </label>
+            <input
+              type="number"
+              className="border w-full p-2 text-sm sm:text-base"
+              value={numeroOrden}
+              onChange={(e) => setNumeroOrden(e.target.value)}
             />
           </div>
 
@@ -361,6 +596,24 @@ export default function PrimerProceso() {
             />
           </div>
 
+          
+          {/* Punto de Envasado */}
+          <div>
+            <label className="block font-semibold mb-1 text-sm sm:text-base">
+              Punto de Envasado
+            </label>
+            <Select
+              className="react-select-container"
+              classNamePrefix="react-select"
+              options={puntoEnvasadoOptions}
+              placeholder="Seleccione Punto"
+              value={puntoEnvasado ? { value: puntoEnvasado, label: puntoEnvasado } : null}
+              onChange={(option: OptionType | null) =>
+                setPuntoEnvasado(option ? option.value : "")
+              }
+            />
+          </div>
+
           {/* Báscula de Entrada */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
@@ -395,10 +648,10 @@ export default function PrimerProceso() {
             />
           </div>
 
-          {/* Numero de Ejes */}
+          {/* Número de Ejes */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
-              Numero de Ejes
+              Número de Ejes
             </label>
             <Select
               className="react-select-container"
@@ -412,34 +665,35 @@ export default function PrimerProceso() {
             />
           </div>
 
-          {/* Condicion */}
+          {/* Condición */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
-              Condicion
+              Condición
             </label>
             <Select
               className="react-select-container"
               classNamePrefix="react-select"
               options={condicionOptions}
-              placeholder="Seleccione Condicion"
+              placeholder="Seleccione Condición"
               value={condicion ? { value: condicion, label: condicion } : null}
               onChange={(option: OptionType | null) =>
                 setCondicion(option ? option.value : "")
               }
             />
           </div>
+
           <div>
             <div className="text-sm sm:text-base text-blue-600 mb-2">
               <strong>NORMAL:</strong> Si el flujo de unidades es normal y no afecta los procesos de despacho.
             </div>
             <div className="text-sm sm:text-base text-orange-600 mt-2 mb-1">
-              <strong>LLUVIA:</strong> Si la condicion del clima afecta los procesos de despacho.
+              <strong>LLUVIA:</strong> Si la condición del clima afecta los procesos de despacho.
             </div>
             <div className="text-sm sm:text-base text-blue-600 mb-2">
-              <strong>MELAZA:</strong> Si el flujo de unidades requiere uso de bascula 3 y afecta los procesos de despacho.
+              <strong>MELAZA:</strong> Si el flujo de unidades requiere uso de báscula 3 y afecta los procesos de despacho.
             </div>
             <div className="text-sm sm:text-base text-orange-600 mb-2">
-              <strong>CEREALES:</strong> Si hay recepcion de cereales provenientes de barcos y afecta los procesos de despacho.
+              <strong>CEREALES:</strong> Si hay recepción de cereales provenientes de barcos y afecta los procesos de despacho.
             </div>
           </div>
         </div>
@@ -613,7 +867,7 @@ export default function PrimerProceso() {
                 </button>
               </div>
               <textarea
-                className="border w-full mt-1 p-1 text-xs sm:text-sm"
+                className="border w-full p-1 text-xs sm:text-sm"
                 placeholder="Comentarios..."
                 value={tiempoIngresoPlanta.comentarios}
                 onChange={(e) =>
@@ -622,7 +876,7 @@ export default function PrimerProceso() {
               />
             </div>
 
-            {/* Llegada Báscula */}
+            {/* Llegada a la Báscula */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">Llegada a la Báscula</label>
               <div className="flex gap-2 mt-1">
@@ -643,7 +897,7 @@ export default function PrimerProceso() {
                 </button>
               </div>
               <textarea
-                className="border w-full mt-1 p-1 text-xs sm:text-sm"
+                className="border w-full p-1 text-xs sm:text-sm"
                 placeholder="Comentarios..."
                 value={tiempoLlegadaBascula.comentarios}
                 onChange={(e) =>
@@ -652,9 +906,9 @@ export default function PrimerProceso() {
               />
             </div>
 
-            {/* Entrada Báscula */}
+            {/* Entrada a la Báscula */}
             <div className="border rounded p-2">
-              <label className="block font-semibold text-sm sm:text-base">Entrada Báscula</label>
+              <label className="block font-semibold text-sm sm:text-base">Entrada a la Báscula</label>
               <div className="flex gap-2 mt-1">
                 <input
                   type="time"
@@ -673,7 +927,7 @@ export default function PrimerProceso() {
                 </button>
               </div>
               <textarea
-                className="border w-full mt-1 p-1 text-xs sm:text-sm"
+                className="border w-full p-1 text-xs sm:text-sm"
                 placeholder="Comentarios..."
                 value={tiempoEntradaBascula.comentarios}
                 onChange={(e) =>
@@ -682,7 +936,7 @@ export default function PrimerProceso() {
               />
             </div>
 
-            {/* Salida Báscula */}
+            {/* Salida a la Báscula */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">Salida Báscula</label>
               <div className="flex gap-2 mt-1">
@@ -703,7 +957,7 @@ export default function PrimerProceso() {
                 </button>
               </div>
               <textarea
-                className="border w-full mt-1 p-1 text-xs sm:text-sm"
+                className="border w-full p-1 text-xs sm:text-sm"
                 placeholder="Comentarios..."
                 value={tiempoSalidaBascula.comentarios}
                 onChange={(e) =>

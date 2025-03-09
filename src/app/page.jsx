@@ -91,7 +91,7 @@ export default function Dashboard() {
             <span>Registros Granel</span>
           </button>
           <button
-            onClick={() => router.push("/building")}
+            onClick={() => router.push("/proceso/consultar/envasado")}
             className="flex items-center justify-center w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
           >
             <PiTruckTrailerFill size={20} className="mr-2" />

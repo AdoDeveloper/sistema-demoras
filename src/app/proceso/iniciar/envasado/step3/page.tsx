@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import Swal from "sweetalert2";
 
 // Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
 const Select = dynamic(() => import("react-select"), { ssr: false });
@@ -18,6 +19,13 @@ function crearSubtiempo(hora = "", comentarios = "") {
   return { hora, comentarios };
 }
 
+/** Crea una nueva vuelta con 5 pares de campos:
+ *  - llegadaPunto
+ *  - salidaPunto
+ *  - llegadaBascula
+ *  - entradaBascula
+ *  - salidaBascula
+ */
 function crearNuevaVuelta(
   numeroVuelta: number,
   llegadaPunto = crearSubtiempo(),
@@ -52,24 +60,29 @@ export default function TercerProceso() {
   // ----- Campos Principales (Tercer Proceso) -----
   const [pesadorSalida, setPesadorSalida] = useState("");
   const [basculaSalida, setBasculaSalida] = useState("");
-  // Tiempos de báscula
+  // Se pueden agregar otros campos si fueran requeridos (por ejemplo, pesoNeto)
+
+  // Tiempos de Báscula en el Tercer Proceso:
+  // Ahora se incluyen tres campos: Llegada, Entrada y Salida
   const [tiempoLlegadaBascula, setTiempoLlegadaBascula] = useState(crearSubtiempo());
   const [tiempoEntradaBascula, setTiempoEntradaBascula] = useState(crearSubtiempo());
   const [tiempoSalidaBascula, setTiempoSalidaBascula] = useState(crearSubtiempo());
 
-  // Registro de vueltas
+  // Registro de vueltas: cada vuelta contiene 5 pares de tiempos
   const [vueltas, setVueltas] = useState<any[]>([]);
 
-  // useEffect: Cargar datos desde localStorage (key "editDemora") y sincronizar la Vuelta 1
+  // ---------------------------------------
+  // useEffect: Cargar datos desde localStorage y sincronizar la Vuelta 1
+  // ---------------------------------------
   useEffect(() => {
     cargarDatosDeLocalStorage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function cargarDatosDeLocalStorage() {
-    let stored = localStorage.getItem("editDemora");
+    let stored = localStorage.getItem("envasadoProcess");
     if (!stored) {
-      // Si no existe, crear estructura base
+      // Crear estructura base si no existe
       const initialData = {
         fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
         userId: localStorage.getItem("userId"),
@@ -79,8 +92,8 @@ export default function TercerProceso() {
         tercerProceso: {},
         procesoFinal: {},
       };
-      localStorage.setItem("editDemora", JSON.stringify(initialData));
-      stored = localStorage.getItem("editDemora");
+      localStorage.setItem("envasadoProcess", JSON.stringify(initialData));
+      stored = localStorage.getItem("envasadoProcess");
     }
     const parsed = JSON.parse(stored || "{}");
 
@@ -99,7 +112,7 @@ export default function TercerProceso() {
     const tsLlegPunto = s.tiempoLlegadaPunto || crearSubtiempo();
     const tsSalidaPunto = s.tiempoSalidaPunto || crearSubtiempo();
 
-    // 3) Datos actuales del Tercer Proceso (para tiempos de báscula)
+    // 3) Extraer datos actuales del Tercer Proceso (para tiempos de báscula)
     const tProc = parsed.tercerProceso || {};
     const tLlegBascula = tProc.tiempoLlegadaBascula || crearSubtiempo();
     const tEntradaBascula = tProc.tiempoEntradaBascula || crearSubtiempo();
@@ -111,7 +124,7 @@ export default function TercerProceso() {
       vueltasLS = parsed.tercerProceso.vueltas;
     }
 
-    // 5) Si no hay vueltas, crear la Vuelta 1 usando datos de procesos 2 y 3
+    // 5) Si no hay vueltas, crear la Vuelta 1 usando datos de los Procesos 2 y 3
     if (vueltasLS.length === 0) {
       const v1 = crearNuevaVuelta(
         1,
@@ -123,7 +136,7 @@ export default function TercerProceso() {
       );
       setVueltas([v1]);
     } else {
-      // 6) Si hay vueltas, sincronizar la Vuelta 1 con los datos actuales
+      // 6) Si ya hay vueltas, sincronizar la Vuelta 1 con los datos actuales
       const updated = [...vueltasLS];
       const idxV1 = updated.findIndex((x) => x.numeroVuelta === 1);
       if (idxV1 >= 0) {
@@ -132,18 +145,30 @@ export default function TercerProceso() {
         updated[idxV1].llegadaBascula = tLlegBascula;
         updated[idxV1].entradaBascula = tEntradaBascula;
         updated[idxV1].salidaBascula = tSalidaBascula;
+      } else {
+        const v1 = crearNuevaVuelta(
+          1,
+          tsLlegPunto,
+          tsSalidaPunto,
+          tLlegBascula,
+          tEntradaBascula,
+          tSalidaBascula
+        );
+        updated.unshift(v1);
       }
       setVueltas(updated);
     }
   }
 
-  // Función para guardar los cambios en el objeto "editDemora" (tercerProceso)
+  // ---------------------------------------
+  // Guarda datos en localStorage, sincronizando la Vuelta 1
+  // ---------------------------------------
   function guardarDatosEnLocalStorage() {
-    const stored = localStorage.getItem("editDemora");
+    const stored = localStorage.getItem("envasadoProcess");
     if (!stored) return;
     const parsed = JSON.parse(stored);
 
-    // Reextraer datos del Segundo Proceso (para sincronizar la Vuelta 1)
+    // Reextraer datos del Segundo Proceso
     const s = parsed.segundoProceso || {};
     const tsLlegPunto = s.tiempoLlegadaPunto || crearSubtiempo();
     const tsSalidaPunto = s.tiempoSalidaPunto || crearSubtiempo();
@@ -164,11 +189,21 @@ export default function TercerProceso() {
         updated[idxV1].llegadaBascula = tLlegBascula;
         updated[idxV1].entradaBascula = tEntradaBascula;
         updated[idxV1].salidaBascula = tSalidaBascula;
+      } else {
+        const v1 = crearNuevaVuelta(
+          1,
+          tsLlegPunto,
+          tsSalidaPunto,
+          tLlegBascula,
+          tEntradaBascula,
+          tSalidaBascula
+        );
+        updated.unshift(v1);
       }
       return updated;
     });
 
-    // Usamos setTimeout para asegurar que el estado "vueltas" esté actualizado
+    // Guardamos en localStorage (usamos setTimeout para asegurar que "vueltas" esté actualizado)
     setTimeout(() => {
       const finalVState = [...vueltas];
       parsed.tercerProceso = {
@@ -179,21 +214,25 @@ export default function TercerProceso() {
         tiempoSalidaBascula,
         vueltas: finalVState,
       };
-      localStorage.setItem("editDemora", JSON.stringify(parsed));
+      localStorage.setItem("envasadoProcess", JSON.stringify(parsed));
     }, 0);
   }
 
-  // Helper: Asignar "Ahora" a un campo de tiempo (formato HH:mm:ss)
-  const handleSetNow = (setter: Dispatch<SetStateAction<{ hora: string; comentarios: string }>>) => {
+  // ---------------------------------------
+  // Helper: Asignar "Ahora" en formato HH:mm:ss
+  // ---------------------------------------
+  const handleSetNow = (setter: Function) => {
     const now = new Date();
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String(now.getMinutes()).padStart(2, "0");
-    const ss = String(now.getSeconds()).padStart(2, "0");
-    const hora = `${hh}:${mm}:${ss}`;
-    setter((prev) => ({ ...prev, hora }));
+    const hora = now.toLocaleTimeString("en-GB", {
+      hour12: false,
+      timeZone: "America/El_Salvador",
+    });
+    setter((prev: any) => ({ ...prev, hora }));
   };
 
+  // ---------------------------------------
   // Helper: Asignar "Ahora" a un sub-tiempo de una vuelta
+  // ---------------------------------------
   const handleSetNowSubtiempo = (index: number, tiempoKey: string) => {
     const now = new Date();
     const hora = now.toLocaleTimeString("en-GB", {
@@ -207,7 +246,9 @@ export default function TercerProceso() {
     });
   };
 
+  // ---------------------------------------
   // Helper: Actualiza un campo de un sub-tiempo en una vuelta
+  // ---------------------------------------
   const handleChangeVueltaTiempo = (
     index: number,
     tiempoKey: string,
@@ -221,20 +262,61 @@ export default function TercerProceso() {
     });
   };
 
-  // Guardar cambios en storage y navegar al siguiente paso (Proceso Final)
+  // ---------------------------------------
+  // Agregar una nueva vuelta (vuelta #2, #3, etc.)
+  // ---------------------------------------
+  const handleAgregarVuelta = () => {
+    setVueltas((prev) => [
+      ...prev,
+      crearNuevaVuelta(
+        prev.length + 1,
+        crearSubtiempo(),
+        crearSubtiempo(),
+        crearSubtiempo(),
+        crearSubtiempo(),
+        crearSubtiempo()
+      ),
+    ]);
+  };
+
+  // ---------------------------------------
+  // Eliminar una vuelta (solo si no es la Vuelta 1) con alerta de confirmación
+  // ---------------------------------------
+  const handleEliminarVuelta = async (indexToRemove: number) => {
+    const result = await Swal.fire({
+      title: "¿Está seguro?",
+      text: "Esta acción eliminará la vuelta.",
+      icon: "warning",
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      setVueltas((prev) => {
+        const newVueltas = prev.filter((_, i) => i !== indexToRemove);
+        return newVueltas.map((v, i) => ({ ...v, numeroVuelta: i + 1 }));
+      });
+    }
+  };
+
+  // ---------------------------------------
+  // Botón "Siguiente": guardar datos y navegar al Proceso Final (Paso 4)
+  // ---------------------------------------
   const handleGuardarYContinuar = () => {
     guardarDatosEnLocalStorage();
-    router.push("/proceso/editar/granel/step4");
+    router.push("/proceso/iniciar/envasado/step4");
   };
 
-  // Guardar cambios en storage y regresar al Segundo Proceso
+  // ---------------------------------------
+  // Botón "Anterior": guardar datos y regresar al Segundo Proceso (Paso 2)
+  // ---------------------------------------
   const handleAtras = () => {
     guardarDatosEnLocalStorage();
-    router.push("/proceso/editar/granel/step2");
+    router.push("/proceso/iniciar/envasado/step2");
   };
-
-  // Patrón para validar formato HH:MM:SS (24 horas)
-  const timePattern = "^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$";
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-6 text-slate-900">
@@ -246,9 +328,7 @@ export default function TercerProceso() {
           <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4"></div>
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center rounded-r-lg"></div>
         </div>
-        <h2 className="text-xl font-bold mb-4 text-orange-600">
-          Tercer Proceso <span className="text-lg text-gray-400">[Modo Edicion]</span>
-        </h2>
+        <h2 className="text-xl font-bold mb-4 text-orange-600">Tercer Proceso</h2>
 
         {/* Campos Principales */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -264,6 +344,7 @@ export default function TercerProceso() {
               onChange={(e) => setPesadorSalida(e.target.value)}
             />
           </div>
+
           {/* Báscula de Salida */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">
@@ -284,7 +365,7 @@ export default function TercerProceso() {
 
         {/* Tiempos de Báscula */}
         <div className="mt-6">
-          <h3 className="font-bold text-lg mb-2 sm:text-base">Tiempos de Báscula</h3>
+          <h3 className="font-bold text-lg mb-2 sm:text-base">Tiempos</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Llegada a la Báscula */}
             <div className="border rounded p-2">
@@ -317,10 +398,11 @@ export default function TercerProceso() {
                 }
               />
             </div>
-            {/* Entrada a la Báscula */}
+
+            {/* Entrada Báscula */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Entrada a la Báscula
+                Entrada Báscula
               </label>
               <div className="flex gap-2 mt-1">
                 <input
@@ -348,10 +430,11 @@ export default function TercerProceso() {
                 }
               />
             </div>
-            {/* Salida a la Báscula */}
+
+            {/* Salida Báscula */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">
-                Salida a la Báscula
+                Salida Báscula
               </label>
               <div className="flex gap-2 mt-1">
                 <input
@@ -388,14 +471,24 @@ export default function TercerProceso() {
           <div className="text-sm sm:text-base text-gray-600 mb-2">
             <strong>NOTA:</strong> El proceso normal cuenta como la Vuelta 1.
             <br />
-            Las vueltas solo se pueden editar, mas no agregar o eliminar.
+            Cada vez que el camión deba volver a punto de carga o descarga, agrega una nueva vuelta.
+            <div className="mt-1 ml-2 list-disc list-inside">
+              <li>Si el camión no alcanzó la carga requerida y debe regresar.</li>
+              <li>Si el camión lleva peso en exceso y debe regresar.</li>
+            </div>
           </div>
+          <button
+            className="bg-orange-500 text-white px-4 py-1 rounded text-sm sm:text-base"
+            onClick={handleAgregarVuelta}
+          >
+            + Agregar Vuelta
+          </button>
 
           {vueltas.map((v, index) => {
             const esVuelta1 = v.numeroVuelta === 1;
             return (
               <div
-                key={`${v.numeroVuelta}-${index}`}
+                key={v.numeroVuelta}
                 className="border rounded p-2 mt-2 bg-gray-50"
               >
                 <label className="block font-semibold mb-2 text-sm sm:text-base">
@@ -593,14 +686,14 @@ export default function TercerProceso() {
                 </div>
 
                 {/* Botón para eliminar la vuelta (solo si no es la Vuelta 1) */}
-                {/* {!esVuelta1 && (
+                {!esVuelta1 && (
                   <button
                     className="bg-red-500 text-white px-3 py-1 rounded mt-2 text-xs sm:text-sm"
                     onClick={() => handleEliminarVuelta(index)}
                   >
                     Eliminar Vuelta
                   </button>
-                )} */}
+                )}
               </div>
             );
           })}
