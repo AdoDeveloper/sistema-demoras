@@ -12,24 +12,28 @@ export async function middleware(req) {
   // Rutas protegidas para usuarios autenticados
   const protectedRoutes = [
     "/",
-    "/proceso/consultar",
 
     // GRANEL
     "/api/demoras/granel",
     "/api/demoras/granel/:path*",
+    "/proceso/consultar/granel",
     "/proceso/iniciar/granel",
     "/proceso/iniciar/granel/step2",
     "/proceso/iniciar/granel/step3",
     "/proceso/iniciar/granel/step4",
+    "/proceso/editar/granel",
+    "/proceso/editar/granel/step2",
+    "/proceso/editar/granel/step3",
+    "/proceso/editar/granel/step4",
 
     // ENVASADO (nuevo)
     "/api/demoras/envasado",
     "/api/demoras/envasado/:path*",
+    "/proceso/consultar/envasado",
     "/proceso/iniciar/envasado",
     "/proceso/iniciar/envasado/step2",
     "/proceso/iniciar/envasado/step3",
     "/proceso/iniciar/envasado/step4",
-    "/proceso/analisis/envasado",
     "/proceso/editar/envasado",
     "/proceso/editar/envasado/step2",
     "/proceso/editar/envasado/step3",
@@ -79,22 +83,26 @@ export const config = {
     "/perfil",
 
     // GRANEL
-    "/proceso/consultar/granel",
     "/api/demoras/granel",
     "/api/demoras/granel/:path*",
+    "/proceso/consultar/granel",
     "/proceso/iniciar/granel",
     "/proceso/iniciar/granel/step2",
     "/proceso/iniciar/granel/step3",
     "/proceso/iniciar/granel/step4",
+    "/proceso/editar/granel",
+    "/proceso/editar/granel/step2",
+    "/proceso/editar/granel/step3",
+    "/proceso/editar/granel/step4",
 
     // ENVASADO (nuevo)
     "/api/demoras/envasado",
     "/api/demoras/envasado/:path*",
+    "/proceso/consultar/envasado",
     "/proceso/iniciar/envasado",
     "/proceso/iniciar/envasado/step2",
     "/proceso/iniciar/envasado/step3",
     "/proceso/iniciar/envasado/step4",
-    "/proceso/analisis/envasado",
     "/proceso/editar/envasado",
     "/proceso/editar/envasado/step2",
     "/proceso/editar/envasado/step3",

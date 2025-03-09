@@ -97,13 +97,13 @@ export default function Dashboard() {
             <PiTruckTrailerFill size={20} className="mr-2" />
             <span>Registros Envasado</span>
           </button>
-          <button
+          {/* <button
             onClick={() => router.push("/proceso/analisis")}
             className="flex items-center justify-center w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
           >
             <FaChartBar size={20} className="mr-2" />
             <span>Datos</span>
-          </button>
+          </button> */}
           {/* Opción extra para administradores */}
           {roleId === 1 && (
             <button
