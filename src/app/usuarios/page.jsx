@@ -13,8 +13,44 @@ export default function UserRoleManagement() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
-  // Estado para saber si se han cargado todos los datos
   const [allLoaded, setAllLoaded] = useState(false);
+
+  // Estados para modales y formularios
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({
+    username: "",
+    nombreCompleto: "",
+    codigo: "",
+    email: "",
+    password: "",
+    roleId: "",
+  });
+
+  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
+  const [editUserForm, setEditUserForm] = useState({
+    id: null,
+    username: "",
+    nombreCompleto: "",
+    codigo: "",
+    email: "",
+    password: "",
+    roleId: "",
+  });
+
+  const [isDeleteUserModalOpen, setIsDeleteUserModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
+  const [isCreateRoleModalOpen, setIsCreateRoleModalOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+
+  const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
+  const [editRoleForm, setEditRoleForm] = useState({
+    id: null,
+    name: "",
+  });
+
+  const [isDeleteRoleModalOpen, setIsDeleteRoleModalOpen] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState(null);
 
   // Función para cargar usuarios
   const fetchUsers = async () => {
@@ -51,250 +87,251 @@ export default function UserRoleManagement() {
     loadAllData();
   }, []);
 
-  // Modal para crear usuario
-  const handleShowCreateUserModal = async () => {
-    const { value: formValues } = await Swal.fire({
-      title: "Crear Usuario",
-      html: `
-        <div class="flex flex-col gap-3">
-          <input id="swal-input1" class="swal2-input" placeholder="Username">
-          <input id="swal-input2" class="swal2-input" placeholder="Nombre Completo">
-          <input id="swal-input3" class="swal2-input" placeholder="Código">
-          <input id="swal-input4" class="swal2-input" placeholder="Email">
-          <input id="swal-input5" class="swal2-input" type="password" placeholder="Password">
-          <select id="swal-input6" class="swal2-input">
-            <option value="">Seleccione un rol</option>
-            ${roles.map((role) => `<option value="${role.id}">${role.name}</option>`).join("")}
-          </select>
-        </div>
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Crear",
-      cancelButtonText: "Cancelar",
-      preConfirm: () => ({
-        username: document.getElementById("swal-input1").value,
-        nombreCompleto: document.getElementById("swal-input2").value,
-        codigo: document.getElementById("swal-input3").value,
-        email: document.getElementById("swal-input4").value,
-        password: document.getElementById("swal-input5").value,
-        roleId: document.getElementById("swal-input6").value,
-      }),
+  // Abrir modal para crear usuario
+  const openCreateUserModal = () => {
+    setCreateUserForm({
+      username: "",
+      nombreCompleto: "",
+      codigo: "",
+      email: "",
+      password: "",
+      roleId: "",
     });
-    if (formValues) {
-      try {
-        const res = await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...formValues,
-            roleId: parseInt(formValues.roleId, 10),
-          }),
-        });
-        if (res.ok) {
-          const createdUser = await res.json();
-          setUsers((prev) => [...prev, createdUser]);
-          Swal.fire("¡Éxito!", "Usuario creado correctamente", "success");
-        } else {
-          Swal.fire("Error", "No se pudo crear el usuario", "error");
-        }
-      } catch (error) {
-        console.error("Error creating user:", error);
+    setIsCreateUserModalOpen(true);
+  };
+
+  const handleCreateUserChange = (e) => {
+    const { name, value } = e.target;
+    setCreateUserForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCreateUserSubmit = async (e) => {
+    e.preventDefault();
+    // Mostrar alerta de carga
+    Swal.fire({
+      title: "Creando usuario...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...createUserForm,
+          roleId: parseInt(createUserForm.roleId, 10),
+        }),
+      });
+      Swal.close();
+      if (res.ok) {
+        const createdUser = await res.json();
+        setUsers((prev) => [...prev, createdUser]);
+        setIsCreateUserModalOpen(false);
+        Swal.fire("¡Éxito!", "Usuario creado correctamente", "success");
+      } else {
         Swal.fire("Error", "No se pudo crear el usuario", "error");
       }
+    } catch (error) {
+      Swal.close();
+      console.error("Error creando usuario:", error);
+      Swal.fire("Error", "No se pudo crear el usuario", "error");
     }
   };
 
-  // Eliminar usuario
-  const handleDeleteUser = async (id) => {
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "Esta acción no se puede revertir.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Sí, eliminar usuario!",
-      cancelButtonText: "Cancelar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
-          if (res.ok) {
-            setUsers(users.filter((u) => u.id !== id));
-            Swal.fire("Eliminado!", "El usuario ha sido eliminado.", "success");
-          } else {
-            Swal.fire("Error", "No se pudo eliminar el usuario.", "error");
-          }
-        } catch (error) {
-          console.error("Error deleting user:", error);
-          Swal.fire("Error", "No se pudo eliminar el usuario.", "error");
-        }
-      }
+  // Abrir modal para editar usuario
+  const openEditUserModal = (user) => {
+    setEditUserForm({
+      id: user.id,
+      username: user.username,
+      nombreCompleto: user.nombreCompleto,
+      codigo: user.codigo,
+      email: user.email || "",
+      password: "",
+      roleId: user.role?.id.toString() || "",
     });
+    setIsEditUserModalOpen(true);
   };
 
-  // Editar usuario
-  const handleEditUser = async (user) => {
-    const { value: formValues } = await Swal.fire({
-      title: "Editar Usuario",
-      html: `
-        <div class="flex flex-col gap-3">
-          <input id="swal-input1" class="swal2-input" placeholder="Username" value="${user.username}">
-          <input id="swal-input2" class="swal2-input" placeholder="Nombre Completo" value="${user.nombreCompleto}">
-          <input id="swal-input3" class="swal2-input" placeholder="Código" value="${user.codigo}">
-          <input id="swal-input4" class="swal2-input" placeholder="Email" value="${user.email || ""}">
-          <input id="swal-input5" class="swal2-input" type="password" placeholder="Password (opcional)">
-          <select id="swal-input6" class="swal2-input">
-            <option value="">Seleccione un rol</option>
-            ${roles.map((role) => `<option value="${role.id}" ${role.id === user.role?.id ? "selected" : ""}>${role.name}</option>`).join("")}
-          </select>
-        </div>
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Actualizar",
-      cancelButtonText: "Cancelar",
-      preConfirm: () => ({
-        username: document.getElementById("swal-input1").value,
-        nombreCompleto: document.getElementById("swal-input2").value,
-        codigo: document.getElementById("swal-input3").value,
-        email: document.getElementById("swal-input4").value,
-        password: document.getElementById("swal-input5").value,
-        roleId: document.getElementById("swal-input6").value,
-      }),
+  const handleEditUserChange = (e) => {
+    const { name, value } = e.target;
+    setEditUserForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditUserSubmit = async (e) => {
+    e.preventDefault();
+    const { id, username, nombreCompleto, codigo, email, password, roleId } = editUserForm;
+    const payload = {
+      username,
+      nombreCompleto,
+      codigo,
+      email,
+      roleId: parseInt(roleId, 10),
+    };
+    if (password.trim() !== "") {
+      payload.password = password;
+    }
+    // Mostrar alerta de carga
+    Swal.fire({
+      title: "Actualizando usuario...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
     });
-    if (formValues) {
-      try {
-        const res = await fetch(`/api/users/${user.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...formValues,
-            roleId: parseInt(formValues.roleId, 10),
-            password: formValues.password ? formValues.password : user.password,
-          }),
-        });
-        if (res.ok) {
-          const updatedUser = await res.json();
-          setUsers(users.map((u) => (u.id === user.id ? updatedUser : u)));
-          Swal.fire("¡Éxito!", "Usuario actualizado correctamente", "success");
-        } else {
-          Swal.fire("Error", "No se pudo actualizar el usuario", "error");
-        }
-      } catch (error) {
-        console.error("Error updating user:", error);
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      Swal.close();
+      if (res.ok) {
+        const updatedUser = await res.json();
+        setUsers(users.map((u) => (u.id === id ? updatedUser : u)));
+        setIsEditUserModalOpen(false);
+        Swal.fire("¡Éxito!", "Usuario actualizado correctamente", "success");
+      } else {
         Swal.fire("Error", "No se pudo actualizar el usuario", "error");
       }
+    } catch (error) {
+      Swal.close();
+      console.error("Error actualizando usuario:", error);
+      Swal.fire("Error", "No se pudo actualizar el usuario", "error");
     }
   };
 
-  // Modal para crear rol
-  const handleShowCreateRoleModal = async () => {
-    const { value: roleName } = await Swal.fire({
-      title: "Crear Rol",
-      input: "text",
-      inputLabel: "Nombre del rol",
-      inputPlaceholder: "Ingrese el nombre del rol",
-      showCancelButton: true,
-      confirmButtonText: "Crear",
-      cancelButtonText: "Cancelar",
-      preConfirm: (value) => {
-        if (!value) {
-          Swal.showValidationMessage("El nombre es requerido");
-        }
-        return value;
+  // Abrir modal para confirmar eliminación de usuario
+  const openDeleteUserModal = (id) => {
+    setUserToDelete(id);
+    setIsDeleteUserModalOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    try {
+      const res = await fetch(`/api/users/${userToDelete}`, { method: "DELETE" });
+      if (res.ok) {
+        setUsers(users.filter((u) => u.id !== userToDelete));
+        setIsDeleteUserModalOpen(false);
+        Swal.fire("¡Éxito!", "Usuario eliminado correctamente", "success");
+      } else {
+        Swal.fire("Error", "No se pudo eliminar el usuario", "error");
+      }
+    } catch (error) {
+      console.error("Error eliminando usuario:", error);
+      Swal.fire("Error", "No se pudo eliminar el usuario", "error");
+    }
+  };
+
+  // Abrir modal para crear rol
+  const openCreateRoleModal = () => {
+    setNewRoleName("");
+    setIsCreateRoleModalOpen(true);
+  };
+
+  const handleCreateRoleSubmit = async (e) => {
+    e.preventDefault();
+    if (!newRoleName.trim()) return;
+    // Mostrar alerta de carga
+    Swal.fire({
+      title: "Creando rol...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
       },
     });
-    if (roleName) {
-      try {
-        const res = await fetch("/api/roles", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: roleName }),
-        });
-        if (res.ok) {
-          const createdRole = await res.json();
-          setRoles((prev) => [...prev, createdRole]);
-          Swal.fire("¡Éxito!", "Rol creado correctamente", "success");
-        } else {
-          Swal.fire("Error", "No se pudo crear el rol", "error");
-        }
-      } catch (error) {
-        console.error("Error creating role:", error);
+    try {
+      const res = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newRoleName }),
+      });
+      Swal.close();
+      if (res.ok) {
+        const createdRole = await res.json();
+        setRoles((prev) => [...prev, createdRole]);
+        setIsCreateRoleModalOpen(false);
+        Swal.fire("¡Éxito!", "Rol creado correctamente", "success");
+      } else {
         Swal.fire("Error", "No se pudo crear el rol", "error");
       }
+    } catch (error) {
+      Swal.close();
+      console.error("Error creando rol:", error);
+      Swal.fire("Error", "No se pudo crear el rol", "error");
     }
   };
 
-  // Eliminar rol
-  const handleDeleteRole = async (id) => {
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "Esta acción no se puede revertir.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Sí, eliminar rol!",
-      cancelButtonText: "Cancelar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const res = await fetch(`/api/roles/${id}`, { method: "DELETE" });
-          if (res.ok) {
-            setRoles(roles.filter((r) => r.id !== id));
-            Swal.fire("Eliminado!", "El rol ha sido eliminado.", "success");
-          } else {
-            Swal.fire("Error", "No se pudo eliminar el rol.", "error");
-          }
-        } catch (error) {
-          console.error("Error deleting role:", error);
-          Swal.fire("Error", "No se pudo eliminar el rol.", "error");
-        }
-      }
+  // Abrir modal para editar rol
+  const openEditRoleModal = (role) => {
+    setEditRoleForm({
+      id: role.id,
+      name: role.name,
     });
+    setIsEditRoleModalOpen(true);
   };
 
-  // Editar rol
-  const handleEditRole = async (role) => {
-    const { value: newName } = await Swal.fire({
-      title: "Editar Rol",
-      input: "text",
-      inputLabel: "Nuevo nombre para el rol",
-      inputValue: role.name,
-      showCancelButton: true,
-      confirmButtonText: "Actualizar",
-      cancelButtonText: "Cancelar",
-      preConfirm: (value) => {
-        if (!value) {
-          Swal.showValidationMessage("El nombre es requerido");
-        }
-        return value;
+  const handleEditRoleChange = (e) => {
+    setEditRoleForm({ ...editRoleForm, name: e.target.value });
+  };
+
+  const handleEditRoleSubmit = async (e) => {
+    e.preventDefault();
+    const { id, name } = editRoleForm;
+    // Mostrar alerta de carga
+    Swal.fire({
+      title: "Actualizando rol...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
       },
     });
-    if (newName) {
-      try {
-        const res = await fetch(`/api/roles/${role.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: newName }),
-        });
-        if (res.ok) {
-          const updatedRole = await res.json();
-          setRoles(roles.map((r) => (r.id === role.id ? updatedRole : r)));
-          Swal.fire("¡Éxito!", "Rol actualizado correctamente", "success");
-        } else {
-          Swal.fire("Error", "No se pudo actualizar el rol", "error");
-        }
-      } catch (error) {
-        console.error("Error updating role:", error);
+    try {
+      const res = await fetch(`/api/roles/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      Swal.close();
+      if (res.ok) {
+        const updatedRole = await res.json();
+        setRoles(roles.map((r) => (r.id === id ? updatedRole : r)));
+        setIsEditRoleModalOpen(false);
+        Swal.fire("¡Éxito!", "Rol actualizado correctamente", "success");
+      } else {
         Swal.fire("Error", "No se pudo actualizar el rol", "error");
       }
+    } catch (error) {
+      Swal.close();
+      console.error("Error actualizando rol:", error);
+      Swal.fire("Error", "No se pudo actualizar el rol", "error");
     }
   };
 
-  // Mostrar loader global hasta que se carguen todos los datos
+  // Abrir modal para confirmar eliminación de rol
+  const openDeleteRoleModal = (id) => {
+    setRoleToDelete(id);
+    setIsDeleteRoleModalOpen(true);
+  };
+
+  const handleDeleteRole = async () => {
+    try {
+      const res = await fetch(`/api/roles/${roleToDelete}`, { method: "DELETE" });
+      if (res.ok) {
+        setRoles(roles.filter((r) => r.id !== roleToDelete));
+        setIsDeleteRoleModalOpen(false);
+        Swal.fire("¡Éxito!", "Rol eliminado correctamente", "success");
+      } else {
+        Swal.fire("Error", "No se pudo eliminar el rol", "error");
+      }
+    } catch (error) {
+      console.error("Error eliminando rol:", error);
+      Swal.fire("Error", "No se pudo eliminar el rol", "error");
+    }
+  };
+
+  // Loader global hasta que se carguen todos los datos
   if (!allLoaded) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
@@ -306,6 +343,7 @@ export default function UserRoleManagement() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 p-4 sm:p-6">
+      {/* Contenedor principal responsive */}
       {/* Header */}
       <div className="flex items-center pb-3">
         <button
@@ -315,125 +353,437 @@ export default function UserRoleManagement() {
         >
           <FiArrowLeft size={20} />
         </button>
-        <h1 className="text-xl font-bold">Gestion Usuarios</h1>
+        <h1 className="text-xl font-bold">Gestión de Usuarios</h1>
       </div>
 
-      {/* Contenido principal */}
-      <main className="space-y-8">
-        {/* Sección de Usuarios */}
-        <section>
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Usuarios</h2>
-            <button
-              onClick={handleShowCreateUserModal}
-              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
-            >
-              <FaPlus className="mr-2" />
-              Nuevo Usuario
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            {loadingUsers ? (
-              <p className="text-center text-gray-500">Cargando usuarios...</p>
-            ) : (
-              <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-                <thead className="bg-gray-300 text-gray-800">
-                  <tr>
-                    <th className="px-4 py-2 whitespace-nowrap text-left font-medium">ID</th>
-                    <th className="px-4 py-2 whitespace-nowrap text-left font-medium">Username</th>
-                    <th className="px-4 py-2 whitespace-nowrap text-left font-medium">Nombre Completo</th>
-                    <th className="px-4 py-2 whitespace-nowrap text-left font-medium">Código</th>
-                    <th className="px-4 py-2 whitespace-nowrap text-left font-medium">Email</th>
-                    <th className="px-4 py-2 whitespace-nowrap text-left font-medium">Rol</th>
-                    <th className="px-4 py-2 whitespace-nowrap text-center font-medium">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 whitespace-nowrap text-gray-700">{user.id}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-gray-700">{user.username}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-gray-700">{user.nombreCompleto}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-gray-700">{user.codigo}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-gray-700">{user.email}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-gray-700">{user.role?.name}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-center space-x-2">
-                        <button
-                          onClick={() => handleEditUser(user)}
-                          title="Editar usuario"
-                          className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full transition-colors"
-                        >
-                          <FiEdit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user.id)}
-                          title="Eliminar usuario"
-                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </section>
+      <div className="max-w-7xl mx-auto">
 
-        {/* Sección de Roles */}
-        <section>
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Roles</h2>
-            <button
-              onClick={handleShowCreateRoleModal}
-              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
-            >
-              <FaPlus className="mr-2" />
-              Nuevo Rol
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            {loadingRoles ? (
-              <p className="text-center text-gray-500">Cargando roles...</p>
-            ) : (
-              <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-                <thead className="bg-gray-300 text-gray-800">
-                  <tr>
-                    <th className="px-4 py-2 whitespace-nowrap text-left font-medium">ID</th>
-                    <th className="px-4 py-2 whitespace-nowrap text-left font-medium">Nombre</th>
-                    <th className="px-4 py-2 whitespace-nowrap text-center font-medium">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {roles.map((role) => (
-                    <tr key={role.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 whitespace-nowrap text-gray-700">{role.id}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-gray-700">{role.name}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-center space-x-2">
-                        <button
-                          onClick={() => handleEditRole(role)}
-                          title="Editar rol"
-                          className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full transition-colors"
-                        >
-                          <FiEdit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRole(role.id)}
-                          title="Eliminar rol"
-                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      </td>
+        {/* Contenido principal */}
+        <main className="space-y-8">
+          {/* Sección de Usuarios */}
+          <section>
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Usuarios</h2>
+              <button
+                onClick={openCreateUserModal}
+                className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+              >
+                <FaPlus className="mr-2" />
+                Nuevo Usuario
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              {loadingUsers ? (
+                <p className="text-center text-gray-500">Cargando usuarios...</p>
+              ) : (
+                <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+                  <thead className="bg-gray-300 text-gray-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium">ID</th>
+                      <th className="px-4 py-2 text-left font-medium">Username</th>
+                      <th className="px-4 py-2 text-left font-medium">Nombre Completo</th>
+                      <th className="px-4 py-2 text-left font-medium">Código</th>
+                      <th className="px-4 py-2 text-left font-medium">Email</th>
+                      <th className="px-4 py-2 text-left font-medium">Rol</th>
+                      <th className="px-4 py-2 text-center font-medium">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.id}</td>
+                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.username}</td>
+                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.nombreCompleto}</td>
+                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.codigo}</td>
+                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.email}</td>
+                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.role?.name}</td>
+                        <td className="px-4 py-2 text-center space-x-2 flex items-center justify-center">
+                          <button
+                            onClick={() => openEditUserModal(user)}
+                            title="Editar usuario"
+                            className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full transition-colors"
+                          >
+                            <FiEdit size={16} />
+                          </button>
+                          <button
+                            onClick={() => openDeleteUserModal(user.id)}
+                            title="Eliminar usuario"
+                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+
+          {/* Sección de Roles */}
+          <section>
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Roles</h2>
+              <button
+                onClick={openCreateRoleModal}
+                className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+              >
+                <FaPlus className="mr-2" />
+                Nuevo Rol
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              {loadingRoles ? (
+                <p className="text-center text-gray-500">Cargando roles...</p>
+              ) : (
+                <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+                  <thead className="bg-gray-300 text-gray-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium">ID</th>
+                      <th className="px-4 py-2 text-left font-medium">Nombre</th>
+                      <th className="px-4 py-2 text-center font-medium">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {roles.map((role) => (
+                      <tr key={role.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-gray-700 text-nowrap">{role.id}</td>
+                        <td className="px-4 py-2 text-gray-700 text-nowrap">{role.name}</td>
+                        <td className="px-4 py-2 text-center space-x-2">
+                          <button
+                            onClick={() => openEditRoleModal(role)}
+                            title="Editar rol"
+                            className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full transition-colors"
+                          >
+                            <FiEdit size={16} />
+                          </button>
+                          <button
+                            onClick={() => openDeleteRoleModal(role.id)}
+                            title="Eliminar rol"
+                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+        </main>
+      </div>
+
+      {/* Modal: Crear Usuario */}
+      {isCreateUserModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50 px-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg">
+            <div className="px-4 py-2 border-b">
+              <h3 className="text-lg font-semibold">Crear Usuario</h3>
+            </div>
+            <div className="p-4">
+              <form onSubmit={handleCreateUserSubmit}>
+                <div className="flex flex-col gap-3">
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Username"
+                    className="border p-2 rounded"
+                    value={createUserForm.username}
+                    onChange={handleCreateUserChange}
+                    required
+                  />
+                  <input
+                    type="text"
+                    name="nombreCompleto"
+                    placeholder="Nombre Completo"
+                    className="border p-2 rounded"
+                    value={createUserForm.nombreCompleto}
+                    onChange={handleCreateUserChange}
+                    required
+                  />
+                  <input
+                    type="text"
+                    name="codigo"
+                    placeholder="Código"
+                    className="border p-2 rounded"
+                    value={createUserForm.codigo}
+                    onChange={handleCreateUserChange}
+                    required
+                  />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    className="border p-2 rounded"
+                    value={createUserForm.email}
+                    onChange={handleCreateUserChange}
+                    required
+                  />
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    className="border p-2 rounded"
+                    value={createUserForm.password}
+                    onChange={handleCreateUserChange}
+                    required
+                  />
+                  <select
+                    name="roleId"
+                    className="border p-2 rounded"
+                    value={createUserForm.roleId}
+                    onChange={handleCreateUserChange}
+                    required
+                  >
+                    <option value="">Seleccione un rol</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateUserModalOpen(false)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded"
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">
+                    Crear
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </section>
-      </main>
+        </div>
+      )}
+
+      {/* Modal: Editar Usuario */}
+      {isEditUserModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50 px-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg">
+            <div className="px-4 py-2 border-b">
+              <h3 className="text-lg font-semibold">Editar Usuario</h3>
+            </div>
+            <div className="p-4">
+              <form onSubmit={handleEditUserSubmit}>
+                <div className="flex flex-col gap-3">
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Username"
+                    className="border p-2 rounded"
+                    value={editUserForm.username}
+                    onChange={handleEditUserChange}
+                    required
+                  />
+                  <input
+                    type="text"
+                    name="nombreCompleto"
+                    placeholder="Nombre Completo"
+                    className="border p-2 rounded"
+                    value={editUserForm.nombreCompleto}
+                    onChange={handleEditUserChange}
+                    required
+                  />
+                  <input
+                    type="text"
+                    name="codigo"
+                    placeholder="Código"
+                    className="border p-2 rounded"
+                    value={editUserForm.codigo}
+                    onChange={handleEditUserChange}
+                    required
+                  />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    className="border p-2 rounded"
+                    value={editUserForm.email}
+                    onChange={handleEditUserChange}
+                    required
+                  />
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Password (opcional)"
+                    className="border p-2 rounded"
+                    value={editUserForm.password}
+                    onChange={handleEditUserChange}
+                  />
+                  <select
+                    name="roleId"
+                    className="border p-2 rounded"
+                    value={editUserForm.roleId}
+                    onChange={handleEditUserChange}
+                    required
+                  >
+                    <option value="">Seleccione un rol</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditUserModalOpen(false)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded"
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">
+                    Actualizar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirmar Eliminación de Usuario */}
+      {isDeleteUserModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50 px-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="px-4 py-2 border-b">
+              <h3 className="text-lg font-semibold">Confirmar Eliminación</h3>
+            </div>
+            <div className="p-4">
+              <p>
+                ¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede revertir.
+              </p>
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteUserModalOpen(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteUser}
+                  className="px-4 py-2 bg-red-600 text-white rounded"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Crear Rol */}
+      {isCreateRoleModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50 px-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="px-4 py-2 border-b">
+              <h3 className="text-lg font-semibold">Crear Rol</h3>
+            </div>
+            <div className="p-4">
+              <form onSubmit={handleCreateRoleSubmit}>
+                <input
+                  type="text"
+                  placeholder="Nombre del rol"
+                  className="border p-2 rounded w-full"
+                  value={newRoleName}
+                  onChange={(e) => setNewRoleName(e.target.value)}
+                  required
+                />
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateRoleModalOpen(false)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded"
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">
+                    Crear
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Editar Rol */}
+      {isEditRoleModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50 px-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="px-4 py-2 border-b">
+              <h3 className="text-lg font-semibold">Editar Rol</h3>
+            </div>
+            <div className="p-4">
+              <form onSubmit={handleEditRoleSubmit}>
+                <input
+                  type="text"
+                  placeholder="Nuevo nombre para el rol"
+                  className="border p-2 rounded w-full"
+                  value={editRoleForm.name}
+                  onChange={handleEditRoleChange}
+                  required
+                />
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditRoleModalOpen(false)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded"
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">
+                    Actualizar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirmar Eliminación de Rol */}
+      {isDeleteRoleModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50 px-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="px-4 py-2 border-b">
+              <h3 className="text-lg font-semibold">Confirmar Eliminación</h3>
+            </div>
+            <div className="p-4">
+              <p>
+                ¿Estás seguro de que deseas eliminar este rol? Esta acción no se puede revertir.
+              </p>
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteRoleModalOpen(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteRole}
+                  className="px-4 py-2 bg-red-600 text-white rounded"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

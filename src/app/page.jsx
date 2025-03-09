@@ -109,7 +109,6 @@ export default function Dashboard() {
             <button
               onClick={() => router.push("/usuarios")}
               className="flex items-center justify-center w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
-              disabled
             >
               <FiUsers size={20} className="mr-2" />
               <span>Usuarios</span>

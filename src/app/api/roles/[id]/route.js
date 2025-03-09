@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "../../../../../lib/prisma";
 
 export async function GET(request, { params }) {
-  const { id } = params;
+  const paramsData = await params;
+  const { id } = paramsData;
   try {
     const role = await prisma.role.findUnique({
       where: { id: parseInt(id, 10) },
@@ -16,7 +17,8 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const { id } = params;
+  const paramsData = await params;
+  const { id } = paramsData;
   try {
     const body = await request.json();
     const { name } = body;
@@ -32,7 +34,8 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const { id } = params;
+  const paramsData = await params;
+  const { id } = paramsData;
   try {
     const deletedRole = await prisma.role.delete({
       where: { id: parseInt(id, 10) },
