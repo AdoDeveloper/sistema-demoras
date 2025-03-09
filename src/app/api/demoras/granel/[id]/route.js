@@ -52,6 +52,11 @@ export async function GET(request, { params }) {
 
 // PUT: Actualiza el registro de demora y todos sus procesos asociados utilizando una transacción de Prisma
 export async function PUT(request, { params }) {
+  // Obtener la sesión (token) del usuario autenticado
+  const session = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 403 });
+  }
   // Espera a que params se resuelva antes de usar sus propiedades.
   const paramsData = await params;
   const { id } = paramsData;
@@ -92,8 +97,8 @@ export async function PUT(request, { params }) {
     // Log de datos generales
     const fechaInicioStr = parseFechaInicio(editDemora.fechaInicio);
     console.debug(">>> [API Debug] Fecha de Inicio (string):", fechaInicioStr);
-    console.debug(">>> [API Debug] userId:", editDemora.userId);
-    console.debug(">>> [API Debug] userName:", editDemora.userName);
+    console.log(">>> [API Debug] userId (de sesión):", session.id);
+    console.log(">>> [API Debug] userName (de sesión):", session.username);
 
     // Extraer y loggear cada uno de los procesos
     const primerP = editDemora.primerProceso || {};
@@ -159,8 +164,8 @@ export async function PUT(request, { params }) {
       const demoraUpdated = await tx.demora.update({
         where: { id: parseInt(id, 10) },
         data: {
-          userId: editDemora.userId ? parseInt(editDemora.userId, 10) : undefined,
-          userName: editDemora.userName,
+          userId: parseInt(session.id, 10) || null,
+          userName: session.username || "",
           fechaInicio: editDemora.fechaInicio,
           tiempoTotal: editDemora.tiempoTotal,
         },

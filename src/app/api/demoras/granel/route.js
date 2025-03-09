@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server"; 
+import { NextResponse } from "next/server";
 import prisma from "../../../../../lib/prisma";
+import { getToken } from "next-auth/jwt";
 
 function parseFechaInicio(fechaStr) {
   // Se guarda la fecha de inicio directamente como string
@@ -8,8 +9,8 @@ function parseFechaInicio(fechaStr) {
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "10", 10);
 
   try {
     const totalCount = await prisma.demora.count();
@@ -33,6 +34,12 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    // Obtener la sesión (token) del usuario autenticado
+    const session = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    if (!session) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 403 });
+    }
+
     const body = await request.json();
     console.log(">>> [API Debug] BODY RECIBIDO:", body);
 
@@ -45,11 +52,11 @@ export async function POST(request) {
       );
     }
 
-    // 1) Extraer datos generales
+    // Extraer datos generales
     const fechaInicioStr = parseFechaInicio(demorasProcess.fechaInicio);
     console.log(">>> [API Debug] Fecha de Inicio (string):", fechaInicioStr);
-    console.log(">>> [API Debug] userId:", demorasProcess.userId);
-    console.log(">>> [API Debug] userName:", demorasProcess.userName);
+    console.log(">>> [API Debug] userId (de sesión):", session.id);
+    console.log(">>> [API Debug] userName (de sesión):", session.username);
 
     // Extraer los procesos
     const primerP = demorasProcess.primerProceso || {};
@@ -57,7 +64,7 @@ export async function POST(request) {
     const tercerP = demorasProcess.tercerProceso || {};
     const finalP = demorasProcess.procesoFinal || {};
 
-    // 2) Validar duplicidad en el Primer Proceso (por ejemplo, con el campo numeroTransaccion)
+    // Validar duplicidad en el Primer Proceso (por ejemplo, con el campo numeroTransaccion)
     if (primerP.numeroTransaccion) {
       const transaccionExistente = await prisma.primerProceso.findFirst({
         where: { numeroTransaccion: primerP.numeroTransaccion },
@@ -74,7 +81,7 @@ export async function POST(request) {
       }
     }
 
-    // 3) Validar las vueltas ANTES de iniciar la transacción para evitar saltos de ID
+    // Validar las vueltas ANTES de iniciar la transacción para evitar saltos de ID
     if (tercerP && Object.keys(tercerP).length > 0 && Array.isArray(tercerP.vueltas)) {
       for (let i = 0; i < tercerP.vueltas.length; i++) {
         const unaVuelta = tercerP.vueltas[i];
@@ -100,13 +107,13 @@ export async function POST(request) {
       }
     }
 
-    // 4) Ejecutar todas las operaciones en una transacción
+    // Ejecutar todas las operaciones en una transacción
     const createdData = await prisma.$transaction(async (tx) => {
-      // Crear la Demora principal
+      // Crear la Demora principal utilizando datos de la sesión
       const demoraCreada = await tx.demora.create({
         data: {
-          userId: parseInt(demorasProcess.userId, 10) || null,
-          userName: demorasProcess.userName || "",
+          userId: parseInt(session.id, 10) || null,
+          userName: session.username || "",
           fechaInicio: fechaInicioStr,
           tiempoTotal: demorasProcess.tiempoTotal || null,
         },
@@ -200,7 +207,6 @@ export async function POST(request) {
 
         if (Array.isArray(tercerP.vueltas)) {
           console.log(">>> [API Debug] Procesando vueltas:", tercerP.vueltas);
-          
           for (let i = 0; i < tercerP.vueltas.length; i++) {
             const unaVuelta = tercerP.vueltas[i];
             console.log(`>>> [API Debug] Procesando vuelta ${i + 1}:`, unaVuelta);

@@ -44,12 +44,19 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
+   // Obtener la sesión (token) del usuario autenticado
+  const session = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  if (!session) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 403 });
+  }
+  console.log(">>> [API Debug] userId (de sesión):", session.id);
+  console.log(">>> [API Debug] userName (de sesión):", session.username);
   const paramsData = await params;
   const { id } = paramsData;
   console.debug(">>> [API Debug] Iniciando PUT para envasado id:", id);
   try {
     const body = await request.json();
-    console.debug(">>> [API Debug] Payload recibido:", JSON.stringify(body, null, 2));
+    // console.debug(">>> [API Debug] Payload recibido:", JSON.stringify(body, null, 2));
 
     const { editEnvasado } = body;
     if (!editEnvasado) {
@@ -128,16 +135,14 @@ export async function PUT(request, { params }) {
 
     const updatedEnvasado = await prisma.$transaction(async (tx) => {
       console.debug(">>> [API Debug] Actualizando envasado principal con datos:", {
-        userId: editEnvasado.userId,
-        userName: editEnvasado.userName,
         fechaInicio: editEnvasado.fechaInicio,
         tiempoTotal: editEnvasado.tiempoTotal,
       });
       const envasadoUpdated = await tx.envasado.update({
         where: { id: parseInt(id, 10) },
         data: {
-          userId: editEnvasado.userId ? parseInt(editEnvasado.userId, 10) : undefined,
-          userName: editEnvasado.userName,
+          userId: parseInt(session.id, 10) || null,
+          userName: session.username || "",
           fechaInicio: editEnvasado.fechaInicio,
           tiempoTotal: editEnvasado.tiempoTotal,
         },

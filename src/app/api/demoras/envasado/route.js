@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../../../lib/prisma";
+import { getToken } from "next-auth/jwt";
 
 function parseFechaInicio(fechaStr) {
   // Se guarda la fecha de inicio directamente como string
@@ -33,29 +34,35 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    // Obtener la sesión (token) del usuario autenticado
+    const session = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    if (!session) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 403 });
+    }
+
     const body = await request.json();
     console.log(">>> [API Debug] BODY RECIBIDO:", body);
 
-    // Se espera que el body tenga la propiedad envasadoProcess (en singular)
+    // Se espera que el body tenga la propiedad envasadoProcess
     const { envasadoProcess } = body;
     if (!envasadoProcess) {
       console.warn(">>> [API Debug] envasadoProcess es undefined o null.");
       return NextResponse.json({ error: "Faltan datos en el body" }, { status: 400 });
     }
 
-    // 1) Extraer datos generales
+    // Extraer datos generales
     const fechaInicioStr = parseFechaInicio(envasadoProcess.fechaInicio);
     console.log(">>> [API Debug] Fecha de Inicio (string):", fechaInicioStr);
-    console.log(">>> [API Debug] userId:", envasadoProcess.userId);
-    console.log(">>> [API Debug] userName:", envasadoProcess.userName);
+    console.log(">>> [API Debug] userId (de sesión):", session.id);
+    console.log(">>> [API Debug] userName (de sesión):", session.username);
 
-    // Extraer los procesos (todos los campos sin omitir)
+    // Extraer procesos
     const primerP = envasadoProcess.primerProceso || {};
     const segundoP = envasadoProcess.segundoProceso || {};
     const tercerP = envasadoProcess.tercerProceso || {};
     const finalP = envasadoProcess.procesoFinal || {};
 
-    // 2) Validar duplicidad en el Primer Proceso Env (por numeroTransaccion)
+    // Validar duplicidad en el Primer Proceso Env (por numeroTransaccion)
     if (primerP.numeroTransaccion) {
       const transaccionExistente = await prisma.primerProcesoEnv.findFirst({
         where: { numeroTransaccion: primerP.numeroTransaccion },
@@ -66,7 +73,7 @@ export async function POST(request) {
       }
     }
 
-    // 3) Validar las vueltas del Tercer Proceso Env
+    // Validar las vueltas del Tercer Proceso Env
     if (tercerP && Object.keys(tercerP).length > 0 && Array.isArray(tercerP.vueltas)) {
       for (let i = 0; i < tercerP.vueltas.length; i++) {
         const unaVuelta = tercerP.vueltas[i];
@@ -76,7 +83,6 @@ export async function POST(request) {
           const horaLlegadaBascula = unaVuelta.llegadaBascula?.hora || "";
           const horaEntradaBascula = unaVuelta.entradaBascula?.hora || "";
           const horaSalidaBascula = unaVuelta.salidaBascula?.hora || "";
-          
           if (
             !horaLlegadaPunto.trim() ||
             !horaSalidaPunto.trim() ||
@@ -92,20 +98,20 @@ export async function POST(request) {
       }
     }
 
-    // 4) Ejecutar todas las operaciones en una transacción
+    // Ejecutar operaciones en una transacción
     const createdData = await prisma.$transaction(async (tx) => {
-      // Crear el registro principal en Envasado
+      // Crear registro principal en Envasado usando datos de la sesión
       const envasadoCreado = await tx.envasado.create({
         data: {
-          userId: parseInt(envasadoProcess.userId, 10) || null,
-          userName: envasadoProcess.userName || "",
+          userId: parseInt(session.id, 10) || null,
+          userName: session.username || "",
           fechaInicio: fechaInicioStr,
           tiempoTotal: envasadoProcess.tiempoTotal || null,
         },
       });
       console.log(">>> [API Debug] Envasado creado con ID:", envasadoCreado.id);
 
-      // Crear Primer Proceso Env (se incluye numeroOrden)
+      // Crear Primer Proceso Env
       if (Object.keys(primerP).length > 0) {
         await tx.primerProcesoEnv.create({
           data: {
@@ -175,7 +181,6 @@ export async function POST(request) {
         });
         console.log(">>> [API Debug] Segundo proceso (Envasados) creado con éxito.");
 
-        // Crear registros para los paros del Segundo Proceso Env
         if (Array.isArray(segundoP.paros) && segundoProcesoEnvCreado) {
           for (let i = 0; i < segundoP.paros.length; i++) {
             const paro = segundoP.paros[i];
@@ -196,7 +201,7 @@ export async function POST(request) {
         console.log(">>> [API Debug] segundoProceso vacío, no se crea registro.");
       }
 
-      // Crear Tercer Proceso Env y sus VueltasEnv
+      // Crear Tercer Proceso Env y sus vueltas
       if (Object.keys(tercerP).length > 0) {
         const terceroCreado = await tx.tercerProcesoEnv.create({
           data: {
