@@ -44,7 +44,7 @@ model Session {
   @@index([userId], map: "sessions_user_id_fkey")
   @@map("sessions")
 }
-
+// GRANEL
 model Demora {
   id             Int             @id @default(autoincrement()) @map("id")
   userId         Int?            @map("user_id")

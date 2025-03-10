@@ -47,19 +47,21 @@ export default function Profile() {
       )}&endDate=${encodeURIComponent(endDate)}`;
       const res = await fetch(url);
       const data = await res.json();
-
+  
       // Datos de Demoras
-      setGlobalStats(data.stats);
-      setDailyStats(data.dailyStats || []);
-      setRecords(data.registros || []);
-      setPage(data.pagination.page);
-      setTotalPages(data.pagination.totalPages);
+      setGlobalStats(data.granel.stats);
+      setDailyStats(data.granel.dailyStats || []);
+      setRecords(data.granel.registros || []);
+      setPage(data.granel.pagination.page);
+      setTotalPages(data.granel.pagination.totalPages);
+  
       // Datos de Envasados
-      if (data.envasados) {
-        setEnvDailyStats(data.envasados.dailyStats || []);
-        setEnvRecords(data.envasados.registros || []);
-        setEnvPagination(data.envasados.pagination || { total: 0, page: 1, limit, totalPages: 1 });
+      if (data.envasado) {
+        setEnvDailyStats(data.envasado.dailyStats || []);
+        setEnvRecords(data.envasado.registros || []);
+        setEnvPagination(data.envasado.pagination || { total: 0, page: 1, limit, totalPages: 1 });
       }
+  
       setUserData(data.user);
     } catch (error) {
       console.error("Error fetching data", error);
@@ -212,7 +214,8 @@ export default function Profile() {
         totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
         dailyStatsData = dailyStats;
       } else {
-        totalRegistros = envPagination.total || 0;
+        totalRegistros =
+          userData?.role?.id === 1 ? (envPagination.total || 0) : (envPagination.realizado || 0);
         totalCabaleo = envTotalCabaleo;
         totalCargaMaxima = envTotalCargaMaxima;
         dailyStatsData = envDailyStats;
@@ -742,7 +745,7 @@ export default function Profile() {
                   <div className="bg-white p-6 rounded-lg shadow-md">
                     <p className="text-sm text-gray-500">Total Registros</p>
                     <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {envPagination.total || 0}
+                      {envPagination.totalGlobal || 0}
                     </p>
                   </div>
                   <div className="bg-white p-6 rounded-lg shadow-md">

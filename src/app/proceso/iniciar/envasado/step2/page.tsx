@@ -18,9 +18,14 @@ interface OptionType {
 const grupoOptions: OptionType[] = [
   { value: "NO REQUIERE", label: "NO REQUIERE" },
   { value: "GRUPO 1", label: "GRUPO 1" },
+  { value: "GRUPO 1 Y 2", label: "GRUPO 1 Y 2"},
+  { value: "GRUPO 1 Y OFICIOS VARIOS", label: "GRUPO 1 Y OFICIOS VARIOS"},
   { value: "GRUPO 2", label: "GRUPO 2" },
+  { value: "GRUPO 2 Y OFICIOS VARIOS", label: "GRUPO 2 Y OFICIOS VARIOS"},
   { value: "GRUPO 3", label: "GRUPO 3" },
   { value: "GRUPO 4", label: "GRUPO 4" },
+  { value: "OFICIOS VARIOS", label: "OFICIOS VARIOS"},
+  { value: "POR OBRA", label: "POR OBRA"},
 ];
 
 // Opciones para Operador
@@ -67,8 +72,10 @@ const operadorOptions: OptionType[] = [
   { value: "RAFAEL JIMENEZ", label: "RAFAEL JIMENEZ" },
   { value: "RICARDO CLEMENTE", label: "RICARDO CLEMENTE" },
   { value: "ROBERTO CALDERON", label: "ROBERTO CALDERON" },
+  { value: "SANTOS PORTILLO", label: "SANTOS PORTILLO"},
   { value: "TOMAS CADENA", label: "TOMAS CADENA" },
   { value: "WALDIR PINEDA", label: "WALDIR PINEDA" },
+  { value: "OTRO", label: "OTRO"},
 ];
 
 // Opciones para Modelo de Equipo
@@ -80,6 +87,7 @@ const modeloEquipoOptions: OptionType[] = [
 
 // Opciones para Razón de Paro
 const razonesParoOptions: OptionType[] = [
+  { value: "Cambio de jumbo de subproducto", label: "Cambio de jumbo de subproducto"},
   { value: "Cabaleo de peso", label: "Cabaleo de peso" },
   { value: "Corte de energía eléctrica", label: "Corte de energía eléctrica" },
   { value: "Esperando auditor para programar básculas", label: "Esperando auditor para programar básculas" },
@@ -94,6 +102,8 @@ const razonesParoOptions: OptionType[] = [
   { value: "Limpieza en tolva", label: "Limpieza en tolva" },
   { value: "Lluvia", label: "Lluvia" },
   { value: "Media hora de comida", label: "Media hora de comida" },
+  { value: "Movimiento de banda transportadora de sacos", label: "Movimiento de banda transportadora de sacos"},
+  { value: "Movimiento de jumbo de subproducto", label: "Movimiento de jumbo de subproducto"},
   { value: "Movimiento de tolva a otro punto de carga", label: "Movimiento de tolva a otro punto de carga" },
   { value: "Revisión de sacos previo al despacho", label: "Revisión de sacos previo al despacho" },
   { value: "Solo dos cargadores", label: "Solo dos cargadores" },
@@ -101,6 +111,7 @@ const razonesParoOptions: OptionType[] = [
   { value: "Solo un equipo frontal y tráfico de unidades", label: "Solo un equipo frontal y tráfico de unidades" },
   { value: "Solo un operador con equipo para todos los despachos", label: "Solo un operador con equipo para todos los despachos" },
   { value: "Tráfico congestionado", label: "Tráfico congestionado" },
+  { value: "Otro", label: "Otro"},
 ];
 
 // ---------------------------------------

@@ -14,9 +14,9 @@ export default function Header() {
   // Obtener usuario desde sessionStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const cached = sessionStorage.getItem("user");
+      const cached = localStorage.getItem("userName");
       if (cached) {
-        setCachedUser(JSON.parse(cached));
+        setCachedUser(cached);
       }
     }
   }, []);
@@ -38,6 +38,11 @@ export default function Header() {
     localStorage.removeItem("roleId");
     localStorage.removeItem("userName");
     localStorage.removeItem("demorasProcess");
+    localStorage.removeItem("editDemora");
+    localStorage.removeItem("demoraId");
+    localStorage.removeItem("envasadoProcess");
+    localStorage.removeItem("editEnvasado");
+    localStorage.removeItem("envasadoId");
     localStorage.removeItem("nextauth.message");
     signOut();
   }
@@ -65,7 +70,7 @@ export default function Header() {
             >
               <FiUser size={20} className="text-gray-700" />
               <span className="uppercase hidden sm:inline text-gray-700">
-                {cachedUser?.username || "Usuario"}
+                {cachedUser || "Usuario"}
               </span>
               <FiChevronDown size={16} className="text-gray-700" />
             </button>
