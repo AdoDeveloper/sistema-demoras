@@ -15,19 +15,22 @@ export default function Profile() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // Estados para Demoras (datos del endpoint)
+  // Estados para Demoras (Granel)
   const [globalStats, setGlobalStats] = useState(null);
   const [dailyStats, setDailyStats] = useState([]);
   const [records, setRecords] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  // Estados de paginación para demoras (granel)
+  const [demorasPage, setDemorasPage] = useState(1);
+  const [demorasTotalPages, setDemorasTotalPages] = useState(1);
 
-  // Estados para Envasados (datos del endpoint)
+  // Estados para Envasados
   const [envDailyStats, setEnvDailyStats] = useState([]);
   const [envRecords, setEnvRecords] = useState([]);
-  const [envPagination, setEnvPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  // Estados de paginación para envasados
+  const [envasadosPage, setEnvasadosPage] = useState(1);
+  const [envasadosTotalPages, setEnvasadosTotalPages] = useState(1);
 
-  // Estado para pestañas: "demoras" o "envasados"
+  // Estado para pestañas: "demoras" (Granel) o "envasados"
   const [activeTab, setActiveTab] = useState("demoras");
 
   // Estado para dashboard (usuario y rol)
@@ -38,40 +41,50 @@ export default function Profile() {
   const [isGenerating, setIsGenerating] = useState(false);
   const limit = 10;
 
-  // Función para obtener los datos (para ambos modelos en un solo llamado)
-  const fetchData = async (pageToLoad = 1) => {
+  // Función para obtener los datos (se envían los parámetros de paginación para cada modelo)
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const url = `/api/user/profile?page=${pageToLoad}&limit=${limit}&startDate=${encodeURIComponent(
+      // Se asume que el endpoint acepta demorasPage y envasadosPage por separado
+      const url = `/api/user/profile?demorasPage=${demorasPage}&envasadosPage=${envasadosPage}&limit=${limit}&startDate=${encodeURIComponent(
         startDate
       )}&endDate=${encodeURIComponent(endDate)}`;
       const res = await fetch(url);
       const data = await res.json();
-  
-      // Datos de Demoras
+
+      // Datos de Demoras (Granel)
       setGlobalStats(data.granel.stats);
       setDailyStats(data.granel.dailyStats || []);
       setRecords(data.granel.registros || []);
-      setPage(data.granel.pagination.page);
-      setTotalPages(data.granel.pagination.totalPages);
-  
+      // Actualizamos la paginación para Demoras
+      setDemorasPage(data.granel.pagination.page);
+      setDemorasTotalPages(data.granel.pagination.totalPages);
+
       // Datos de Envasados
       if (data.envasado) {
         setEnvDailyStats(data.envasado.dailyStats || []);
         setEnvRecords(data.envasado.registros || []);
-        setEnvPagination(data.envasado.pagination || { total: 0, page: 1, limit, totalPages: 1 });
+        setEnvasadosPage(data.envasado.pagination.page);
+        setEnvasadosTotalPages(data.envasado.pagination.totalPages);
       }
-  
+
       setUserData(data.user);
     } catch (error) {
       console.error("Error fetching data", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudieron obtener los datos.",
+      });
     }
     setLoading(false);
   };
 
+  // Al inicio y cada vez que cambien los filtros o la paginación, se vuelve a llamar a fetchData
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demorasPage, envasadosPage, startDate, endDate]);
 
   // Actualiza usuario y roleId desde cache/localStorage
   useEffect(() => {
@@ -87,21 +100,39 @@ export default function Profile() {
     }
   }, []);
 
-  // Funciones de paginación (se utiliza el mismo "page" para ambos, ya que el endpoint retorna ambos datos según el mismo parámetro)
+  // Funciones de paginación según la pestaña activa
   const handlePrevPage = () => {
-    if (page > 1) fetchData(page - 1);
+    if (activeTab === "demoras") {
+      if (demorasPage > 1) {
+        setDemorasPage(prev => prev - 1);
+      }
+    } else {
+      if (envasadosPage > 1) {
+        setEnvasadosPage(prev => prev - 1);
+      }
+    }
   };
   const handleNextPage = () => {
-    if (page < totalPages) fetchData(page + 1);
+    if (activeTab === "demoras") {
+      if (demorasPage < demorasTotalPages) {
+        setDemorasPage(prev => prev + 1);
+      }
+    } else {
+      if (envasadosPage < envasadosTotalPages) {
+        setEnvasadosPage(prev => prev + 1);
+      }
+    }
   };
 
-  // Función para filtrar por fechas
+  // Función para filtrar por fechas: se reinician ambas paginaciones a 1
   const handleFilter = (e) => {
     e.preventDefault();
-    fetchData(1);
+    setDemorasPage(1);
+    setEnvasadosPage(1);
+    fetchData();
   };
 
-  // Cálculos globales para envasados a partir de dailyStats
+  // Cálculos globales para envasados a partir de envDailyStats
   const envTotalCabaleo = envDailyStats.reduce(
     (acc, stat) => acc + (parseInt(stat.cabaleo) || 0),
     0
@@ -111,7 +142,7 @@ export default function Profile() {
     0
   );
 
-  // Función para introducir una demora
+  // Función para introducir una demora (delay para PDF, por ejemplo)
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   // Función para generar reporte PDF según la pestaña activa
@@ -214,8 +245,7 @@ export default function Profile() {
         totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
         dailyStatsData = dailyStats;
       } else {
-        totalRegistros =
-          userData?.role?.id === 1 ? (envPagination.total || 0) : (envPagination.realizado || 0);
+        totalRegistros = (userData?.role?.id === 1 ? envasadosPage : envasadosPage) || 0;
         totalCabaleo = envTotalCabaleo;
         totalCargaMaxima = envTotalCargaMaxima;
         dailyStatsData = envDailyStats;
@@ -519,7 +549,7 @@ export default function Profile() {
           </form>
         </section>
 
-        {/* Pestañas para Demoras y Envasados */}
+        {/* Pestañas para Demoras (Granel) y Envasados */}
         <div className="mb-6">
           <div className="flex border-b">
             <button
@@ -545,7 +575,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Contenido de la pestaña de Demoras */}
+        {/* Contenido de la pestaña de Demoras (Granel) */}
         {activeTab === "demoras" && (
           <>
             {/* Estadísticas Globales para Demoras */}
@@ -640,17 +670,17 @@ export default function Profile() {
               <div className="flex justify-between items-center mt-4">
                 <button
                   onClick={handlePrevPage}
-                  disabled={page <= 1}
+                  disabled={demorasPage <= 1}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 hover:bg-blue-700 transition"
                 >
                   Anterior
                 </button>
                 <span className="text-gray-700">
-                  Página {page} de {totalPages}
+                  Página {demorasPage} de {demorasTotalPages}
                 </span>
                 <button
                   onClick={handleNextPage}
-                  disabled={page >= totalPages}
+                  disabled={demorasPage >= demorasTotalPages}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 hover:bg-blue-700 transition"
                 >
                   Siguiente
@@ -658,7 +688,7 @@ export default function Profile() {
               </div>
             </section>
 
-            {/* Estadísticas Diarias de Demoras y opción para PDF */}
+            {/* Estadísticas Diarias y opción para PDF en Demoras */}
             {dailyStats?.length > 0 && userData && (
               <section className="mb-8">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
@@ -745,13 +775,13 @@ export default function Profile() {
                   <div className="bg-white p-6 rounded-lg shadow-md">
                     <p className="text-sm text-gray-500">Total Registros</p>
                     <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {envPagination.totalGlobal || 0}
+                      {envRecords.length > 0 ? envasadosPage * limit : 0}
                     </p>
                   </div>
                   <div className="bg-white p-6 rounded-lg shadow-md">
                     <p className="text-sm text-gray-500">Total Realizados</p>
                     <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {envPagination.total || 0}
+                      {envRecords.length || 0}
                     </p>
                   </div>
                   <div className="bg-white p-6 rounded-lg shadow-md">
@@ -822,17 +852,17 @@ export default function Profile() {
               <div className="flex justify-between items-center mt-4">
                 <button
                   onClick={handlePrevPage}
-                  disabled={page <= 1}
+                  disabled={envasadosPage <= 1}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 hover:bg-blue-700 transition"
                 >
                   Anterior
                 </button>
                 <span className="text-gray-700">
-                  Página {page} de {totalPages}
+                  Página {envasadosPage} de {envasadosTotalPages}
                 </span>
                 <button
                   onClick={handleNextPage}
-                  disabled={page >= totalPages}
+                  disabled={envasadosPage >= envasadosTotalPages}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 hover:bg-blue-700 transition"
                 >
                   Siguiente
@@ -840,7 +870,7 @@ export default function Profile() {
               </div>
             </section>
 
-            {/* Estadísticas Diarias de Envasados y opción para PDF */}
+            {/* Estadísticas Diarias y opción para PDF en Envasados */}
             {envDailyStats?.length > 0 && userData && (
               <section className="mb-8">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-4">

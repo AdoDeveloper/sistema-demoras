@@ -79,7 +79,7 @@ export default function Header() {
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
                 {cachedUser && (
                   <div className="block sm:hidden px-4 py-2 text-sm uppercase text-gray-900 border-b border-gray-100">
-                    {cachedUser.username}
+                    {cachedUser}
                   </div>
                 )}
                 <a
