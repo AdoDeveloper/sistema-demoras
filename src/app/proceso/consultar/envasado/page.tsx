@@ -10,6 +10,13 @@ import Swal from "sweetalert2";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 // -------------------------
+// Función auxiliar para mostrar valores
+// Si el valor es null, undefined o cadena vacía, devuelve "-"
+function displayValue(value: any): string {
+  return value == null || value === "" ? "-" : String(value);
+}
+
+// -------------------------
 // Funciones de Utilidad
 // -------------------------
 function parseHora(hhmmss: string) {
@@ -79,7 +86,7 @@ function ParosDetail({ paros }: { paros: any[] }) {
                 .map(([key, value]) => (
                   <tr key={key} className="border-b">
                     <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
-                    <td className="px-2 py-1 whitespace-nowrap">{String(value)}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">{displayValue(value)}</td>
                   </tr>
                 ))}
             </tbody>
@@ -107,7 +114,7 @@ function VueltasDetail({ vueltas }: { vueltas: any[] }) {
                 .map(([key, value]) => (
                   <tr key={key} className="border-b">
                     <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
-                    <td className="px-2 py-1 whitespace-nowrap">{String(value)}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">{displayValue(value)}</td>
                   </tr>
                 ))}
             </tbody>
@@ -132,7 +139,7 @@ function DetailTable({ title, data }: { title: string; data: any }) {
           {entries.map(([key, value]) => (
             <tr key={key} className="border-b">
               <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">{formatKey(key)}</td>
-              <td className="px-2 py-1 whitespace-nowrap">{String(value)}</td>
+              <td className="px-2 py-1 whitespace-nowrap">{displayValue(value)}</td>
             </tr>
           ))}
         </tbody>
@@ -192,9 +199,24 @@ const calcularIntervalos = (item: any) => {
   );
   let calcExtra3 = "-";
   if (tercero.vueltasEnv && tercero.vueltasEnv.length > 0) {
-    const firstVueltaEntrada = parseHora(tercero.vueltasEnv[0].tiempoEntradaBascula);
-    const lastVueltaSalida = parseHora(tercero.vueltasEnv[tercero.vueltasEnv.length - 1].tiempoSalidaBascula);
-    calcExtra3 = formatInterval(diffEnHoras(firstVueltaEntrada, lastVueltaSalida));
+    // Ordenar las vueltas por la hora de entrada a báscula (ascendente)
+    const sortedEntradas = [...tercero.vueltasEnv].sort((a, b) => {
+      const aTime = parseHora(a.tiempoEntradaBascula)?.getTime() || 0;
+      const bTime = parseHora(b.tiempoEntradaBascula)?.getTime() || 0;
+      return aTime - bTime;
+    });
+    // Ordenar las vueltas por la hora de salida a báscula (ascendente)
+    const sortedSalidas = [...tercero.vueltasEnv].sort((a, b) => {
+      const aTime = parseHora(a.tiempoSalidaBascula)?.getTime() || 0;
+      const bTime = parseHora(b.tiempoSalidaBascula)?.getTime() || 0;
+      return aTime - bTime;
+    });
+    const firstVueltaEntrada = parseHora(sortedEntradas[0].tiempoEntradaBascula);
+    const lastVueltaSalida = parseHora(sortedSalidas[sortedSalidas.length - 1].tiempoSalidaBascula);
+    if (firstVueltaEntrada && lastVueltaSalida) {
+      const diff = diffEnHoras(firstVueltaEntrada, lastVueltaSalida);
+      calcExtra3 = formatInterval(diff);
+    }
   }
 
   return {
@@ -217,7 +239,6 @@ const calcularIntervalos = (item: any) => {
 // -------------------------
 // Función auxiliar para PDF: buildAddTableSection
 // (Se omiten en arrays "id", "createdAt" y "updatedAt")
-// -------------------------
 const buildAddTableSection = (
   drawWrappedText: (text: string, size?: number, font?: any, x?: number) => void,
   drawSeparator: () => void,
@@ -253,6 +274,54 @@ const buildAddTableSection = (
     // Espacio extra entre secciones
     drawWrappedText("", 10, courierFont);
   };
+};
+
+// -------------------------
+// Componentes de renderizado de Básculas
+// -------------------------
+const renderBasculaEntrada = (primer: any) => (
+  <div>
+    <p className="whitespace-nowrap">
+      <strong>Báscula:</strong> {primer.basculaEntrada || "-"}
+    </p>
+    <p className="whitespace-nowrap">
+      <strong>Entrada:</strong> {primer.tiempoEntradaBascula || "-"}
+      {` (${primer.entradaBasculaObservaciones || "-"})`}
+    </p>
+    <p className="whitespace-nowrap">
+      <strong>Salida:</strong> {primer.tiempoSalidaBascula || "-"}
+      {` (${primer.salidaBasculaObservaciones || "-"})`}
+    </p>
+  </div>
+);
+
+const renderBasculaSalida = (tercero: any) => {
+  let entrada = tercero.tiempoEntradaBascula || "-";
+  let entradaObs = tercero.entradaBasculaObservaciones || "-";
+  let salida = tercero.tiempoSalidaBascula || "-";
+  let salidaObs = tercero.salidaBasculaObservaciones || "-";
+  if (tercero.vueltasEnv && tercero.vueltasEnv.length > 0) {
+    const lastVuelta = tercero.vueltasEnv[tercero.vueltasEnv.length - 1];
+    entrada = lastVuelta.entradaBascula || entrada;
+    entradaObs = lastVuelta.entradaBasculaObservaciones || "-";
+    salida = lastVuelta.salidaBascula || salida;
+    salidaObs = lastVuelta.salidaBasculaObservaciones || "-";
+  }
+  return (
+    <div>
+      <p className="whitespace-nowrap">
+        <strong>Báscula:</strong> {tercero.basculaSalida || "-"}
+      </p>
+      <p className="whitespace-nowrap">
+        <strong>Entrada:</strong> {entrada}
+        {` (${entradaObs})`}
+      </p>
+      <p className="whitespace-nowrap">
+        <strong>Salida:</strong> {salida}
+        {` (${salidaObs})`}
+      </p>
+    </div>
+  );
 };
 
 // -------------------------
@@ -389,26 +458,26 @@ export default function DemorasPage() {
       </p>
       <p className="whitespace-nowrap">
         <strong>Entrada:</strong> {primer.tiempoEntradaBascula || "-"}
-        {primer.entradaBasculaObservaciones ? ` (${primer.entradaBasculaObservaciones})` : ""}
+        {` (${primer.entradaBasculaObservaciones || "-"})`}
       </p>
       <p className="whitespace-nowrap">
         <strong>Salida:</strong> {primer.tiempoSalidaBascula || "-"}
-        {primer.salidaBasculaObservaciones ? ` (${primer.salidaBasculaObservaciones})` : ""}
+        {` (${primer.salidaBasculaObservaciones || "-"})`}
       </p>
     </div>
   );
 
   const renderBasculaSalida = (tercero: any) => {
     let entrada = tercero.tiempoEntradaBascula || "-";
-    let entradaObs = "";
+    let entradaObs = tercero.entradaBasculaObservaciones || "-";
     let salida = tercero.tiempoSalidaBascula || "-";
-    let salidaObs = "";
+    let salidaObs = tercero.salidaBasculaObservaciones || "-";
     if (tercero.vueltasEnv && tercero.vueltasEnv.length > 0) {
       const lastVuelta = tercero.vueltasEnv[tercero.vueltasEnv.length - 1];
       entrada = lastVuelta.entradaBascula || entrada;
-      entradaObs = lastVuelta.entradaBasculaObservaciones || "";
+      entradaObs = lastVuelta.entradaBasculaObservaciones || "-";
       salida = lastVuelta.salidaBascula || salida;
-      salidaObs = lastVuelta.salidaBasculaObservaciones || "";
+      salidaObs = lastVuelta.salidaBasculaObservaciones || "-";
     }
     return (
       <div>
@@ -417,11 +486,11 @@ export default function DemorasPage() {
         </p>
         <p className="whitespace-nowrap">
           <strong>Entrada:</strong> {entrada}
-          {entradaObs ? ` (${entradaObs})` : ""}
+          {` (${entradaObs})`}
         </p>
         <p className="whitespace-nowrap">
           <strong>Salida:</strong> {salida}
-          {salidaObs ? ` (${salidaObs})` : ""}
+          {` (${salidaObs})`}
         </p>
       </div>
     );
@@ -551,19 +620,19 @@ export default function DemorasPage() {
       }
       const intervalos = calcularIntervalos(selectedDemora);
       const intervalosLegibles = {
-        "B.E. (Entr -> Sal)": intervalos.calc1,
-        "Sal. B.E. -> Lleg. Punto": intervalos.calc2,
-        "Punto -> Inicio Carga": intervalos.calc7,
+        "B.E. (Entr → Sal)": intervalos.calc1,
+        "Sal. B.E. → Lleg. Punto": intervalos.calc2,
+        "Punto → Inicio Carga": intervalos.calc7,
         "Tiempo Total Carga": intervalos.calc3,
-        "Sal. Punto -> B.S. Entr.": intervalos.calc4,
-        "B.S. (Entr -> Sal)": intervalos.calc5,
-        "B.S. -> Salida Planta": intervalos.calc6,
-        "Autorizac -> Ing. Planta": intervalos.calc8,
-        "Termina Carga -> Salida Punto": intervalos.calc12,
-        "Ing. Planta -> Lleg. Básq.": intervalos.calcIngresoBascula,
-        "Llegada -> Entrada Básq. (P1)": intervalos.calcExtra1,
-        "Llegada -> Entrada Básq. (P3)": intervalos.calcExtra2,
-        "Entrada (P3) 1ra -> Salida (P3) Última": intervalos.calcExtra3,
+        "Sal. Punto → B.S. Entr.": intervalos.calc4,
+        "B.S. (Entr → Sal)": intervalos.calc5,
+        "B.S. → Salida Planta": intervalos.calc6,
+        "Autorizac → Ing. Planta": intervalos.calc8,
+        "Termina Carga → Salida Punto": intervalos.calc12,
+        "Ing. Planta → Lleg. Básq.": intervalos.calcIngresoBascula,
+        "Llegada → Entrada Básq. (P1)": intervalos.calcExtra1,
+        "Llegada → Entrada Básq. (P3)": intervalos.calcExtra2,
+        "Entrada (P3) 1ra → Salida (P3) Última": intervalos.calcExtra3,
       };
       
       addTableSection("Intervalos entre Procesos", intervalosLegibles);
