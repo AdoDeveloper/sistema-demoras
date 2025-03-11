@@ -205,14 +205,12 @@ export async function GET(request) {
       granel: {
         pagination: demoraData.pagination,
         stats: demoraData.stats,
-        dailyStats: demoraData.dailyStats,
-        registros: demoraData.registros
+        dailyStats: demoraData.dailyStats
       },
       envasado: {
         pagination: envasadoData.pagination,
         stats: envasadoData.stats,
-        dailyStats: envasadoData.dailyStats,
-        registros: envasadoData.registros
+        dailyStats: envasadoData.dailyStats
       }
     });
   } catch (error) {

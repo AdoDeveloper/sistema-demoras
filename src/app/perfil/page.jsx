@@ -17,6 +17,7 @@ export default function Profile() {
 
   // Estados para Demoras (Granel)
   const [globalStats, setGlobalStats] = useState(null);
+  const [globalStatsEnv, setGlobalStatsEnv] = useState(null);
   const [dailyStats, setDailyStats] = useState([]);
   const [records, setRecords] = useState([]);
   // Estados de paginación para demoras (granel)
@@ -54,6 +55,7 @@ export default function Profile() {
 
       // Datos de Demoras (Granel)
       setGlobalStats(data.granel.stats);
+      setGlobalStatsEnv(data.envasado.stats);
       setDailyStats(data.granel.dailyStats || []);
       setRecords(data.granel.registros || []);
       // Actualizamos la paginación para Demoras
@@ -245,9 +247,9 @@ export default function Profile() {
         totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
         dailyStatsData = dailyStats;
       } else {
-        totalRegistros = (userData?.role?.id === 1 ? envasadosPage : envasadosPage) || 0;
-        totalCabaleo = envTotalCabaleo;
-        totalCargaMaxima = envTotalCargaMaxima;
+        totalRegistros =  globalStatsEnv?.totalRegistros|| 0;
+        totalCabaleo = globalStatsEnv?.totalCabaleo|| 0;
+        totalCargaMaxima = globalStatsEnv?.totalCargaMaxima|| 0;
         dailyStatsData = envDailyStats;
       }
 
@@ -618,76 +620,6 @@ export default function Profile() {
               )}
             </section>
 
-            {/* Registros de Demoras */}
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                Registros
-              </h2>
-              {loading ? (
-                <div className="flex justify-center items-center h-32">
-                  <FiLoader className="animate-spin mr-2" size={24} />
-                  <span className="text-gray-500">Cargando registros...</span>
-                </div>
-              ) : (
-                <div className="bg-white shadow rounded-lg overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Fecha Inicio
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Método Carga
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {records.length > 0 ? (
-                        records.map((reg, idx) => (
-                          <tr key={idx} className="hover:bg-gray-100">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              {reg.fechaInicio}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              {reg.primerProceso?.metodoCarga || "-"}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            className="px-6 py-4 text-center text-sm text-gray-500"
-                            colSpan="2"
-                          >
-                            No hay registros
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <div className="flex justify-between items-center mt-4">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={demorasPage <= 1}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 hover:bg-blue-700 transition"
-                >
-                  Anterior
-                </button>
-                <span className="text-gray-700">
-                  Página {demorasPage} de {demorasTotalPages}
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={demorasPage >= demorasTotalPages}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 hover:bg-blue-700 transition"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </section>
-
             {/* Estadísticas Diarias y opción para PDF en Demoras */}
             {dailyStats?.length > 0 && userData && (
               <section className="mb-8">
@@ -775,99 +707,29 @@ export default function Profile() {
                   <div className="bg-white p-6 rounded-lg shadow-md">
                     <p className="text-sm text-gray-500">Total Registros</p>
                     <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {envRecords.length > 0 ? envasadosPage * limit : 0}
+                      {globalStatsEnv?.total}
                     </p>
                   </div>
                   <div className="bg-white p-6 rounded-lg shadow-md">
                     <p className="text-sm text-gray-500">Total Realizados</p>
                     <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {envRecords.length || 0}
+                      {globalStatsEnv?.totalRegistros}
                     </p>
                   </div>
                   <div className="bg-white p-6 rounded-lg shadow-md">
                     <p className="text-sm text-gray-500">Cabaleo</p>
                     <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {envTotalCabaleo || 0}
+                    {globalStatsEnv?.totalCabaleo}
                     </p>
                   </div>
                   <div className="bg-white p-6 rounded-lg shadow-md">
                     <p className="text-sm text-gray-500">Carga Máxima</p>
                     <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {envTotalCargaMaxima || 0}
+                      {globalStatsEnv?.totalCargaMaxima}
                     </p>
                   </div>
                 </div>
               )}
-            </section>
-
-            {/* Registros de Envasados */}
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                Registros
-              </h2>
-              {loading ? (
-                <div className="flex justify-center items-center h-32">
-                  <FiLoader className="animate-spin mr-2" size={24} />
-                  <span className="text-gray-500">Cargando registros...</span>
-                </div>
-              ) : (
-                <div className="bg-white shadow rounded-lg overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Fecha Inicio
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Método Carga
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {envRecords.length > 0 ? (
-                        envRecords.map((reg, idx) => (
-                          <tr key={idx} className="hover:bg-gray-100">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              {reg.fechaInicio}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              {reg.primerProceso?.metodoCarga || "-"}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            className="px-6 py-4 text-center text-sm text-gray-500"
-                            colSpan="2"
-                          >
-                            No hay registros
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <div className="flex justify-between items-center mt-4">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={envasadosPage <= 1}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 hover:bg-blue-700 transition"
-                >
-                  Anterior
-                </button>
-                <span className="text-gray-700">
-                  Página {envasadosPage} de {envasadosTotalPages}
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={envasadosPage >= envasadosTotalPages}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 hover:bg-blue-700 transition"
-                >
-                  Siguiente
-                </button>
-              </div>
             </section>
 
             {/* Estadísticas Diarias y opción para PDF en Envasados */}
