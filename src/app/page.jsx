@@ -9,6 +9,7 @@ import { FaPlay, FaChartBar } from "react-icons/fa";
 import { PiTruckTrailerFill, PiBarnFill } from "react-icons/pi";
 import { FiUsers, FiLoader } from "react-icons/fi";
 import { HiOutlineUserCircle } from "react-icons/hi";
+import { IoBoatSharp } from "react-icons/io5"; // Icono para Registros Barcos
 
 // Dynamic imports con no SSR para evitar mismatches de hidratación
 const WeatherWidget = dynamic(() => import("../components/WeatherWidget"), {
@@ -83,27 +84,40 @@ export default function Dashboard() {
             <FaPlay size={20} className="mr-2" />
             <span>Iniciar Proceso</span>
           </button>
-          <button
-            onClick={() => router.push("/proceso/consultar/granel")}
-            className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
-          >
-            <PiBarnFill size={20} className="mr-2" />
-            <span>Registros Granel</span>
-          </button>
-          <button
-            onClick={() => router.push("/proceso/consultar/envasado")}
-            className="flex items-center justify-center w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
-          >
-            <PiTruckTrailerFill size={20} className="mr-2" />
-            <span>Registros Envasado</span>
-          </button>
-          <button
-            onClick={() => router.push("/proceso/analisis")}
-            className="flex items-center justify-center w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
-          >
-            <FaChartBar size={20} className="mr-2" />
-            <span>Datos</span>
-          </button> 
+          {(roleId === 1 || roleId === 2) && (
+            <>
+              <button
+                onClick={() => router.push("/proceso/consultar/granel")}
+                className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
+              >
+                <PiBarnFill size={20} className="mr-2" />
+                <span>Registros Granel</span>
+              </button>
+              <button
+                onClick={() => router.push("/proceso/consultar/envasado")}
+                className="flex items-center justify-center w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
+              >
+                <PiTruckTrailerFill size={20} className="mr-2" />
+                <span>Registros Envasado</span>
+              </button>
+              <button
+                onClick={() => router.push("/proceso/analisis")}
+                className="flex items-center justify-center w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
+              >
+                <FaChartBar size={20} className="mr-2" />
+                <span>Datos</span>
+              </button>
+            </>
+          )}
+          {(roleId === 1 || roleId === 3) && (
+            <button
+              onClick={() => router.push("/building")}
+              className="flex items-center justify-center w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1 active:translate-y-0"
+            >
+              <IoBoatSharp size={20} className="mr-2" />
+              <span>Registros Barcos</span>
+            </button>
+          )}
           {/* Opción extra para administradores */}
           {roleId === 1 && (
             <button

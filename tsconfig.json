@@ -28,7 +28,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "src/components/WeatherLoader.jsx", "src/components/Loader.jsx", "src/components/PDFBitacora.jsx", "src/components/SVGComponent.jsx" ,"src/components/Footer.jsx", "src/components/AnalysisLoader.jsx", "src/components/LoginForm.tsx"  ],
   "exclude": [
     "node_modules"
   ]

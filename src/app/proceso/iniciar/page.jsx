@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Header from "../../../components/Header";
 import { FiArrowLeft, FiLoader } from "react-icons/fi";
 import { PiTruckTrailerFill, PiBarnFill } from "react-icons/pi";
+import { IoBoatSharp } from "react-icons/io5";
 import Footer from "../../../components/Footer";
 import Swal from "sweetalert2";
 
@@ -68,6 +69,8 @@ export default function Proceso() {
         <div className="w-full max-w-md bg-white shadow-xl rounded-lg p-6">
           <h1 className="text-2xl font-bold text-center mb-6">Seleccione el Proceso</h1>
           <div className="space-y-4">
+          {(roleId === 1 || roleId === 2) && (
+            <>
             <button
               onClick={() =>
                 handleProcessConfirm("/proceso/iniciar/granel", "Granel")
@@ -86,6 +89,21 @@ export default function Proceso() {
               <PiTruckTrailerFill size={24} className="mr-3" />
               <span>Iniciar Envasado</span>
             </button>
+            </>
+            )}
+            {(roleId === 1 || roleId === 3) && (
+              <>
+            <button
+              onClick={() =>
+                handleProcessConfirm("/proceso/iniciar/barco", "Barco")
+              }
+              className="flex items-center justify-center w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
+            >
+              <IoBoatSharp size={24} className="mr-3" />
+              <span>Iniciar Barco</span>
+            </button>
+            </>
+            )}
             <button
               onClick={() => router.push("/")}
               className="flex items-center justify-center w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"

@@ -37,12 +37,14 @@ export default function Header() {
     localStorage.removeItem("userId");
     localStorage.removeItem("roleId");
     localStorage.removeItem("userName");
+    localStorage.removeItem("userNameAll");
     localStorage.removeItem("demorasProcess");
     localStorage.removeItem("editDemora");
     localStorage.removeItem("demoraId");
     localStorage.removeItem("envasadoProcess");
     localStorage.removeItem("editEnvasado");
     localStorage.removeItem("envasadoId");
+    localStorage.removeItem("bitacoraData");
     localStorage.removeItem("nextauth.message");
     signOut();
   }

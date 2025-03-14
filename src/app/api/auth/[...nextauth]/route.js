@@ -43,12 +43,13 @@ const handler = NextAuth({
           sessionCache.set(`user-${credentials.username}`, user);
         }
 
-        // Retornar un objeto con la información del usuario que se incluirá en el token
+        // Retornar la información del usuario, incluyendo nombreCompleto si roleId es 3
         return {
           id: user.id,
           username: user.username,
           roleId: user.roleId,
           roleName: user.role.name,
+          ...(user.roleId === 3 && { nombreCompleto: user.nombreCompleto }),
         };
       },
     }),
@@ -67,6 +68,7 @@ const handler = NextAuth({
           username: token.username,
           roleId: token.roleId,
           roleName: token.roleName,
+          ...(token.roleId === 3 && { nombreCompleto: token.nombreCompleto }),
         };
         // Opcional: guardar la sesión en cache
         sessionCache.set(`session-${token.id}`, session);
@@ -79,6 +81,9 @@ const handler = NextAuth({
         token.username = user.username;
         token.roleId = user.roleId;
         token.roleName = user.roleName;
+        if (user.roleId === 3 && user.nombreCompleto) {
+          token.nombreCompleto = user.nombreCompleto;
+        }
       }
       return token;
     },
