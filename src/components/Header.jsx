@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { signOut } from "next-auth/react";
-import { FiHome, FiUser, FiChevronDown, FiLogOut } from "react-icons/fi";
+import { FiHome, FiChevronDown, FiLogOut, FiUser } from "react-icons/fi";
+import { User } from "lucide-react";
 
 export default function Header() {
   const router = useRouter();
@@ -49,11 +50,14 @@ export default function Header() {
     signOut();
   }
 
+  // Get user initial for avatar
+  const userInitial = cachedUser ? cachedUser.charAt(0).toUpperCase() : "U";
+
   return (
     <header className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <button onClick={() => router.push("/")} className="mr-4">
+          <button onClick={() => router.push("/")} className="mr-1">
             <FiHome size={28} className="text-blue-600" />
           </button>
           <div>
@@ -70,7 +74,9 @@ export default function Header() {
               className="flex items-center space-x-1 rounded-full transition-all duration-300 transform hover:scale-105"
               title="Opciones de usuario"
             >
-              <FiUser size={20} className="text-gray-700" />
+              <div className="w-8 h-8 rounded-full bg-gray-300/80 flex items-center justify-center text-gray-900 font-medium">
+                <FiUser size={20} className="text-gray-700" />
+              </div>
               <span className="uppercase hidden sm:inline text-gray-700">
                 {cachedUser || "Usuario"}
               </span>
@@ -89,7 +95,7 @@ export default function Header() {
                   className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   <FiUser className="mr-2" size={16} />
-                  Perfil
+                  Mi Perfil
                 </a>
                 <div className="border-t border-gray-100 my-1"></div>
                 <button

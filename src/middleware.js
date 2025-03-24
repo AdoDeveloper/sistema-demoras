@@ -16,6 +16,7 @@ export async function middleware(req) {
     // GRANEL
     "/api/demoras/granel",
     "/api/demoras/granel/:path*",
+    "/api/demoras/granel/export-excel",
     "/proceso/consultar/granel",
     "/proceso/iniciar/granel",
     "/proceso/iniciar/granel/step2",
@@ -26,9 +27,10 @@ export async function middleware(req) {
     "/proceso/editar/granel/step3",
     "/proceso/editar/granel/step4",
 
-    // ENVASADO (nuevo)
+    // ENVASADO
     "/api/demoras/envasado",
     "/api/demoras/envasado/:path*",
+    "/api/demoras/envasado/export-excel",
     "/proceso/consultar/envasado",
     "/proceso/iniciar/envasado",
     "/proceso/iniciar/envasado/step2",
@@ -38,6 +40,26 @@ export async function middleware(req) {
     "/proceso/editar/envasado/step2",
     "/proceso/editar/envasado/step3",
     "/proceso/editar/envasado/step4",
+
+    // MOLINO
+    "/api/demoras/molino",
+    "/api/demoras/molino/:path*",
+    "/api/demoras/molino/export-excel",
+    "/proceso/consultar/molino",
+    "/proceso/iniciar/molino",
+    "/proceso/iniciar/molino/step2",
+    "/proceso/iniciar/molino/step3",
+    "/proceso/iniciar/molino/step4",
+
+    // ACTIVIDADES
+    "/api/demoras/actividad",
+    "/api/demoras/actividad/:path*",
+    "/api/demoras/actividad/export-excel",
+    "/proceso/consultar/molino/actividades",
+    "/proceso/iniciar/molino/actividades",
+
+    // BARCO
+    "/proceso/iniciar/barco",
 
     // Otras rutas protegidas
     "/perfil",
@@ -59,7 +81,7 @@ export async function middleware(req) {
       return NextResponse.redirect(new URL("/login", req.url), 302);
     }
     if (session.roleId !== 1) {
-      return NextResponse.redirect(new URL("/403", req.url), 302); // Redirigir a la página de error 403
+      return NextResponse.redirect(new URL("/403", req.url), 302);
     }
   }
 
@@ -85,6 +107,7 @@ export const config = {
     // GRANEL
     "/api/demoras/granel",
     "/api/demoras/granel/:path*",
+    "/api/demoras/granel/export-excel",
     "/proceso/consultar/granel",
     "/proceso/iniciar/granel",
     "/proceso/iniciar/granel/step2",
@@ -95,9 +118,10 @@ export const config = {
     "/proceso/editar/granel/step3",
     "/proceso/editar/granel/step4",
 
-    // ENVASADO (nuevo)
+    // ENVASADO
     "/api/demoras/envasado",
     "/api/demoras/envasado/:path*",
+    "/api/demoras/envasado/export-excel",
     "/proceso/consultar/envasado",
     "/proceso/iniciar/envasado",
     "/proceso/iniciar/envasado/step2",
@@ -107,6 +131,26 @@ export const config = {
     "/proceso/editar/envasado/step2",
     "/proceso/editar/envasado/step3",
     "/proceso/editar/envasado/step4",
+
+    // MOLINO
+    "/api/demoras/molino",
+    "/api/demoras/molino/:path*",
+    "/api/demoras/molino/export-excel",
+    "/proceso/consultar/molino",
+    "/proceso/iniciar/molino",
+    "/proceso/iniciar/molino/step2",
+    "/proceso/iniciar/molino/step3",
+    "/proceso/iniciar/molino/step4",
+
+    // ACTIVIDADES
+    "/api/demoras/actividad",
+    "/api/demoras/actividad/:path*",
+    "/api/demoras/actividad/export-excel",
+    "/proceso/consultar/molino/actividades",
+    "/proceso/iniciar/molino/actividades",
+
+    // BARCO
+    "/proceso/iniciar/barco",
 
     // Otras rutas protegidas
     "/proceso/analisis",

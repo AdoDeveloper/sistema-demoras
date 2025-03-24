@@ -189,7 +189,7 @@ const WeatherWidget = () => {
   const apparentMax = apparentTemps.length ? Math.max(...apparentTemps) : "--";
 
   return (
-    <div className="bg-white w-full rounded-xl shadow-lg">
+    <div className="bg-white w-full rounded-xl shadow">
       {/* Sección principal: widget */}
       <div className="max-w-4xl w-full rounded-lg p-4 mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center">
