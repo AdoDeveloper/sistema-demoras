@@ -46,6 +46,9 @@ export default function Header() {
     localStorage.removeItem("editEnvasado");
     localStorage.removeItem("envasadoId");
     localStorage.removeItem("bitacoraData");
+    localStorage.removeItem("activitiesProcess");
+    localStorage.removeItem("activityFormCache");
+    localStorage.removeItem("molidoProcess");
     localStorage.removeItem("nextauth.message");
     signOut();
   }
