@@ -547,7 +547,7 @@ model ProcesoFinalMol {
 
 model Actividad {
   id               Int                @id @default(autoincrement()) @map("id")
-  fecha            DateTime           @map("fecha")
+  fecha            String?           @map("fecha")
   userId           Int                @map("user_id")
   userName         String             @map("user_name")
   totalActividades Int                @map("total_actividades")

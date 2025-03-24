@@ -4,7 +4,7 @@ import { getToken } from "next-auth/jwt";
 
 // Convierte la fecha (string "YYYY-MM-DD") a objeto Date
 function parseFecha(fechaStr) {
-  return new Date(fechaStr);
+  return fechaStr;
 }
 
 export async function GET(request) {
@@ -21,19 +21,7 @@ export async function GET(request) {
       take: limit,
     });
 
-    // Formatear la fecha para mostrar "YYYY-MM-DD"
-    const formattedActividades = actividades.map((act) => {
-      const date = new Date(act.fecha);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return {
-        ...act,
-        fecha: `${year}-${month}-${day}`,
-      };
-    });
-
-    return NextResponse.json({ data: formattedActividades, totalCount }, { status: 200 });
+    return NextResponse.json({ data: actividades, totalCount }, { status: 200 });
   } catch (err) {
     console.error("Error al listar actividades:", err);
     return NextResponse.json({ error: "Error al listar actividades" }, { status: 500 });

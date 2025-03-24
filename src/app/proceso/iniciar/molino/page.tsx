@@ -461,7 +461,7 @@ export default function PrimerProceso() {
               className="react-select-container"
               classNamePrefix="react-select"
               options={presentacionOptions}
-              placeholder="Seleccione Portería"
+              placeholder="Seleccione Presentación"
               value={presentacion ? { value: presentacion, label: presentacion } : null}
               onChange={(option: OptionType | null) =>
                 setPresentacion(option ? option.value : "")

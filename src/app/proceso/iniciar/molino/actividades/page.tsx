@@ -69,7 +69,7 @@ export default function Actividades() {
   const router = useRouter();
 
   // Estados
-  const [generalDate, setGeneralDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [generalDate, setGeneralDate] = useState<string>(new Date().toLocaleDateString().substring(0, 10));
   const [selectedActivity, setSelectedActivity] = useState<string>("");
   const [customActivity, setCustomActivity] = useState<string>("");
   const [startTime, setStartTime] = useState<string>("");

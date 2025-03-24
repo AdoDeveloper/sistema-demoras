@@ -9,29 +9,27 @@ export async function GET(request) {
     const fechaInicioQuery = searchParams.get("fechaInicio");
     const fechaFinalQuery = searchParams.get("fechaFinal");
 
-    const fechaInicioFilter = fechaInicioQuery ? new Date(fechaInicioQuery) : null;
-    const fechaFinalFilter = fechaFinalQuery ? new Date(fechaFinalQuery) : null;
-
     // 2) Obtener todas las actividades (incluyendo la relación con detalles)
     const actividades = await prisma.actividad.findMany({
       orderBy: { fecha: "asc" },
       include: { detalles: true },
     });
+    console.log("Actividades obtenidas:", actividades);
 
-    // 3) Filtrar actividades según la fecha (campo "fecha" del modelo)
-    let actividadesFiltradas = actividades;
-    if (fechaInicioFilter && fechaFinalFilter) {
-      actividadesFiltradas = actividades.filter((act) => {
-        return act.fecha >= fechaInicioFilter && act.fecha <= fechaFinalFilter;
-      });
-    }
+    // 3) Filtrar actividades según el campo 'fecha' (comparando cadenas)
+    const actividadesFiltradas = actividades.filter((act) => {
+      return (!fechaInicioQuery || act.fecha >= fechaInicioQuery) &&
+             (!fechaFinalQuery || act.fecha <= fechaFinalQuery);
+    });
+    console.log("Actividades filtradas:", actividadesFiltradas);
 
     // 4) Construir las filas para la hoja "Actividades"
     const filasActividades = actividadesFiltradas.map((act) => ({
-      "Fecha": act.fecha.toISOString().split("T")[0],
+      "Fecha": act.fecha,
       "Total Actividades": act.totalActividades,
       "Total Duración": act.totalDuracion,
     }));
+    console.log("Filas Actividades:", filasActividades);
 
     // 5) Definir las columnas para la hoja "Actividades"
     const columnasActividades = [
@@ -53,6 +51,7 @@ export async function GET(request) {
     actividadesFiltradas.forEach((act) => {
       act.detalles.forEach((detalle) => {
         filasDetalles.push({
+          "Fecha": act.fecha,
           "Actividad ID": detalle.actividadId,
           "Detalle ID": detalle.id,
           "Activity": detalle.activity,
@@ -63,9 +62,11 @@ export async function GET(request) {
         });
       });
     });
+    console.log("Filas Detalles:", filasDetalles);
 
     // 8) Definir las columnas para la hoja "Detalle Actividades"
     const columnasDetalles = [
+      { header: "Fecha", key: "Fecha", width: 15 },
       { header: "Actividad ID", key: "Actividad ID", width: 15 },
       { header: "Detalle ID", key: "Detalle ID", width: 10 },
       { header: "Actividad", key: "Activity", width: 30 },
