@@ -74,7 +74,7 @@ export default function Header() {
               className="flex items-center space-x-1 rounded-full transition-all duration-300 transform hover:scale-105"
               title="Opciones de usuario"
             >
-              <div className="w-8 h-8 rounded-full bg-gray-300/80 flex items-center justify-center text-gray-900 font-medium">
+              <div className="w-8 h-8 rounded-full bg-gray-200/90 flex items-center justify-center text-gray-900 font-medium">
                 <FiUser size={20} className="text-gray-700" />
               </div>
               <span className="uppercase hidden sm:inline text-gray-700">

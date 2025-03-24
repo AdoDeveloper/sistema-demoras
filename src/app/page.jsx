@@ -121,7 +121,7 @@ export default function Dashboard() {
         <div>{typeof window !== "undefined" && <WeatherWidget />}</div>
 
         {/* Sección: Acciones rápidas */}
-        <section className="bg-white p-6 rounded-md shadow space-y-4">
+        <section className="bg-white p-4 rounded-xl shadow space-y-4">
           <h2 className="text-xl font-bold text-gray-800">Acciones rápidas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Iniciar Proceso: visible para todos */}
@@ -199,7 +199,7 @@ export default function Dashboard() {
         </section>
 
         {/* Sección: Estado del sistema */}
-        <section className="bg-white p-6 rounded-md shadow space-y-4">
+        <section className="bg-white p-6 rounded-xl shadow space-y-4">
           <h2 className="text-xl font-bold text-gray-800">Estado del sistema</h2>
           <ul className="space-y-3">
             <li className="flex items-center">
