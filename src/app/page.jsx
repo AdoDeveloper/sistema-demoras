@@ -106,7 +106,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-100">
       <Header />
 
-      <main className="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      <main className="pt-24 pb-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Tarjeta de bienvenida y WeatherWidget en la misma columna */}
         <section className="bg-white rounded-xl shadow p-6 space-y-4">
           <div className="flex items-center space-x-3">
@@ -196,34 +196,6 @@ export default function Dashboard() {
               />
             )}
           </div>
-        </section>
-
-        {/* Sección: Estado del sistema */}
-        <section className="bg-white p-6 rounded-xl shadow space-y-4">
-          <h2 className="text-xl font-bold text-gray-800">Estado del sistema</h2>
-          <ul className="space-y-3">
-            <li className="flex items-center">
-              <span className="w-3 h-3 rounded-full bg-green-500 mr-2" />
-              <span>Conexión a base de datos</span>
-              <span className="ml-auto px-2 py-1 text-sm rounded-full bg-green-100 text-green-800 whitespace-nowrap">
-                Activo
-              </span>
-            </li>
-            <li className="flex items-center">
-              <span className="w-3 h-3 rounded-full bg-green-500 mr-2" />
-              <span>API de servicios</span>
-              <span className="ml-auto px-2 py-1 text-sm rounded-full bg-green-100 text-green-800 whitespace-nowrap">
-                Activo
-              </span>
-            </li>
-            <li className="flex items-center">
-              <span className="w-3 h-3 rounded-full bg-green-500 mr-2" />
-              <span>Servicio de reportes</span>
-              <span className="ml-auto px-2 py-1 text-sm rounded-full bg-green-100 text-green-800 whitespace-nowrap">
-                Activo
-              </span>
-            </li>
-          </ul>
         </section>
       </main>
 
