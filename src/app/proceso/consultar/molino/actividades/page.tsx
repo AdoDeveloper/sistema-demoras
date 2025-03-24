@@ -69,7 +69,6 @@ function ActividadDetails({ detalles }: { detalles: any[] }) {
   );
 }
 
-// Componente Principal: ActividadesPage
 export default function ActividadesPage() {
   const [actividades, setActividades] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -81,7 +80,7 @@ export default function ActividadesPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
 
-  // Estados para filtros (se simplifican a fecha y búsqueda general)
+  // Estados para filtros (fecha y búsqueda general)
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFinal, setFechaFinal] = useState("");
   const [filterText, setFilterText] = useState("");
@@ -104,7 +103,7 @@ export default function ActividadesPage() {
     }
   }, []);
 
-  // Obtener data desde el backend (endpoint "/api/actividades")
+  // Obtener data desde el backend (endpoint "/api/demoras/actividad")
   const fetchActividades = async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
@@ -188,9 +187,30 @@ export default function ActividadesPage() {
     Swal.fire("Actualizado", "Datos actualizados", "success");
   };
 
-  // Generación y descarga de PDF para la actividad
-  const handleDescargarPDF = async () => {
-    if (!selectedActividad) {
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // Función para envolver texto en PDF
+  const wrapText = (text: string, maxWidth: number, font: any, size: number): string[] => {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+    words.forEach((word) => {
+      const testLine = currentLine ? currentLine + " " + word : word;
+      const testWidth = font.widthOfTextAtSize(testLine, size);
+      if (testWidth > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+    return lines;
+  };
+
+  // Generación y descarga de PDF para Actividades
+  const handleDescargarPDF = async (actividad: any) => {
+    if (!actividad) {
       Swal.fire("Error", "No hay registro seleccionado", "error");
       return;
     }
@@ -209,11 +229,18 @@ export default function ActividadesPage() {
       const margin = 40;
       let yPosition = height - margin;
       const lineHeight = 14;
+      const maxTextWidth = width - margin * 2;
 
-      const drawWrappedText = (text: string, size: number = 10, font = timesRomanFont, x = margin) => {
-        const lines = text.split("\n");
+      // Función para envolver texto en PDF
+      const drawWrappedText = (
+        text: string,
+        size: number = 10,
+        font = timesRomanFont,
+        x = margin
+      ) => {
+        const lines = wrapText(text, maxTextWidth, font, size);
         lines.forEach((line) => {
-          if (yPosition < margin + lineHeight) {
+          if (yPosition < margin + lineHeight * 2) {
             currentPagePdf = pdfDoc.addPage();
             yPosition = currentPagePdf.getSize().height - margin;
           }
@@ -222,31 +249,72 @@ export default function ActividadesPage() {
         });
       };
 
-      // Encabezado del PDF
-      drawWrappedText("Reporte de Actividades", 16, timesRomanFont);
-      drawWrappedText(`Detalle del Registro #${selectedActividad.id}`, 14, timesRomanFont);
-      drawWrappedText("-----------------------------------------------------", 10, courierFont);
+      const centerText = (text: string, size: number = 12, font = timesRomanFont) => {
+        const textWidth = font.widthOfTextAtSize(text, size);
+        const x = (width - textWidth) / 2;
+        if (yPosition < margin + lineHeight * 2) {
+          currentPagePdf = pdfDoc.addPage();
+          yPosition = currentPagePdf.getSize().height - margin;
+        }
+        currentPagePdf.drawText(text, { x, y: yPosition, size, font, color: rgb(0, 0, 0) });
+        yPosition -= lineHeight;
+      };
 
-      // Información General
-      const generalInfo = `Registro: ${selectedActividad.id}
-      Fecha: ${selectedActividad.fecha}
-      Total Actividades: ${selectedActividad.totalActividades}
-      Duración Total: ${selectedActividad.totalDuracion}
-      Usuario: ${selectedActividad.userName}`;
-      drawWrappedText(generalInfo, 10, courierFont);
-      drawWrappedText("-----------------------------------------------------", 10, courierFont);
+      const drawSeparator = () => {
+        drawWrappedText("=".repeat(86), 10, courierFont);
+      };
 
-      // Detalles
-      drawWrappedText("Detalles de la Actividad:", 12, timesRomanFont);
-      selectedActividad.detalles.forEach((detalle: any, index: number) => {
-        const detalleText = `Detalle ${index + 1}:
-      Actividad: ${detalle.activity}
-      Inicio: ${detalle.startTime}
-      Fin: ${detalle.endTime}
-      Duración: ${detalle.duration}
-      Responsables: ${detalle.responsables}
-      -----------------------------------------------------`;
-        drawWrappedText(detalleText, 10, courierFont);
+      // Función para construir secciones tipo tabla
+      const addTableSection = (title: string, data: Record<string, any>) => {
+        centerText(title, 14, timesRomanFont);
+        drawSeparator();
+        Object.entries(data).forEach(([key, value]) => {
+          drawWrappedText(`${key}: ${displayValue(value)}`, 10, timesRomanFont);
+        });
+        drawSeparator();
+      };
+
+      // Encabezado (mismo que en el PDF de demora)
+      centerText("ALMAPAC S.A de C.V. - PLANTA ACAJUTLA", 16, timesRomanFont);
+      centerText("Control de Tiempos", 14, timesRomanFont);
+      centerText(`Detalle del Registro #${actividad.id}`, 14, timesRomanFont);
+      yPosition -= lineHeight;
+      drawSeparator();
+
+      // Sección de Información General de la Actividad
+      addTableSection("Información General - Actividad", {
+        Registro: actividad.id,
+        Fecha: actividad.fecha,
+        "Realizado por": actividad.userName,
+        "Total Actividades": actividad.totalActividades,
+        "Total Duración": actividad.totalDuracion,
+      });
+
+      // Sección de Detalle de la Actividad en español
+      if (actividad.detalles && actividad.detalles.length > 0) {
+        centerText("Detalle de Actividades", 14, timesRomanFont);
+        drawSeparator();
+        actividad.detalles.forEach((detalle: any, index: number) => {
+          drawWrappedText(`Detalle #${index + 1}`, 12, timesRomanFont);
+          drawWrappedText(`Actividad: ${detalle.activity}`, 10, timesRomanFont);
+          drawWrappedText(`Hora Inicio: ${detalle.startTime}`, 10, timesRomanFont);
+          drawWrappedText(`Hora Fin: ${detalle.endTime}`, 10, timesRomanFont);
+          drawWrappedText(`Duración: ${detalle.duration}`, 10, timesRomanFont);
+          drawWrappedText(`Responsables: ${detalle.responsables}`, 10, timesRomanFont);
+          drawSeparator();
+        });
+      }
+
+      // Pie de página con la fecha de generación
+      const pages = pdfDoc.getPages();
+      pages.forEach((page) => {
+        page.drawText(`Reporte generado: ${new Date().toLocaleString()}`, {
+          x: margin,
+          y: margin / 2,
+          size: 10,
+          font: timesRomanFont,
+          color: rgb(0, 0, 0),
+        });
       });
 
       const pdfBytes = await pdfDoc.save();
@@ -254,15 +322,18 @@ export default function ActividadesPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Detalle-Actividad-${selectedActividad.id}.pdf`;
+      a.download = `Detalle-Actividad-${actividad.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+
       Swal.close();
+      await delay(300);
       Swal.fire("Éxito", "Archivo generado correctamente.", "success");
     } catch (error: any) {
       Swal.close();
+      await delay(300);
       Swal.fire("Error", "Error generando PDF: " + error.message, "error");
     }
   };
@@ -306,7 +377,7 @@ export default function ActividadesPage() {
     <div className="p-1 bg-gray-50 min-h-screen text-gray-800 pb-6">
       {/* Encabezado */}
       <header className="bg-gradient-to-r bg-orange-400 text-white shadow-lg md:sticky md:top-0 z-50">
-      <div className="mx-auto px-4 py-4">
+        <div className="mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row justify-between">
             <div className="flex items-center">
               <button
@@ -509,7 +580,7 @@ export default function ActividadesPage() {
                 <span>Regresar</span>
               </button>
               <button
-                onClick={handleDescargarPDF}
+                onClick={() => handleDescargarPDF(selectedActividad)}
                 className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded flex items-center gap-1"
               >
                 <FiDownload size={20} />
