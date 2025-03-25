@@ -1,12 +1,13 @@
 "use client"; // Asegura que este componente se renderice del lado del cliente
 
 import { useEffect, useState } from "react";
-import { FiPlus, FiSave, FiTrash2 } from "react-icons/fi";
+import { FiPlus, FiSave, FiTrash2, FiEdit } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import Footer from "../../../../components/Footer";
 import PDFBitacora from "../../../../components/PDFBitacora";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import { FaFilePdf } from "react-icons/fa";
 
 /** Estructura para una operación en la tabla */
 type Operacion = {
@@ -39,11 +40,37 @@ function getFechaInicio() {
   return new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" });
 }
 
-/** Convierte "HH:MM" a minutos numéricos */
-function parseTimeToMinutes(timeStr: string): number {
+/** Convierte un string de tiempo (HH:MM o HH:MM:SS) a segundos */
+function parseTimeToSeconds(timeStr: string): number {
   if (!timeStr) return 0;
-  const [hh, mm] = timeStr.split(":").map(Number);
-  return (hh || 0) * 60 + (mm || 0);
+  const parts = timeStr.split(":").map(Number);
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  } else if (parts.length === 2) {
+    return parts[0] * 3600 + parts[1] * 60;
+  }
+  return 0;
+}
+
+/** Calcula la duración entre dos tiempos en formato "X min Y seg" */
+function calcularDuracion(inicio: string, final: string): string {
+  const startSeconds = parseTimeToSeconds(inicio);
+  const endSeconds = parseTimeToSeconds(final);
+  if (startSeconds && endSeconds && endSeconds >= startSeconds) {
+    const diffSeconds = endSeconds - startSeconds;
+    const minutes = Math.floor(diffSeconds / 60);
+    const seconds = diffSeconds % 60;
+    return `${minutes} min ${seconds} seg`;
+  }
+  return "";
+}
+
+/** Actualiza la operación con la duración calculada */
+function actualizarDuracion(operacion: Operacion): Operacion {
+  return {
+    ...operacion,
+    minutos: calcularDuracion(operacion.inicio, operacion.final),
+  };
 }
 
 export default function Bitacora() {
@@ -64,9 +91,47 @@ export default function Bitacora() {
 
   // Estado para controlar si se muestra el textarea para "OTRO"
   const [isOther, setIsOther] = useState(false);
-
+  // Estado para identificar si se está editando una operación (índice) o agregando una nueva
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   // Estado para renderizar condicionalmente el PDFDownloadLink
   const [renderPDFLink, setRenderPDFLink] = useState(false);
+
+  // Estado para la nueva operación (fila de ingreso)
+  const [newOperacion, setNewOperacion] = useState<Operacion>({
+    bdsTs: "",
+    inicio: "",
+    final: "",
+    minutos: "",
+    actividad: "",
+  });
+
+  // Estado para la actividad personalizada
+  const [customActividad, setCustomActividad] = useState("");
+
+  // Funciones "Ahora" para cada campo
+  const handleAhoraInicio = () => {
+    const now = new Date();
+    const hora = now.toLocaleTimeString("en-GB", {
+      hour12: false,
+      timeZone: "America/El_Salvador",
+    });
+    setNewOperacion((prev) => actualizarDuracion({ ...prev, inicio: hora }));
+  };
+
+  const handleAhoraFinal = () => {
+    const now = new Date();
+    const hora = now.toLocaleTimeString("en-GB", {
+      hour12: false,
+      timeZone: "America/El_Salvador",
+    });
+    setNewOperacion((prev) => actualizarDuracion({ ...prev, final: hora }));
+  };
+
+  // Función para cancelar la edición de una operación
+  const handleCancelEdit = () => {
+    resetNewOperacion();
+    setEditingIndex(null);
+  };
 
   // Cargar datos desde localStorage al montar el componente
   useEffect(() => {
@@ -92,8 +157,7 @@ export default function Bitacora() {
     localStorage.setItem("bitacoraData", JSON.stringify(formData));
   }, [formData]);
 
-  // Efecto que utiliza polling para simular el clic en el PDFDownloadLink
-  // tan pronto el PDF esté listo (cuando el enlace tenga el atributo href)
+  // Efecto para simular el clic en el PDFDownloadLink
   useEffect(() => {
     if (renderPDFLink) {
       const interval = setInterval(() => {
@@ -114,7 +178,7 @@ export default function Bitacora() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Manejo de checkboxes para "Tipo de Carga" y "Sistema Utilizado"
+  // Manejo de checkboxes
   const handleCheckboxChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     groupKey: "tipoCarga" | "sistemaUtilizado"
@@ -128,42 +192,31 @@ export default function Bitacora() {
     });
   };
 
-  // Estado para la nueva operación (fila de ingreso)
-  const [newOperacion, setNewOperacion] = useState<Operacion>({
-    bdsTs: "",
-    inicio: "",
-    final: "",
-    minutos: "",
-    actividad: "",
-  });
-
-  /** Maneja cambios en la nueva operación */
+  /** Maneja cambios en los campos de la nueva operación (excepto actividad) */
   const handleOperacionChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setNewOperacion((prev) => {
-      const updated = { ...prev, [name]: value };
+      let updated = { ...prev, [name]: value };
       if (name === "inicio" || name === "final") {
-        const start = parseTimeToMinutes(updated.inicio);
-        const end = parseTimeToMinutes(updated.final);
-        if (start && end && end >= start) {
-          updated.minutos = String(end - start);
-        } else {
-          updated.minutos = "";
-        }
-      }
-      if (name === "actividad") {
-        if (value === "otro") {
-          setIsOther(true);
-          updated.actividad = "";
-        } else {
-          setIsOther(false);
-          updated.actividad = value;
-        }
+        updated = actualizarDuracion(updated);
       }
       return updated;
     });
+  };
+
+  /** Manejador específico para el select de actividad */
+  const handleSelectActividadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "otro") {
+      setIsOther(true);
+      setCustomActividad("");
+      setNewOperacion((prev) => ({ ...prev, actividad: "" }));
+    } else {
+      setIsOther(false);
+      setNewOperacion((prev) => ({ ...prev, actividad: value }));
+    }
   };
 
   /** Resetea los campos de la nueva operación */
@@ -176,6 +229,7 @@ export default function Bitacora() {
       actividad: "",
     });
     setIsOther(false);
+    setCustomActividad("");
   };
 
   /** Función para eliminar una operación */
@@ -203,8 +257,8 @@ export default function Bitacora() {
     });
   };
 
-  /** Agrega la nueva operación, validando campos y relación de horas */
-  const addOperacion = () => {
+  /** Función para agregar o actualizar la operación */
+  const addOrUpdateOperacion = () => {
     if (!newOperacion.inicio) {
       Swal.fire({
         icon: "error",
@@ -221,7 +275,7 @@ export default function Bitacora() {
       });
       return;
     }
-    if (parseTimeToMinutes(newOperacion.final) < parseTimeToMinutes(newOperacion.inicio)) {
+    if (parseTimeToSeconds(newOperacion.final) < parseTimeToSeconds(newOperacion.inicio)) {
       Swal.fire({
         icon: "error",
         title: "Hora final inválida",
@@ -237,20 +291,53 @@ export default function Bitacora() {
       });
       return;
     }
-    setFormData((prev) => ({
-      ...prev,
-      operaciones: [...prev.operaciones, newOperacion],
-    }));
+
+    if (editingIndex !== null) {
+      // Actualizar operación existente
+      setFormData((prev) => {
+        const updatedOperaciones = [...prev.operaciones];
+        updatedOperaciones[editingIndex] = newOperacion;
+        return { ...prev, operaciones: updatedOperaciones };
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Actividad actualizada",
+        showConfirmButton: false,
+        timer: 1200,
+      });
+      setEditingIndex(null);
+    } else {
+      // Agregar nueva operación
+      setFormData((prev) => ({
+        ...prev,
+        operaciones: [...prev.operaciones, newOperacion],
+      }));
+      Swal.fire({
+        icon: "success",
+        title: "Actividad agregada",
+        showConfirmButton: false,
+        timer: 1200,
+      });
+    }
     resetNewOperacion();
-    Swal.fire({
-      icon: "success",
-      title: "Actividad agregada",
-      showConfirmButton: false,
-      timer: 1200,
-    });
   };
 
-  /** Botón "Cancelar" del formulario */
+  /** Carga datos de una operación en el formulario para editarla */
+  const handleEditOperacion = (index: number) => {
+    const operacion = formData.operaciones[index];
+    // Si la actividad de la operación no es una de las opciones válidas, activar modo "otro"
+    if (!validOptions.includes(operacion.actividad)) {
+      setIsOther(true);
+      setCustomActividad(operacion.actividad);
+    } else {
+      setIsOther(false);
+      setCustomActividad("");
+    }
+    setNewOperacion(operacion);
+    setEditingIndex(index);
+  };
+
+  /** Botón "Cancelar" del formulario principal */
   const handleCancel = () => {
     Swal.fire({
       title: "¿Está seguro de cancelar?",
@@ -429,6 +516,132 @@ export default function Bitacora() {
           </div>
         </div>
 
+        {/* Formulario de ingreso de nueva operación */}
+        <section className="mb-6 border rounded-md p-4">
+          <h2 className="text-lg font-semibold mb-2 uppercase">Nueva Operación</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-semibold">BDS TS</label>
+              <input
+                type="text"
+                name="bdsTs"
+                placeholder="BD-2"
+                value={newOperacion.bdsTs}
+                onChange={handleOperacionChange}
+                className="w-full h-10 border rounded-sm px-2 text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold">Inicio</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  name="inicio"
+                  value={newOperacion.inicio}
+                  onChange={handleOperacionChange}
+                  className="w-full h-10 border rounded-sm px-2"
+                  step="1"
+                />
+                <button
+                  type="button"
+                  onClick={handleAhoraInicio}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded"
+                >
+                  Ahora
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold">Final</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  name="final"
+                  value={newOperacion.final}
+                  onChange={handleOperacionChange}
+                  className="w-full h-10 border rounded-sm px-2"
+                  step="1"
+                />
+                <button
+                  type="button"
+                  onClick={handleAhoraFinal}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded"
+                >
+                  Ahora
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold">Minutos</label>
+              <input
+                type="text"
+                name="minutos"
+                value={newOperacion.minutos}
+                readOnly
+                className="w-full h-10 border rounded-sm px-2 bg-gray-50"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-semibold">Actividad</label>
+              <select
+                name="actividad"
+                value={isOther ? "otro" : newOperacion.actividad}
+                onChange={handleSelectActividadChange}
+                className="w-full h-10 border rounded-sm px-2 mb-1"
+              >
+                <option value="">-- Seleccione --</option>
+                {validOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+                <option value="otro">OTRO</option>
+              </select>
+              {isOther && (
+                <textarea
+                  name="actividad"
+                  placeholder="Especificar..."
+                  value={customActividad}
+                  onChange={(e) => {
+                    setCustomActividad(e.target.value);
+                    setNewOperacion((prev) => ({ ...prev, actividad: e.target.value }));
+                  }}
+                  className="w-full border rounded-sm px-2 mt-1 resize-x"
+                  rows={2}
+                />
+              )}
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={addOrUpdateOperacion}
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+            >
+              {editingIndex !== null ? (
+                <>
+                  <FiEdit size={24} />
+                  Actualizar
+                </>
+              ) : (
+                <>
+                  <FiPlus size={24} />
+                  Agregar
+                </>
+              )}
+            </button>
+            {editingIndex !== null && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="flex items-center ml-2 gap-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+        </section>
+
         {/* Tabla de operaciones */}
         <div className="mb-4">
           <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase">
@@ -456,6 +669,13 @@ export default function Bitacora() {
                     <td className="p-2 border">{op.actividad}</td>
                     <td className="p-2 border text-center flex items-center justify-center gap-2">
                       <button
+                        onClick={() => handleEditOperacion(index)}
+                        title="Actualizar"
+                        className="text-green-500 hover:text-green-700"
+                      >
+                        <FiEdit size={23} />
+                      </button>
+                      <button
                         onClick={() => deleteOperacion(index)}
                         title="Eliminar"
                         className="text-red-500 hover:text-red-700"
@@ -465,88 +685,8 @@ export default function Bitacora() {
                     </td>
                   </tr>
                 ))}
-                {/* Fila para ingreso de nueva operación */}
-                <tr>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      name="bdsTs"
-                      placeholder="BD-2"
-                      value={newOperacion.bdsTs}
-                      onChange={handleOperacionChange}
-                      className="w-24 sm:w-20 h-7 border rounded-sm px-1 text-xs"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="time"
-                      name="inicio"
-                      value={newOperacion.inicio}
-                      onChange={handleOperacionChange}
-                      className="w-full h-7 border rounded-sm px-1"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="time"
-                      name="final"
-                      value={newOperacion.final}
-                      onChange={handleOperacionChange}
-                      className="w-full h-7 border rounded-sm px-1"
-                    />
-                  </td>
-                  <td className="p-2 border">
-                    <input
-                      type="text"
-                      name="minutos"
-                      value={newOperacion.minutos}
-                      readOnly
-                      className="w-full sm:w-20 h-7 border rounded-sm px-1 bg-gray-50"
-                    />
-                  </td>
-                  <td className="p-2 border flex flex-col w-50">
-                    <select
-                      name="actividad"
-                      value={isOther ? "otro" : newOperacion.actividad}
-                      onChange={handleOperacionChange}
-                      className="w-full h-7 border rounded-sm px-1 mb-1"
-                    >
-                      <option value="">-- Seleccione --</option>
-                      {validOptions.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                      <option value="otro">OTRO</option>
-                    </select>
-                    {isOther && (
-                      <textarea
-                        placeholder="Especificar..."
-                        value={newOperacion.actividad}
-                        onChange={(e) =>
-                          setNewOperacion((prev) => ({ ...prev, actividad: e.target.value }))
-                        }
-                        className="w-40 sm:w-full border rounded-sm px-1 mt-1 resize-x"
-                        rows={2}
-                      />
-                    )}
-                  </td>
-                  <td className="p-2 border text-center">
-                    {/* Celda vacía */}
-                  </td>
-                </tr>
               </tbody>
             </table>
-          </div>
-          <div className="mt-2 flex justify-end">
-            <button
-              type="button"
-              onClick={addOperacion}
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md"
-            >
-              <FiPlus size={24} />
-              Agregar
-            </button>
           </div>
         </div>
 
@@ -566,7 +706,7 @@ export default function Bitacora() {
         </div>
 
         {/* Botones finales */}
-        <div className="flex justify-end space-x-2 mt-4" style={{ transition: "none" }}>
+        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4" style={{ transition: "none" }}>
           <button 
             onClick={handleCancel} 
             className="bg-white border border-blue-600 text-blue-600 px-4 py-2 rounded-md hover:bg-blue-50"
@@ -580,17 +720,13 @@ export default function Bitacora() {
             <FiSave size={24} />
             Guardar Bitácora
           </button>
-
-          {/* Botón para generar el PDF */}
           <button
             onClick={handleGeneratePDF}
             className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
           >
-            <FiSave size={24} />
+            <FaFilePdf size={24} />
             Generar PDF
           </button>
-
-          {/* Renderizado condicional del PDFDownloadLink, oculto fuera del viewport */}
           {renderPDFLink && (
             <PDFDownloadLink
               document={<PDFBitacora formData={formData} />}
