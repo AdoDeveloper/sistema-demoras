@@ -709,16 +709,16 @@ export default function Bitacora() {
         <div className="grid grid-cols-2 gap-4 mt-4" style={{ transition: "none" }}>
           <button 
             onClick={handleCancel} 
-            className="bg-white border border-blue-600 text-blue-600 px-4 py-2 rounded-md hover:bg-blue-50 whitespace-nowrap"
+            className="bg-white border border-blue-600 text-blue-600 px-4 py-2 rounded-md hover:bg-blue-50"
           >
             Cancelar
           </button>
           <button 
             onClick={handleSubmit} 
-            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md whitespace-nowrap"
+            className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
           >
             <FiSave size={24} />
-            Guardar Bitácora
+            Guardar
           </button>
           {/* <button
               onClick={handleGeneratePDF}
