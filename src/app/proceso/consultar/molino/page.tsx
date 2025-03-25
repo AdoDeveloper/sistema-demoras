@@ -71,11 +71,11 @@ function ParosDetail({ paros }: { paros: any[] }) {
   if (!paros || paros.length === 0) return null;
   return (
     <div className="mb-4">
-      <h3 className="text-lg font-semibold text-blue-700 mb-1">Paros</h3>
+      <h3 className="text-lg font-semibold text-blue-700 mb-1">Paros/Actividades</h3>
       {paros.map((paro, index) => (
         <div key={paro.id} className="mb-2 border rounded">
           <div className="bg-blue-50 px-2 py-1 font-bold text-xs whitespace-nowrap">
-            Paro {index + 1}
+            Paro/Actividad {index + 1}
           </div>
           <table className="w-full text-xs border-collapse">
             <tbody>
@@ -425,7 +425,7 @@ const handleDescargarPDF = async (selectedDemora: any) => {
     if (selectedDemora.segundoProceso) {
       addTableSection("Segundo Proceso", filterModalDetailData(selectedDemora.segundoProceso));
       if (selectedDemora.segundoProceso.parosMol && selectedDemora.segundoProceso.parosMol.length > 0) {
-        addTableSection("Segundo Proceso - Paros", { parosMol: selectedDemora.segundoProceso.parosMol });
+        addTableSection("Segundo Proceso - Paros/Actividades", { parosMol: selectedDemora.segundoProceso.parosMol });
       }
     }
     if (selectedDemora.tercerProceso) {

@@ -437,11 +437,11 @@ export async function GET(request) {
       { header: "Fin", key: "fin", width: 20 },
       { header: "Razón", key: "razon", width: 25 },
       { header: "Diff Carga Inicio", key: "Diff Carga Inicio", width: 20 },
-      { header: "Duración Paro", key: "Duración Paro", width: 20 },
+      { header: "Duración", key: "Duración Paro", width: 20 },
     ];
 
     if (datosParos.length > 0) {
-      const sheetParos = workbook.addWorksheet("Paros");
+      const sheetParos = workbook.addWorksheet("Paros-Actividades");
       sheetParos.columns = parosColumnsOrder;
       datosParos.forEach((row) => {
         sheetParos.addRow(row);
