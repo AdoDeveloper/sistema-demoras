@@ -485,7 +485,7 @@ export default function Bitacora() {
                       onChange={(e) => handleCheckboxChange(e, "tipoCarga")}
                       className="h-4 w-4"
                     />
-                    <span className="text-xs">{tipo}</span>
+                    <span className="text-xs whitespace-nowrap">{tipo}</span>
                   </label>
                 ))}
               </div>
@@ -508,7 +508,7 @@ export default function Bitacora() {
                       onChange={(e) => handleCheckboxChange(e, "sistemaUtilizado")}
                       className="h-4 w-4"
                     />
-                    <span className="text-xs">{sistema}</span>
+                    <span className="text-xs whitespace-nowrap">{sistema}</span>
                   </label>
                 ))}
               </div>
@@ -528,7 +528,7 @@ export default function Bitacora() {
                 placeholder="BD-2"
                 value={newOperacion.bdsTs}
                 onChange={handleOperacionChange}
-                className="w-full h-10 border rounded-sm px-2 text-xs"
+                className="w-full h-10 border rounded-sm px-2"
               />
             </div>
             <div>
@@ -539,13 +539,13 @@ export default function Bitacora() {
                   name="inicio"
                   value={newOperacion.inicio}
                   onChange={handleOperacionChange}
-                  className="w-full h-10 border rounded-sm px-2"
+                  className="w-full h-10 border rounded-sm px-2 whitespace-nowrap"
                   step="1"
                 />
                 <button
                   type="button"
                   onClick={handleAhoraInicio}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md whitespace-nowrap"
                 >
                   Ahora
                 </button>
@@ -559,13 +559,13 @@ export default function Bitacora() {
                   name="final"
                   value={newOperacion.final}
                   onChange={handleOperacionChange}
-                  className="w-full h-10 border rounded-sm px-2"
+                  className="w-full h-10 border rounded-sm px-2 whitespace-nowrap"
                   step="1"
                 />
                 <button
                   type="button"
                   onClick={handleAhoraFinal}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md whitespace-nowrap"
                 >
                   Ahora
                 </button>
@@ -578,7 +578,7 @@ export default function Bitacora() {
                 name="minutos"
                 value={newOperacion.minutos}
                 readOnly
-                className="w-full h-10 border rounded-sm px-2 bg-gray-50"
+                className="w-full h-10 border rounded-sm px-2 bg-gray-50 whitespace-nowrap"
               />
             </div>
             <div className="sm:col-span-2">
@@ -587,7 +587,7 @@ export default function Bitacora() {
                 name="actividad"
                 value={isOther ? "otro" : newOperacion.actividad}
                 onChange={handleSelectActividadChange}
-                className="w-full h-10 border rounded-sm px-2 mb-1"
+                className="w-full h-10 border rounded-sm px-2 mb-1 whitespace-nowrap"
               >
                 <option value="">-- Seleccione --</option>
                 {validOptions.map((opt) => (
@@ -606,7 +606,7 @@ export default function Bitacora() {
                     setCustomActividad(e.target.value);
                     setNewOperacion((prev) => ({ ...prev, actividad: e.target.value }));
                   }}
-                  className="w-full border rounded-sm px-2 mt-1 resize-x"
+                  className="w-full border rounded-sm px-2 mt-1 resize-x whitespace-nowrap"
                   rows={2}
                 />
               )}
@@ -616,7 +616,7 @@ export default function Bitacora() {
             <button
               type="button"
               onClick={addOrUpdateOperacion}
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md whitespace-nowrap"
             >
               {editingIndex !== null ? (
                 <>
@@ -634,7 +634,7 @@ export default function Bitacora() {
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="flex items-center ml-2 gap-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md"
+                className="flex items-center ml-2 gap-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md whitespace-nowrap"
               >
                 Cancelar
               </button>
@@ -651,23 +651,23 @@ export default function Bitacora() {
             <table className="min-w-full border text-xs">
               <thead className="bg-gray-100 text-gray-700">
                 <tr>
-                  <th className="p-2 border">BDS TS</th>
-                  <th className="p-2 border">INICIO</th>
-                  <th className="p-2 border">FINAL</th>
-                  <th className="p-2 border">MINUTOS</th>
-                  <th className="p-2 border">ACTIVIDAD</th>
-                  <th className="p-2 border">ACCIÓN</th>
+                  <th className="p-2 border whitespace-nowrap">BDS TS</th>
+                  <th className="p-2 border whitespace-nowrap">INICIO</th>
+                  <th className="p-2 border whitespace-nowrap">FINAL</th>
+                  <th className="p-2 border whitespace-nowrap">MINUTOS</th>
+                  <th className="p-2 border whitespace-nowrap">ACTIVIDAD</th>
+                  <th className="p-2 border whitespace-nowrap">ACCIÓN</th>
                 </tr>
               </thead>
               <tbody>
                 {formData.operaciones.map((op, index) => (
                   <tr key={index} className="border-b">
-                    <td className="p-2 border">{op.bdsTs}</td>
-                    <td className="p-2 border">{op.inicio}</td>
-                    <td className="p-2 border">{op.final}</td>
-                    <td className="p-2 border">{op.minutos}</td>
-                    <td className="p-2 border">{op.actividad}</td>
-                    <td className="p-2 border text-center flex items-center justify-center gap-2">
+                    <td className="p-2 border whitespace-nowrap">{op.bdsTs}</td>
+                    <td className="p-2 border whitespace-nowrap">{op.inicio}</td>
+                    <td className="p-2 border whitespace-nowrap">{op.final}</td>
+                    <td className="p-2 border whitespace-nowrap">{op.minutos}</td>
+                    <td className="p-2 border whitespace-nowrap">{op.actividad}</td>
+                    <td className="p-2 border text-center flex items-center justify-center gap-2 whitespace-nowrap">
                       <button
                         onClick={() => handleEditOperacion(index)}
                         title="Actualizar"
@@ -700,33 +700,33 @@ export default function Bitacora() {
             value={formData.observaciones}
             onChange={handleChange}
             rows={3}
-            className="w-full border border-gray-300 rounded-md px-2 py-1 resize-y"
+            className="w-full border border-gray-300 rounded-md px-2 py-1 resize-y whitespace-nowrap"
             placeholder="Escribe aquí..."
           />
         </div>
 
         {/* Botones finales */}
-        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4" style={{ transition: "none" }}>
+        <div className="grid grid-cols-2 gap-4 mt-4" style={{ transition: "none" }}>
           <button 
             onClick={handleCancel} 
-            className="bg-white border border-blue-600 text-blue-600 px-4 py-2 rounded-md hover:bg-blue-50"
+            className="bg-white border border-blue-600 text-blue-600 px-4 py-2 rounded-md hover:bg-blue-50 whitespace-nowrap"
           >
             Cancelar
           </button>
           <button 
             onClick={handleSubmit} 
-            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md whitespace-nowrap"
           >
             <FiSave size={24} />
             Guardar Bitácora
           </button>
-          <button
-            onClick={handleGeneratePDF}
-            className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
-          >
-            <FaFilePdf size={24} />
-            Generar PDF
-          </button>
+          {/* <button
+              onClick={handleGeneratePDF}
+              className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md whitespace-nowrap"
+            >
+              <FaFilePdf size={24} />
+              Generar PDF
+            </button> */}
           {renderPDFLink && (
             <PDFDownloadLink
               document={<PDFBitacora formData={formData} />}
@@ -740,6 +740,7 @@ export default function Bitacora() {
             </PDFDownloadLink>
           )}
         </div>
+
       </main>
       <Footer />
     </div>
