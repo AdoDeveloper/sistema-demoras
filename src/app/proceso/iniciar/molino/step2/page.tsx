@@ -63,6 +63,7 @@ const razonesParoOptions: OptionType[] = [
   { value: "Revisión de banda transportadora de sacos", label: "Revisión de banda transportadora de sacos" },
   { value: "Revisión de molino", label: "Revisión de molino" },
   { value: "Revisión de sacos previo al despacho", label: "Revisión de sacos previo al despacho" },
+  { value: "Revisión de sacos", label: "Revisión de sacos" },
   { value: "Revisión de ultimos sacos", label: "Revisión de ultimos sacos" },
   { value: "Revisión de tolva", label: "Revisión de tolva" },
   { value: "Solo dos cargadores", label: "Solo dos cargadores" },
