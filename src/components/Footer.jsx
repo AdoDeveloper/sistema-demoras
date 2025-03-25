@@ -4,7 +4,7 @@ import { FiActivity } from "react-icons/fi";
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-200 py-6">
+    <footer className="bg-white border-t border-gray-200 py-3">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col items-center space-y-2 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
           {/* Columna Izquierda: Información */}
