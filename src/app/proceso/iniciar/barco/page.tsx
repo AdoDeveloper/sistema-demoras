@@ -35,9 +35,25 @@ type FormDataType = {
 
 const validOptions = ["CARGA", "DESCARGA", "PARO"];
 
-/** Función para obtener la fecha de inicio formateada */
 function getFechaInicio() {
-  return new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" });
+  const now = new Date();
+  return now.toLocaleString("en-CA", {
+    timeZone: "America/El_Salvador",
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+/** Función para obtener la fecha de inicio formateada */
+function getFecha() {
+  const now = new Date();
+  // Usamos 'en-CA' ya que este locale devuelve la fecha en formato ISO (YYYY-MM-DD)
+  return now.toLocaleDateString("en-CA", { timeZone: "America/El_Salvador" });
 }
 
 /** Convierte un string de tiempo (HH:MM o HH:MM:SS) a segundos */
@@ -78,7 +94,7 @@ export default function Bitacora() {
   const [formData, setFormData] = useState<FormDataType>({
     bValue: "",
     valorMuelle: "",
-    fecha: "",
+    fecha: getFecha(),
     fechaInicio: getFechaInicio(),
     nombreMuellero: "",
     turnoInicio: "",
@@ -742,7 +758,6 @@ export default function Bitacora() {
         </div>
 
       </main>
-      <Footer />
     </div>
   );
 }
