@@ -580,3 +580,69 @@ model DetalleActividad {
 
   @@map("detalle_actividades")
 }
+
+// BARCOS
+
+model Barco {
+  id                        Int       @id @default(autoincrement()) @map("id")
+  muelle                    String?   @map("muelle")
+  vaporBarco                String?   @map("vapor_barco")
+  fechaArribo               String?   @map("fecha_arribo")
+  horaArribo                String?   @map("hora_arribo")
+  fechaAtraque              String?   @map("fecha_atraque")
+  horaAtraque               String?   @map("hora_atraque")
+  fechaRecibido            String?    @map("fecha_recibido")
+  horaRecibido             String?    @map("hora_recibido")
+  fechaInicioOperaciones   String?    @map("fecha_inicio_operaciones")
+  horaInicioOperaciones    String?    @map("hora_inicio_operaciones")
+  fechaFinOperaciones      String?    @map("fecha_fin_operaciones")
+  horaFinOperaciones       String?    @map("hora_fin_operaciones")
+  tipoCarga                String?    @db.Text @map("tipo_carga")
+  sistemaUtilizado         String?    @db.Text @map("sistema_utilizado")
+
+  bitacoras                Bitacora[]
+
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+
+   @@map("barcos")
+}
+
+model Bitacora {
+  id              Int         @id @default(autoincrement()) @map("id")
+  fechaInicio     String?     @map("fecha_inicio")
+  fecha           String?     @map("fecha")
+  fechaCierre     String?     @map("fecha_cierre")
+  nombreMuellero  String?     @map("nombre_muellero")
+  turnoInicio     String?     @map("turno_inicio")
+  turnoFin        String?     @map("turno_fin")
+  observaciones   String?     @map("observaciones") @db.LongText
+
+  barcoId         Int?        @map("barco_id")
+  barco           Barco?      @relation(fields: [barcoId], references: [id])
+
+  operaciones     Operacion[]
+
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@map("bitacoras")
+}
+
+model Operacion {
+  id           Int         @id @default(autoincrement()) @map("id")
+  // Datos de cada operación en la bitácora:
+  bodega       String?     @map("bodega")
+  inicio       String?     @map("inicio")
+  final        String?     @map("final")
+  minutos      String?     @map("minutos")
+  actividad    String?     @map("actividad") @db.LongText
+
+  bitacoraId   Int         @map("bitacora_id")
+  bitacora     Bitacora    @relation(fields: [bitacoraId], references: [id])
+
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@map("operaciones_bitacora")
+}

@@ -10,36 +10,46 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 
-// Listas de opciones para mostrar en el PDF
-const allTipoCargaCol1 = ["CEREALES", "CARBÓN", "GRASA AMARILLA"];
-const allTipoCargaCol2 = ["AZÚCAR CRUDA", "MELAZA", "YESO"];
-const allSistemaUtilizadoCol1 = ["UNIDAD DE CARGA", "ALMEJA", "EQUIPO BULHER"];
-const allSistemaUtilizadoCol2 = ["SUCCIONADORA", "CHINGUILLOS"];
+// Listas de opciones (ejemplo)
+const allTipoCargaBarco = [
+  "CEREALES",
+  "AZÚCAR CRUDA",
+  "CARBÓN",
+  "MELAZA",
+  "GRASA AMARILLA",
+  "YESO",
+];
+const allSistemaUtilizadoBarco = [
+  "UNIDAD DE CARGA",
+  "SUCCIONADORA",
+  "ALMEJA",
+  "CHINGUILLOS",
+  "EQUIPO BULHER",
+  "ALAMBRE",
+];
 
-// Obtén la fecha/hora de generación
+// Función para obtener fecha/hora
 const getFechaHoraGenerada = () => {
-  // Ajusta formato o zona horaria a tu preferencia
   return new Date().toLocaleString("es-SV", { timeZone: "America/El_Salvador" });
 };
 
+// Estilos
 const styles = StyleSheet.create({
   page: {
     fontSize: 10,
     fontFamily: "Helvetica",
     backgroundColor: "#F3F4F6",
     color: "#000",
-    // Para que no se monte sobre el header y footer
-    paddingTop: 110,   // Ajusta según la altura de tu encabezado
-    paddingBottom: 30, // Ajusta según la altura de tu pie de página
-    paddingHorizontal: 20,
+    // Ajusta estos valores según la altura de tu header y footer
+    paddingTop: 80,
+    paddingBottom: 30,
+    paddingHorizontal: 10,
   },
-  /* Encabezado */
   headerContainer: {
     backgroundColor: "#003E9B",
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 15,
-    // Repetir en todas las páginas
     position: "absolute",
     top: 0,
     left: 0,
@@ -61,7 +71,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     textAlign: "right",
   },
-  /* Pie de página */
   footerContainer: {
     position: "absolute",
     bottom: 0,
@@ -76,13 +85,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: "#000",
   },
-  /* Contenedor principal */
   whiteBox: {
     backgroundColor: "#fff",
     marginTop: 0,
     marginBottom: 20,
     padding: 15,
     borderRadius: 5,
+    breakInside: "avoid",
+  },
+  sectionHeader: {
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    marginBottom: 8,
+    color: "#000",
   },
   row: {
     flexDirection: "row",
@@ -101,35 +117,39 @@ const styles = StyleSheet.create({
   inputBox: {
     fontSize: 10,
     padding: 4,
-    border: "1px solid #ccc",
+    borderWidth: 1,
+    borderColor: "#ccc",
     borderRadius: 3,
     minHeight: 18,
     justifyContent: "center",
+    flexWrap: "wrap",
   },
-  sectionTitle: {
-    fontSize: 9,
-    fontWeight: "bold",
-    textTransform: "uppercase",
+  card: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 3,
+    marginBottom: 10,
+    breakInside: "avoid",
+  },
+  cardHeader: {
     backgroundColor: "#E5E7EB",
     padding: 4,
-    marginBottom: 2,
   },
-  twoColumnsContainer: {
-    flexDirection: "row",
+  cardHeaderText: {
+    fontSize: 10,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    color: "#000",
+    textAlign: "center",
   },
-  checkboxColumn: {
-    flex: 1,
-    marginRight: 10,
-  },
-  checkboxContainer: {
-    marginBottom: 4,
-    flexDirection: "row",
-    alignItems: "center",
+  cardBody: {
+    padding: 4,
   },
   checkboxBox: {
     width: 12,
     height: 12,
-    border: "1px solid #000",
+    borderWidth: 1,
+    borderColor: "#000",
     marginRight: 3,
     alignItems: "center",
     justifyContent: "center",
@@ -149,14 +169,24 @@ const styles = StyleSheet.create({
   checkboxText: {
     fontSize: 9,
   },
+  infoCard: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 3,
+    padding: 4,
+    marginBottom: 10,
+    breakInside: "avoid",
+  },
   tableContainer: {
     marginTop: 10,
-    border: "1px solid #ccc",
+    borderWidth: 1,
+    borderColor: "#ccc",
   },
   tableHeader: {
     flexDirection: "row",
     backgroundColor: "#F9FAFB",
-    borderBottom: "1px solid #ccc",
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
   },
   tableHeaderText: {
     fontSize: 9,
@@ -164,18 +194,21 @@ const styles = StyleSheet.create({
     padding: 4,
     flex: 1,
     textAlign: "center",
-    borderRight: "1px solid #ccc",
+    borderRightWidth: 1,
+    borderColor: "#ccc",
   },
   tableRow: {
     flexDirection: "row",
-    borderBottom: "1px solid #eee",
+    borderBottomWidth: 1,
+    borderColor: "#eee",
   },
   tableCell: {
     flex: 1,
     fontSize: 9,
     padding: 3,
     textAlign: "center",
-    borderRight: "1px solid #eee",
+    borderRightWidth: 1,
+    borderColor: "#eee",
   },
   observationsLabel: {
     fontSize: 9,
@@ -185,168 +218,362 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   observationsBox: {
-    border: "1px solid #ccc",
+    borderWidth: 1,
+    borderColor: "#ccc",
     minHeight: 40,
     borderRadius: 3,
     padding: 5,
     fontSize: 9,
+    flexWrap: "wrap",
   },
 });
 
 const PDFBitacora = ({ formData }) => {
   const {
-    bValue,
-    valorMuelle,
-    fecha,
+    // Datos de la Bitácora
     fechaInicio,
+    fechaCierre,
     nombreMuellero,
     turnoInicio,
     turnoFin,
-    tipoCarga,
-    sistemaUtilizado,
-    operaciones,
+    operaciones = [],
     observaciones,
+    // Datos del Barco
+    barco = {},
   } = formData;
 
-  // Fecha/hora en que se genera el PDF
   const fechaHoraGenerada = getFechaHoraGenerada();
-
-  // Función para dibujar el checkbox con fondo azul si la opción está seleccionada
-  const renderCheckbox = (option, selectedList) => {
-    const isChecked = selectedList.includes(option);
-    return (
-      <View style={styles.checkboxContainer} key={option}>
-        <View style={[styles.checkboxBox, isChecked && styles.checkedBox]}>
-          <Text style={[styles.checkMark, isChecked && styles.checkedMark]}>
-            {isChecked ? "✓" : ""}
-          </Text>
-        </View>
-        <Text style={styles.checkboxText}>{option}</Text>
-      </View>
-    );
-  };
 
   return (
     <Document>
+      {/* ================= PRIMERA PÁGINA: INFORMACIÓN DEL BARCO ================= */}
       <Page size="LETTER" style={styles.page}>
-        {/* Encabezado repetido en todas las páginas */}
+        {/* Header fijo en todas las páginas */}
         <View style={styles.headerContainer} fixed>
           <View style={styles.headerRow}>
             <Image style={styles.logo} src="/logo.png" />
-            <Text style={styles.title}>Bitácora de Operaciones en Muelle y Abordo</Text>
+            <Text style={styles.title}>
+              Bitácora de Operaciones en Muelle y Abordo
+            </Text>
           </View>
         </View>
 
-        {/* Pie de página con fecha/hora de generación, repetido en todas las páginas */}
+        {/* Footer fijo en todas las páginas */}
         <View style={styles.footerContainer} fixed>
           <Text style={styles.footerText}>Generado: {fechaHoraGenerada}</Text>
         </View>
 
-        {/* Contenedor blanco principal (contenido) */}
+        {/* Contenido de la primera página: Información del Barco */}
         <View style={styles.whiteBox}>
-          {/* Fila 1: Código, Vapor/Muelle, Fecha */}
+          <Text style={styles.sectionHeader}>Información del Barco</Text>
+
+          {/* Fila: MUELLE y VAPOR/BARCO */}
           <View style={styles.row}>
             <View style={styles.column}>
-              <Text style={styles.columnLabel}>CÓDIGO</Text>
+              <Text style={styles.columnLabel}>MUELLE</Text>
               <View style={styles.inputBox}>
-                <Text>{bValue}</Text>
+                <Text>{barco.muelle || "-"}</Text>
               </View>
             </View>
             <View style={styles.column}>
-              <Text style={styles.columnLabel}>VAPOR/MUELLE</Text>
+              <Text style={styles.columnLabel}>VAPOR/BARCO</Text>
               <View style={styles.inputBox}>
-                <Text>{valorMuelle}</Text>
-              </View>
-            </View>
-            <View style={styles.column}>
-              <Text style={styles.columnLabel}>FECHA</Text>
-              <View style={styles.inputBox}>
-                <Text>{fecha}</Text>
+                <Text>{barco.vaporBarco || "-"}</Text>
               </View>
             </View>
           </View>
 
-          {/* Fila 2: Nombre del Muellero y Turno*/}
+          {/* Tarjetas: Tipo de Carga y Sistema Utilizado */}
           <View style={styles.row}>
             <View style={styles.column}>
-              <Text style={styles.columnLabel}>Nombre del Muellero</Text>
-              <View style={styles.inputBox}>
-                <Text>{nombreMuellero}</Text>
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardHeaderText}>TIPO DE CARGA</Text>
+                </View>
+                <View style={styles.cardBody}>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                    {allTipoCargaBarco.map((tipo) => (
+                      <View
+                        key={tipo}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          width: "50%",
+                          marginBottom: 3,
+                        }}
+                      >
+                        <View
+                          style={[
+                            styles.checkboxBox,
+                            barco.tipoCarga &&
+                              barco.tipoCarga.includes(tipo) &&
+                              styles.checkedBox,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.checkMark,
+                              barco.tipoCarga &&
+                                barco.tipoCarga.includes(tipo) &&
+                                styles.checkedMark,
+                            ]}
+                          >
+                            {barco.tipoCarga &&
+                            barco.tipoCarga.includes(tipo)
+                              ? "✓"
+                              : ""}
+                          </Text>
+                        </View>
+                        <Text style={styles.checkboxText}>{tipo}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
               </View>
             </View>
+
             <View style={styles.column}>
-              <Text style={styles.columnLabel}>Turno de</Text>
-              <View style={styles.inputBox}>
-                <Text>{turnoInicio}</Text>
-              </View>
-            </View>
-            <View style={styles.column}>
-              <Text style={styles.columnLabel}>a</Text>
-              <View style={styles.inputBox}>
-                <Text>{turnoFin}</Text>
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardHeaderText}>
+                    SISTEMA UTILIZADO
+                  </Text>
+                </View>
+                <View style={styles.cardBody}>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                    {allSistemaUtilizadoBarco.map((sistema) => (
+                      <View
+                        key={sistema}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          width: "50%",
+                          marginBottom: 3,
+                        }}
+                      >
+                        <View
+                          style={[
+                            styles.checkboxBox,
+                            barco.sistemaUtilizado &&
+                              barco.sistemaUtilizado.includes(sistema) &&
+                              styles.checkedBox,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.checkMark,
+                              barco.sistemaUtilizado &&
+                                barco.sistemaUtilizado.includes(sistema) &&
+                                styles.checkedMark,
+                            ]}
+                          >
+                            {barco.sistemaUtilizado &&
+                            barco.sistemaUtilizado.includes(sistema)
+                              ? "✓"
+                              : ""}
+                          </Text>
+                        </View>
+                        <Text style={styles.checkboxText}>{sistema}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
               </View>
             </View>
           </View>
 
-          {/* Sección: Tipo de Carga y Sistema Utilizado (2 columnas cada uno) */}
+          {/* Fechas y Horas del Barco */}
           <View style={styles.row}>
-            {/* Tipo de Carga */}
+            {/* ARRIBO */}
             <View style={styles.column}>
-              <Text style={styles.sectionTitle}>Tipo de Carga</Text>
-              <View style={styles.twoColumnsContainer}>
-                {/* Columna 1 */}
-                <View style={styles.checkboxColumn}>
-                  {allTipoCargaCol1.map((option) =>
-                    renderCheckbox(option, tipoCarga)
-                  )}
-                </View>
-                {/* Columna 2 */}
-                <View style={styles.checkboxColumn}>
-                  {allTipoCargaCol2.map((option) =>
-                    renderCheckbox(option, tipoCarga)
-                  )}
+              <View style={styles.infoCard}>
+                <Text style={styles.cardHeaderText}>ARRIBO</Text>
+                <View style={styles.row}>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Fecha Arribo</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.fechaArribo || "-"}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Hora Arribo</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.horaArribo || "-"}</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
 
-            {/* Sistema Utilizado */}
+            {/* ATRAQUE */}
             <View style={styles.column}>
-              <Text style={styles.sectionTitle}>Sistema Utilizado</Text>
-              <View style={styles.twoColumnsContainer}>
-                {/* Columna 1 */}
-                <View style={styles.checkboxColumn}>
-                  {allSistemaUtilizadoCol1.map((option) =>
-                    renderCheckbox(option, sistemaUtilizado)
-                  )}
-                </View>
-                {/* Columna 2 */}
-                <View style={styles.checkboxColumn}>
-                  {allSistemaUtilizadoCol2.map((option) =>
-                    renderCheckbox(option, sistemaUtilizado)
-                  )}
+              <View style={styles.infoCard}>
+                <Text style={styles.cardHeaderText}>ATRAQUE</Text>
+                <View style={styles.row}>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Fecha Atraque</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.fechaAtraque || "-"}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Hora Atraque</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.horaAtraque || "-"}</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
           </View>
 
-          {/* Tabla de operaciones (sin columna de acción) */}
+          <View style={styles.row}>
+            {/* RECIBIDO */}
+            <View style={styles.column}>
+              <View style={styles.infoCard}>
+                <Text style={styles.cardHeaderText}>RECIBIDO</Text>
+                <View style={styles.row}>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Fecha Recibido</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.fechaRecibido || "-"}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Hora Recibido</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.horaRecibido || "-"}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* INICIO OPERACIONES */}
+            <View style={styles.column}>
+              <View style={styles.infoCard}>
+                <Text style={styles.cardHeaderText}>
+                  INICIO OPERACIONES
+                </Text>
+                <View style={styles.row}>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Fecha Inicio</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.fechaInicioOperaciones || "-"}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Hora Inicio</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.horaInicioOperaciones || "-"}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            {/* FIN OPERACIONES */}
+            <View style={styles.column}>
+              <View style={styles.infoCard}>
+                <Text style={styles.cardHeaderText}>FIN OPERACIONES</Text>
+                <View style={styles.row}>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Fecha Fin</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.fechaFinOperaciones || "-"}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.column}>
+                    <Text style={styles.columnLabel}>Hora Fin</Text>
+                    <View style={styles.inputBox}>
+                      <Text>{barco.horaFinOperaciones || "-"}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Page>
+
+      {/* ================= SEGUNDA (Y DEMÁS) PÁGINAS: BITÁCORAS ================= */}
+      <Page size="LETTER" style={styles.page}>
+        {/* Header fijo en todas las páginas */}
+        <View style={styles.headerContainer} fixed>
+          <View style={styles.headerRow}>
+            <Image style={styles.logo} src="/logo.png" />
+            <Text style={styles.title}>
+              Bitácora de Operaciones en Muelle y Abordo
+            </Text>
+          </View>
+        </View>
+
+        {/* Footer fijo en todas las páginas */}
+        <View style={styles.footerContainer} fixed>
+          <Text style={styles.footerText}>Generado: {fechaHoraGenerada}</Text>
+        </View>
+
+        {/* Contenido de la segunda página (y subsecuentes si el contenido crece) */}
+        <View style={styles.whiteBox}>
+          <Text style={styles.sectionHeader}>Bitácoras</Text>
+
+          {/* Datos generales de la Bitácora */}
+          <View style={styles.row}>
+            <View style={styles.column}>
+              <Text style={styles.columnLabel}>FECHA INICIO</Text>
+              <View style={styles.inputBox}>
+                <Text>{fechaInicio || "-"}</Text>
+              </View>
+            </View>
+            <View style={styles.column}>
+              <Text style={styles.columnLabel}>FECHA CIERRE</Text>
+              <View style={styles.inputBox}>
+                <Text>{fechaCierre || "-"}</Text>
+              </View>
+            </View>
+            <View style={styles.column}>
+              <Text style={styles.columnLabel}>NOMBRE DEL MUELLERO</Text>
+              <View style={styles.inputBox}>
+                <Text>{nombreMuellero || "-"}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.column}>
+              <Text style={styles.columnLabel}>TURNO DE</Text>
+              <View style={styles.inputBox}>
+                <Text>{turnoInicio || "-"}</Text>
+              </View>
+            </View>
+            <View style={styles.column}>
+              <Text style={styles.columnLabel}>A</Text>
+              <View style={styles.inputBox}>
+                <Text>{turnoFin || "-"}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Tabla de operaciones */}
           <View style={styles.tableContainer}>
             <View style={styles.tableHeader}>
-              <Text style={styles.tableHeaderText}>BDS TS</Text>
+              <Text style={styles.tableHeaderText}>BODEGA</Text>
               <Text style={styles.tableHeaderText}>INICIO</Text>
               <Text style={styles.tableHeaderText}>FINAL</Text>
               <Text style={styles.tableHeaderText}>MINUTOS</Text>
-              <Text style={[styles.tableHeaderText, { borderRight: 0 }]}>
+              <Text style={[styles.tableHeaderText, { borderRightWidth: 0 }]}>
                 ACTIVIDAD
               </Text>
             </View>
             {operaciones.map((op, index) => (
               <View key={index} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{op.bdsTs}</Text>
+                <Text style={styles.tableCell}>{op.bodega}</Text>
                 <Text style={styles.tableCell}>{op.inicio}</Text>
                 <Text style={styles.tableCell}>{op.final}</Text>
                 <Text style={styles.tableCell}>{op.minutos}</Text>
-                <Text style={[styles.tableCell, { borderRight: 0 }]}>
+                <Text style={[styles.tableCell, { borderRightWidth: 0 }]}>
                   {op.actividad}
                 </Text>
               </View>
@@ -356,7 +583,7 @@ const PDFBitacora = ({ formData }) => {
           {/* Observaciones */}
           <Text style={styles.observationsLabel}>Observaciones</Text>
           <View style={styles.observationsBox}>
-            <Text>{observaciones}</Text>
+            <Text>{observaciones || ""}</Text>
           </View>
         </View>
       </Page>

@@ -59,7 +59,10 @@ export async function middleware(req) {
     "/proceso/iniciar/molino/actividades",
 
     // BARCO
+    "/api/barcos",
+    "/api/barcos/:path*",
     "/proceso/iniciar/barco",
+    "/proceso/consultar/barco",
 
     // Otras rutas protegidas
     "/perfil",
@@ -150,7 +153,10 @@ export const config = {
     "/proceso/iniciar/molino/actividades",
 
     // BARCO
+    "/api/barcos",
+    "/api/barcos/:path*",
     "/proceso/iniciar/barco",
+    "/proceso/consultar/barco",
 
     // Otras rutas protegidas
     "/proceso/analisis",

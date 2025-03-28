@@ -379,7 +379,6 @@ export default function UserRoleManagement() {
                 <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
                   <thead className="bg-gray-300 text-gray-800">
                     <tr>
-                      <th className="px-4 py-2 text-left font-medium">ID</th>
                       <th className="px-4 py-2 text-left font-medium">Username</th>
                       <th className="px-4 py-2 text-left font-medium">Nombre Completo</th>
                       <th className="px-4 py-2 text-left font-medium">Código</th>
@@ -391,7 +390,6 @@ export default function UserRoleManagement() {
                   <tbody className="divide-y divide-gray-200">
                     {users.map((user) => (
                       <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.id}</td>
                         <td className="px-4 py-2 text-gray-700 text-nowrap">{user.username}</td>
                         <td className="px-4 py-2 text-gray-700 text-nowrap">{user.nombreCompleto}</td>
                         <td className="px-4 py-2 text-gray-700 text-nowrap">{user.codigo}</td>
@@ -440,7 +438,6 @@ export default function UserRoleManagement() {
                 <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
                   <thead className="bg-gray-300 text-gray-800">
                     <tr>
-                      <th className="px-4 py-2 text-left font-medium">ID</th>
                       <th className="px-4 py-2 text-left font-medium">Nombre</th>
                       <th className="px-4 py-2 text-center font-medium">Acciones</th>
                     </tr>
@@ -448,7 +445,6 @@ export default function UserRoleManagement() {
                   <tbody className="divide-y divide-gray-200">
                     {roles.map((role) => (
                       <tr key={role.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 text-gray-700 text-nowrap">{role.id}</td>
                         <td className="px-4 py-2 text-gray-700 text-nowrap">{role.name}</td>
                         <td className="px-4 py-2 text-center space-x-2">
                           <button

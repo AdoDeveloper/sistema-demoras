@@ -15,6 +15,7 @@ import { HiOutlineUserCircle } from "react-icons/hi";
 import { IoBoatSharp } from "react-icons/io5";
 import { GiGrain } from "react-icons/gi";
 import { MdPendingActions } from "react-icons/md";
+import { HiClipboardDocumentList } from "react-icons/hi2";
 
 // Importación dinámica para evitar problemas de hidratación con Next.js
 const WeatherWidget = dynamic(() => import("../components/WeatherWidget"), {
@@ -119,7 +120,6 @@ export default function Dashboard() {
 
         </section>
         <div>{typeof window !== "undefined" && <WeatherWidget />}</div>
-
         {/* Sección: Acciones rápidas */}
         <section className="bg-white p-4 rounded-xl shadow space-y-4">
           <h2 className="text-xl font-bold text-gray-800">Acciones rápidas</h2>
@@ -161,8 +161,8 @@ export default function Dashboard() {
                   onClick={() => router.push("/proceso/consultar/molino/actividades")}
                   icon={MdPendingActions}
                   label="Registros Actividades"
-                  bgColor="bg-orange-600"
-                  hoverColor="bg-orange-700"
+                  bgColor="bg-red-500"
+                  hoverColor="bg-red-600"
                 />
                 <ActionButton
                   onClick={() => router.push("/proceso/analisis")}
@@ -174,26 +174,35 @@ export default function Dashboard() {
               </>
             )}
 
-            {/* Registros Barcos: visible para roleId 1 y roleId 3 */}
+            {/* Registros Bitácoras: visible para roleId 1 y roleId 3 */}
             {(roleId === 1 || roleId === 3) && (
               <ActionButton
-                onClick={() => router.push("/building")}
-                icon={IoBoatSharp}
-                label="Registros Barcos"
-                bgColor="bg-sky-500"
-                hoverColor="bg-sky-600"
+                onClick={() => router.push("/proceso/consultar/bitacora")}
+                icon={HiClipboardDocumentList}
+                label="Registros Bitácoras"
+                bgColor="bg-cyan-500"
+                hoverColor="bg-cyan-600"
               />
             )}
 
             {/* Usuarios: visible solo para roleId 1 */}
             {roleId === 1 && (
-              <ActionButton
-                onClick={() => router.push("/usuarios")}
-                icon={FiUsers}
-                label="Usuarios"
-                bgColor="bg-gray-600"
-                hoverColor="bg-gray-700"
-              />
+              <>
+                <ActionButton
+                  onClick={() => router.push("/proceso/consultar/barco")}
+                  icon={IoBoatSharp}
+                  label="Registros Barcos"
+                  bgColor="bg-sky-500"
+                  hoverColor="bg-sky-600"
+                />
+                <ActionButton
+                  onClick={() => router.push("/usuarios")}
+                  icon={FiUsers}
+                  label="Usuarios"
+                  bgColor="bg-gray-600"
+                  hoverColor="bg-gray-700"
+                />
+              </>
             )}
           </div>
         </section>
