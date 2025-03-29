@@ -77,22 +77,19 @@ export default function Dashboard() {
       router.push("/login");
     }
 
-    // Cacheo de usuario en sessionStorage
-    if (typeof window !== "undefined") {
-      const cached = sessionStorage.getItem("user");
-      if (cached) {
-        setCachedUser(JSON.parse(cached));
-      } else if (session?.user) {
-        sessionStorage.setItem("user", JSON.stringify(session.user));
-        setCachedUser(session.user);
+      if (typeof window !== "undefined") {
+        const stored = sessionStorage.getItem("user");
+        if (stored) {
+          const user = JSON.parse(stored);
+          setCachedUser(user);
+          setRoleId(user.roleId);
+        } else if (session?.user) {
+          sessionStorage.setItem("user", JSON.stringify(session.user));
+          setCachedUser(session.user);
+          setRoleId(session.user.roleId);
+        }
       }
-      // Obtenemos el roleId desde localStorage
-      const storedRoleId = localStorage.getItem("roleId");
-      if (storedRoleId) {
-        setRoleId(Number(storedRoleId));
-      }
-    }
-  }, [status, session, router]);
+    }, [status, session, router]);
 
   if (typeof window === "undefined" || status === "loading") {
     return (

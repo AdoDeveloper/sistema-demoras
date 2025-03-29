@@ -19,16 +19,22 @@ export default function Proceso() {
   const [molidoOpen, setMolidoOpen] = useState(false);
 
   useEffect(() => {
+    // Redirección si no hay sesión
     if (status === "unauthenticated") {
       router.push("/login");
     }
-    if (typeof window !== "undefined") {
-      const storedRoleId = localStorage.getItem("roleId");
-      if (storedRoleId) {
-        setRoleId(Number(storedRoleId));
+
+      if (typeof window !== "undefined") {
+        const stored = sessionStorage.getItem("user");
+        if (stored) {
+          const user = JSON.parse(stored);
+          setRoleId(user.roleId);
+        } else if (session?.user) {
+          sessionStorage.setItem("user", JSON.stringify(session.user));
+          setRoleId(session.user.roleId);
+        }
       }
-    }
-  }, [status, router]);
+    }, [status, session, router]);
 
   if (typeof window === "undefined" || status === "loading") {
     return (
