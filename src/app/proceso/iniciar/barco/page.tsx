@@ -13,6 +13,7 @@ interface OptionType {
   value: string;
   label: string;
 }
+
 /** Estructura para una operación en la tabla */
 type Operacion = {
   bodega: string;
@@ -434,6 +435,43 @@ export default function Bitacora() {
   });
   const [customActividad, setCustomActividad] = useState("");
 
+  // Efecto para cargar del localStorage la información de la nueva operación por pestaña
+  useEffect(() => {
+    const key = `newOperacion_${activeTab}`;
+    const storedNewOperacion = localStorage.getItem(key);
+    const defaultOperacion: Operacion = {
+      bodega: "",
+      inicio: "",
+      final: "",
+      minutos: "",
+      actividad: "",
+    };
+    if (storedNewOperacion) {
+      try {
+        const parsed = JSON.parse(storedNewOperacion);
+        // Fusionamos con los valores por defecto para asegurarnos que todos los campos existan
+        setNewOperacion({ ...defaultOperacion, ...parsed });
+      } catch (error) {
+        console.error("Error parsing stored newOperacion:", error);
+      }
+    } else {
+      setNewOperacion(defaultOperacion);
+    }
+  }, [activeTab]);
+
+  // *Efecto para almacenar en localStorage la información de bodega, inicio, final y actividad de cada pestaña*
+  useEffect(() => {
+    const key = `newOperacion_${activeTab}`;
+    const dataToStore = {
+      bodega: newOperacion.bodega,
+      inicio: newOperacion.inicio,
+      final: newOperacion.final,
+      minutos: newOperacion.minutos,
+      actividad: newOperacion.actividad,
+    };
+    localStorage.setItem(key, JSON.stringify(dataToStore));
+  }, [newOperacion.bodega, newOperacion.inicio, newOperacion.final, newOperacion.minutos, newOperacion.actividad, activeTab]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (!activeFormData) return;
@@ -509,6 +547,7 @@ export default function Bitacora() {
     });
     setIsOther(false);
     setCustomActividad("");
+    localStorage.removeItem(`newOperacion_${activeTab}`);
   };
 
   const deleteOperacion = (index: number) => {
@@ -635,15 +674,15 @@ export default function Bitacora() {
         tabs.forEach((tab) => {
           localStorage.removeItem(`barcoData_${tab.id}`);
           localStorage.removeItem(`bitacoraData_${tab.id}`);
-          localStorage.removeItem("tabsList");
-          localStorage.removeItem("turnoInicio");
-          localStorage.removeItem("turnoFin");
+          localStorage.removeItem(`newOperacion_${tab.id}`);
         });
         localStorage.removeItem("tabsList");
+        localStorage.removeItem("turnoInicio");
+        localStorage.removeItem("turnoFin");
         router.push("/proceso/iniciar");
       }
     });
-  };
+    };
 
   const handleEndTurn = async () => {
     // Preguntar al usuario si desea finalizar el turno
@@ -768,6 +807,15 @@ export default function Bitacora() {
         showConfirmButton: false,
         timer: 1500,
       });
+
+      tabs.forEach((tab) => {
+        localStorage.removeItem(`barcoData_${tab.id}`);
+        localStorage.removeItem(`bitacoraData_${tab.id}`);
+        localStorage.removeItem(`newOperacion_${tab.id}`);
+      });
+      localStorage.removeItem("tabsList");
+      localStorage.removeItem("turnoInicio");
+      localStorage.removeItem("turnoFin");
 
       // Redirige a la ruta deseada o limpia los datos
       router.push("/proceso/iniciar");
@@ -1299,7 +1347,6 @@ export default function Bitacora() {
                   if (option) {
                     if (option.value === "Otro") {
                       setIsOther(true);
-                      // Opcionalmente, limpiar el valor de actividad si se selecciona "Otro"
                       setNewOperacion((prev) => ({ ...prev, actividad: "" }));
                     } else {
                       setIsOther(false);

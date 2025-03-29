@@ -64,6 +64,12 @@ export async function middleware(req) {
     "/proceso/iniciar/barco",
     "/proceso/consultar/barco",
 
+    // BITACORAS
+    "/api/bitacoras",
+    "/api/bitacoras/:path*",
+    "/api/bitacoras/export-excel",
+    "/proceso/consultar/bitacora",
+
     // Otras rutas protegidas
     "/perfil",
     "/proceso/analisis",
@@ -75,6 +81,10 @@ export async function middleware(req) {
     "/usuarios",
     "/api/users",
     "/api/roles",
+
+    // BARCOS
+    "/api/barcos/:path*",
+    "/proceso/consultar/barco",
   ];
 
   // Validar rutas de administración: se requiere sesión y rol de admin (roleId === 1)
@@ -157,6 +167,12 @@ export const config = {
     "/api/barcos/:path*",
     "/proceso/iniciar/barco",
     "/proceso/consultar/barco",
+
+    // BITACORAS
+    "/api/bitacoras",
+    "/api/bitacoras/:path*",
+    "/api/bitacoras/export-excel",
+    "/proceso/consultar/bitacora",
 
     // Otras rutas protegidas
     "/proceso/analisis",

@@ -243,12 +243,12 @@ export default function BitacorasPage() {
     <div className="min-h-screen bg-gray-100">
       {/* Encabezado */}
       <header className="bg-[#003E9B] text-white shadow-lg md:sticky md:top-0 z-50">
-        <div className="mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
+      <div className="mx-auto px-4 py-4">
+          <div className="flex flex-col md:flex-row justify-between">
+            <div className="flex items-center">
               <button
                 onClick={() => (window.location.href = "/")}
-                className="bg-white hover:bg-gray-200 text-blue-600 p-2 rounded-full transition-all duration-300 transform hover:scale-105"
+                className="bg-white hover:bg-gray-200 text-blue-600 p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
                 title="Volver"
               >
                 <FiArrowLeft size={20} />

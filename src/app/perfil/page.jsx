@@ -509,6 +509,8 @@ export default function Profile() {
           )}
         </div>
 
+        {(roleId !== 3 ) && (
+        <>
         {/* Filtro por fechas */}
         <section className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
@@ -799,6 +801,8 @@ export default function Profile() {
               </section>
             )}
           </>
+        )}
+        </>
         )}
       </main>
     </div>
