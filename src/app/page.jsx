@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -40,16 +40,12 @@ const ActionButton = ({ onClick, icon: Icon, label, bgColor, hoverColor }) => {
         ${bgColor} hover:${hoverColor}
       `}
     >
-      {/* Contenedor principal (icono + texto) */}
       <div className="flex items-center space-x-3">
-        {/* Ícono con círculo y sombra */}
         <div className="w-8 h-8 flex items-center justify-center rounded-full bg-black/10 shadow shadow-black/20">
           <Icon size={18} className="relative" />
         </div>
         <span className="text-base">{label}</span>
       </div>
-
-      {/* Flecha que aparece al hacer hover */}
       <FaArrowRight
         className="
           text-white
@@ -68,29 +64,15 @@ const ActionButton = ({ onClick, icon: Icon, label, bgColor, hoverColor }) => {
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [cachedUser, setCachedUser] = useState(null);
-  const [roleId, setRoleId] = useState(null);
 
   useEffect(() => {
-    // Redirección si no hay sesión
+    // Si no hay sesión, redirigimos al login
     if (status === "unauthenticated") {
       router.push("/login");
     }
+  }, [status, router]);
 
-      if (typeof window !== "undefined") {
-        const stored = sessionStorage.getItem("user");
-        if (stored) {
-          const user = JSON.parse(stored);
-          setCachedUser(user);
-          setRoleId(user.roleId);
-        } else if (session?.user) {
-          sessionStorage.setItem("user", JSON.stringify(session.user));
-          setCachedUser(session.user);
-          setRoleId(session.user.roleId);
-        }
-      }
-    }, [status, session, router]);
-
+  // Mientras carga la sesión mostramos un loader
   if (typeof window === "undefined" || status === "loading") {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
@@ -100,12 +82,15 @@ export default function Dashboard() {
     );
   }
 
+  // Obtenemos el roleId directamente de la sesión
+  const roleId = session?.user?.roleId;
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
 
       <main className="pt-24 pb-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        {/* Tarjeta de bienvenida y WeatherWidget en la misma columna */}
+        {/* Tarjeta de bienvenida y WeatherWidget */}
         <section className="bg-white rounded-xl shadow p-6 space-y-4">
           <div className="flex items-center space-x-3">
             <HiOutlineUserCircle size={48} className="text-blue-600" />
@@ -114,14 +99,13 @@ export default function Dashboard() {
               <p className="text-gray-600">Esperamos que tengas un excelente día.</p>
             </div>
           </div>
-
         </section>
-        <div>{typeof window !== "undefined" && <WeatherWidget />}</div>
+        <WeatherWidget />
+
         {/* Sección: Acciones rápidas */}
         <section className="bg-white p-4 rounded-xl shadow space-y-4">
           <h2 className="text-xl font-bold text-gray-800">Acciones rápidas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Iniciar Proceso: visible para todos */}
             <ActionButton
               onClick={() => router.push("/proceso/iniciar")}
               icon={FaPlay}
@@ -129,8 +113,6 @@ export default function Dashboard() {
               bgColor="bg-green-500"
               hoverColor="bg-green-600"
             />
-
-            {/* Opciones para roleId 1 y 2 */}
             {(roleId === 1 || roleId === 2) && (
               <>
                 <ActionButton
@@ -170,8 +152,6 @@ export default function Dashboard() {
                 />
               </>
             )}
-
-            {/* Registros Bitácoras: visible para roleId 1 y roleId 3 */}
             {(roleId === 1 || roleId === 3) && (
               <ActionButton
                 onClick={() => router.push("/proceso/consultar/bitacora")}
@@ -181,8 +161,6 @@ export default function Dashboard() {
                 hoverColor="bg-cyan-600"
               />
             )}
-
-            {/* Usuarios: visible solo para roleId 1 */}
             {roleId === 1 && (
               <>
                 <ActionButton

@@ -1,13 +1,16 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { FaFilePdf } from "react-icons/fa";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { FiArrowLeft, FiLoader } from "react-icons/fi";
+import { useSession } from "next-auth/react";
 
 export default function Profile() {
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   // Estados generales
   const [loading, setLoading] = useState(true);
@@ -20,21 +23,21 @@ export default function Profile() {
   const [globalStatsEnv, setGlobalStatsEnv] = useState(null);
   const [dailyStats, setDailyStats] = useState([]);
   const [records, setRecords] = useState([]);
-  // Estados de paginación para demoras (granel)
+  // Estados de paginación para Demoras (Granel)
   const [demorasPage, setDemorasPage] = useState(1);
   const [demorasTotalPages, setDemorasTotalPages] = useState(1);
 
   // Estados para Envasados
   const [envDailyStats, setEnvDailyStats] = useState([]);
   const [envRecords, setEnvRecords] = useState([]);
-  // Estados de paginación para envasados
+  // Estados de paginación para Envasados
   const [envasadosPage, setEnvasadosPage] = useState(1);
   const [envasadosTotalPages, setEnvasadosTotalPages] = useState(1);
 
   // Estado para pestañas: "demoras" (Granel) o "envasados"
   const [activeTab, setActiveTab] = useState("demoras");
 
-  // Estado para dashboard (usuario y rol)
+  // Estados para usuario y role (se obtienen de la sesión)
   const [cachedUser, setCachedUser] = useState(null);
   const [roleId, setRoleId] = useState(null);
 
@@ -42,11 +45,10 @@ export default function Profile() {
   const [isGenerating, setIsGenerating] = useState(false);
   const limit = 10;
 
-  // Función para obtener los datos (se envían los parámetros de paginación para cada modelo)
+  // Función para obtener los datos desde la API
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Se asume que el endpoint acepta demorasPage y envasadosPage por separado
       const url = `/api/user/profile?demorasPage=${demorasPage}&envasadosPage=${envasadosPage}&limit=${limit}&startDate=${encodeURIComponent(
         startDate
       )}&endDate=${encodeURIComponent(endDate)}`;
@@ -58,7 +60,6 @@ export default function Profile() {
       setGlobalStatsEnv(data.envasado.stats);
       setDailyStats(data.granel.dailyStats || []);
       setRecords(data.granel.registros || []);
-      // Actualizamos la paginación para Demoras
       setDemorasPage(data.granel.pagination.page);
       setDemorasTotalPages(data.granel.pagination.totalPages);
 
@@ -82,51 +83,37 @@ export default function Profile() {
     setLoading(false);
   };
 
-  // Al inicio y cada vez que cambien los filtros o la paginación, se vuelve a llamar a fetchData
+  // Llamar a fetchData al inicio y cuando cambien filtros o paginación
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demorasPage, envasadosPage, startDate, endDate]);
 
-  // Actualiza usuario y roleId desde cache/localStorage
+  // Obtener usuario y roleId de la sesión de NextAuth (de forma segura)
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const cached = sessionStorage.getItem("user");
-      if (cached) {
-        setCachedUser(JSON.parse(cached));
-      }
-      const storedRoleId = localStorage.getItem("roleId");
-      if (storedRoleId) {
-        setRoleId(Number(storedRoleId));
-      }
+    if (session?.user) {
+      setCachedUser(session.user);
+      setRoleId(session.user.roleId);
     }
-  }, []);
+  }, [session]);
 
   // Funciones de paginación según la pestaña activa
   const handlePrevPage = () => {
-    if (activeTab === "demoras") {
-      if (demorasPage > 1) {
-        setDemorasPage(prev => prev - 1);
-      }
-    } else {
-      if (envasadosPage > 1) {
-        setEnvasadosPage(prev => prev - 1);
-      }
+    if (activeTab === "demoras" && demorasPage > 1) {
+      setDemorasPage((prev) => prev - 1);
+    } else if (activeTab === "envasados" && envasadosPage > 1) {
+      setEnvasadosPage((prev) => prev - 1);
     }
   };
   const handleNextPage = () => {
-    if (activeTab === "demoras") {
-      if (demorasPage < demorasTotalPages) {
-        setDemorasPage(prev => prev + 1);
-      }
-    } else {
-      if (envasadosPage < envasadosTotalPages) {
-        setEnvasadosPage(prev => prev + 1);
-      }
+    if (activeTab === "demoras" && demorasPage < demorasTotalPages) {
+      setDemorasPage((prev) => prev + 1);
+    } else if (activeTab === "envasados" && envasadosPage < envasadosTotalPages) {
+      setEnvasadosPage((prev) => prev + 1);
     }
   };
 
-  // Función para filtrar por fechas: se reinician ambas paginaciones a 1
+  // Función para filtrar por fechas y reiniciar paginación
   const handleFilter = (e) => {
     e.preventDefault();
     setDemorasPage(1);
@@ -134,7 +121,7 @@ export default function Profile() {
     fetchData();
   };
 
-  // Cálculos globales para envasados a partir de envDailyStats
+  // Cálculos para envasados a partir de envDailyStats
   const envTotalCabaleo = envDailyStats.reduce(
     (acc, stat) => acc + (parseInt(stat.cabaleo) || 0),
     0
@@ -144,7 +131,7 @@ export default function Profile() {
     0
   );
 
-  // Función para introducir una demora (delay para PDF, por ejemplo)
+  // Función delay para PDF
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   // Función para generar reporte PDF según la pestaña activa
@@ -173,16 +160,16 @@ export default function Profile() {
       const titleFontSize = 16;
       const subtitleFontSize = 14;
 
-      // Determinamos el tipo de reporte según la pestaña activa
       const reportType = activeTab === "envasados" ? "Envasado" : "Granel";
 
-      // Función para dibujar el encabezado en cada página
+      // Función para dibujar el encabezado
       const drawPDFHeader = (page, currentY) => {
         page.drawText("ALMAPAC S.A. de C.V.", {
           x:
             margin +
             contentWidth / 2 -
-            boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) / 2,
+            boldFont.widthOfTextAtSize("ALMAPAC S.A. de C.V.", titleFontSize) /
+              2,
           y: currentY,
           size: titleFontSize,
           font: boldFont,
@@ -193,7 +180,8 @@ export default function Profile() {
           x:
             margin +
             contentWidth / 2 -
-            boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) / 2,
+            boldFont.widthOfTextAtSize("Reporte de Actividades", subtitleFontSize) /
+              2,
           y: currentY,
           size: subtitleFontSize,
           font: boldFont,
@@ -204,7 +192,8 @@ export default function Profile() {
           x:
             margin +
             contentWidth / 2 -
-            boldFont.widthOfTextAtSize(`Toma de Tiempos ${reportType}`, 12) / 2,
+            boldFont.widthOfTextAtSize(`Toma de Tiempos ${reportType}`, 12) /
+              2,
           y: currentY,
           size: 12,
           font: boldFont,
@@ -239,7 +228,6 @@ export default function Profile() {
         color: rgb(0, 0, 0),
       });
 
-      // Seleccionar datos según pestaña activa
       let totalRegistros, totalCabaleo, totalCargaMaxima, dailyStatsData;
       if (activeTab === "demoras") {
         totalRegistros = globalStats?.totalRegistros || 0;
@@ -247,9 +235,9 @@ export default function Profile() {
         totalCargaMaxima = globalStats?.totalCargaMaxima || 0;
         dailyStatsData = dailyStats;
       } else {
-        totalRegistros =  globalStatsEnv?.totalRegistros|| 0;
-        totalCabaleo = globalStatsEnv?.totalCabaleo|| 0;
-        totalCargaMaxima = globalStatsEnv?.totalCargaMaxima|| 0;
+        totalRegistros = globalStatsEnv?.totalRegistros || 0;
+        totalCabaleo = globalStatsEnv?.totalCabaleo || 0;
+        totalCargaMaxima = globalStatsEnv?.totalCargaMaxima || 0;
         dailyStatsData = envDailyStats;
       }
 
@@ -285,17 +273,16 @@ export default function Profile() {
         });
       }
 
-      // Reporte detallado (tabla) de estadísticas diarias
       let startTableY = userInfoY - 80;
       const rowHeight = 20;
       const tableWidth = contentWidth;
       const colWidths = [
-        Math.floor(tableWidth * 0.12), // Fecha
-        Math.floor(tableWidth * 0.10), // Código
-        Math.floor(tableWidth * 0.35), // Nombre
-        Math.floor(tableWidth * 0.12), // Total
-        Math.floor(tableWidth * 0.17), // Carga Máxima
-        Math.floor(tableWidth * 0.14), // Cabaleo
+        Math.floor(tableWidth * 0.12),
+        Math.floor(tableWidth * 0.10),
+        Math.floor(tableWidth * 0.35),
+        Math.floor(tableWidth * 0.12),
+        Math.floor(tableWidth * 0.17),
+        Math.floor(tableWidth * 0.14),
       ];
 
       dailyStatsData.forEach((stat, index) => {
@@ -432,9 +419,7 @@ export default function Profile() {
       const urlBlob = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = urlBlob;
-      a.download = `${reportType}-${
-        userData?.codigo || "user"
-      }-${new Date().toLocaleDateString()}.pdf`;
+      a.download = `${reportType}-${userData?.codigo || "user"}-${new Date().toLocaleDateString()}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -509,300 +494,301 @@ export default function Profile() {
           )}
         </div>
 
-        {(roleId !== 3 ) && (
-        <>
-        {/* Filtro por fechas */}
-        <section className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Filtrar por Fecha
-          </h2>
-          <form
-            onSubmit={handleFilter}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-          >
-            <div>
-              <label className="block text-gray-700 font-medium">
-                Fecha Inicio
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-700 font-medium">
-                Fecha Final
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition"
+        {/* Mostrar filtros y contenido solo si roleId !== 3 */}
+        {roleId !== 3 && (
+          <>
+            {/* Filtro por fechas */}
+            <section className="bg-white rounded-lg shadow p-6 mb-8">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                Filtrar por Fecha
+              </h2>
+              <form
+                onSubmit={handleFilter}
+                className="grid grid-cols-1 md:grid-cols-3 gap-4"
               >
-                Filtrar
-              </button>
+                <div>
+                  <label className="block text-gray-700 font-medium">
+                    Fecha Inicio
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium">
+                    Fecha Final
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition"
+                  >
+                    Filtrar
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            {/* Pestañas para Demoras (Granel) y Envasados */}
+            <div className="mb-6">
+              <div className="flex border-b">
+                <button
+                  className={`py-2 px-4 focus:outline-none ${
+                    activeTab === "demoras"
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-600"
+                  }`}
+                  onClick={() => setActiveTab("demoras")}
+                >
+                  Granel
+                </button>
+                <button
+                  className={`py-2 px-4 focus:outline-none ${
+                    activeTab === "envasados"
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-600"
+                  }`}
+                  onClick={() => setActiveTab("envasados")}
+                >
+                  Envasado
+                </button>
+              </div>
             </div>
-          </form>
-        </section>
 
-        {/* Pestañas para Demoras (Granel) y Envasados */}
-        <div className="mb-6">
-          <div className="flex border-b">
-            <button
-              className={`py-2 px-4 focus:outline-none ${
-                activeTab === "demoras"
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600"
-              }`}
-              onClick={() => setActiveTab("demoras")}
-            >
-              Granel
-            </button>
-            <button
-              className={`py-2 px-4 focus:outline-none ${
-                activeTab === "envasados"
-                  ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600"
-              }`}
-              onClick={() => setActiveTab("envasados")}
-            >
-              Envasado
-            </button>
-          </div>
-        </div>
-
-        {/* Contenido de la pestaña de Demoras (Granel) */}
-        {activeTab === "demoras" && (
-          <>
-            {/* Estadísticas Globales para Demoras */}
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                Estadísticas Globales
-              </h2>
-              {loading ? (
-                <div className="flex justify-center items-center h-32">
-                  <FiLoader className="animate-spin mr-2" size={24} />
-                  <span className="text-gray-500">Cargando...</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <p className="text-sm text-gray-500">Total Registros</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {globalStats?.total || 0}
-                    </p>
-                  </div>
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <p className="text-sm text-gray-500">Total Realizados</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {globalStats?.totalRegistros || 0}
-                    </p>
-                  </div>
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <p className="text-sm text-gray-500">Cabaleo</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {globalStats?.totalCabaleo || 0}
-                    </p>
-                  </div>
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <p className="text-sm text-gray-500">Carga Máxima</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {globalStats?.totalCargaMaxima || 0}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </section>
-
-            {/* Estadísticas Diarias y opción para PDF en Demoras */}
-            {dailyStats?.length > 0 && userData && (
-              <section className="mb-8">
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    Estadísticas Diarias
+            {/* Contenido de la pestaña de Demoras (Granel) */}
+            {activeTab === "demoras" && (
+              <>
+                {/* Estadísticas Globales para Demoras */}
+                <section className="mb-8">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                    Estadísticas Globales
                   </h2>
-                  <button
-                    onClick={handleDownloadPDF}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition mt-4 sm:mt-0"
-                  >
-                    <FaFilePdf size={16} /> Descargar PDF
-                  </button>
-                </div>
-                <div className="bg-white shadow rounded-lg overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Fecha
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Código
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Nombre
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Carga Máxima
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Cabaleo
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {dailyStats.map((stat, idx) => (
-                        <tr key={idx} className="hover:bg-gray-100">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {stat.fecha}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {userData.codigo || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {userData.nombreCompleto || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                            {stat.total}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                            {stat.cargaMaxima}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                            {stat.cabaleo}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                  {loading ? (
+                    <div className="flex justify-center items-center h-32">
+                      <FiLoader className="animate-spin mr-2" size={24} />
+                      <span className="text-gray-500">Cargando...</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <p className="text-sm text-gray-500">Total Registros</p>
+                        <p className="mt-2 text-2xl font-bold text-gray-800">
+                          {globalStats?.total || 0}
+                        </p>
+                      </div>
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <p className="text-sm text-gray-500">Total Realizados</p>
+                        <p className="mt-2 text-2xl font-bold text-gray-800">
+                          {globalStats?.totalRegistros || 0}
+                        </p>
+                      </div>
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <p className="text-sm text-gray-500">Cabaleo</p>
+                        <p className="mt-2 text-2xl font-bold text-gray-800">
+                          {globalStats?.totalCabaleo || 0}
+                        </p>
+                      </div>
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <p className="text-sm text-gray-500">Carga Máxima</p>
+                        <p className="mt-2 text-2xl font-bold text-gray-800">
+                          {globalStats?.totalCargaMaxima || 0}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                {/* Estadísticas Diarias y opción para PDF en Demoras */}
+                {dailyStats?.length > 0 && userData && (
+                  <section className="mb-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+                      <h2 className="text-lg font-semibold text-gray-800">
+                        Estadísticas Diarias
+                      </h2>
+                      <button
+                        onClick={handleDownloadPDF}
+                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition mt-4 sm:mt-0"
+                      >
+                        <FaFilePdf size={16} /> Descargar PDF
+                      </button>
+                    </div>
+                    <div className="bg-white shadow rounded-lg overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Fecha
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Código
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Nombre
+                            </th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Total
+                            </th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Carga Máxima
+                            </th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Cabaleo
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {dailyStats.map((stat, idx) => (
+                            <tr key={idx} className="hover:bg-gray-100">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {stat.fecha}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {userData.codigo || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {userData.nombreCompleto || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                {stat.total}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                {stat.cargaMaxima}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                {stat.cabaleo}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+
+            {/* Contenido de la pestaña de Envasados */}
+            {activeTab === "envasados" && (
+              <>
+                {/* Estadísticas Globales para Envasados */}
+                <section className="mb-8">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                    Estadísticas Globales
+                  </h2>
+                  {loading ? (
+                    <div className="flex justify-center items-center h-32">
+                      <FiLoader className="animate-spin mr-2" size={24} />
+                      <span className="text-gray-500">Cargando...</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <p className="text-sm text-gray-500">Total Registros</p>
+                        <p className="mt-2 text-2xl font-bold text-gray-800">
+                          {globalStatsEnv?.total}
+                        </p>
+                      </div>
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <p className="text-sm text-gray-500">Total Realizados</p>
+                        <p className="mt-2 text-2xl font-bold text-gray-800">
+                          {globalStatsEnv?.totalRegistros}
+                        </p>
+                      </div>
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <p className="text-sm text-gray-500">Cabaleo</p>
+                        <p className="mt-2 text-2xl font-bold text-gray-800">
+                          {globalStatsEnv?.totalCabaleo}
+                        </p>
+                      </div>
+                      <div className="bg-white p-6 rounded-lg shadow-md">
+                        <p className="text-sm text-gray-500">Carga Máxima</p>
+                        <p className="mt-2 text-2xl font-bold text-gray-800">
+                          {globalStatsEnv?.totalCargaMaxima}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                {/* Estadísticas Diarias y opción para PDF en Envasados */}
+                {envDailyStats?.length > 0 && userData && (
+                  <section className="mb-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+                      <h2 className="text-lg font-semibold text-gray-800">
+                        Estadísticas Diarias
+                      </h2>
+                      <button
+                        onClick={handleDownloadPDF}
+                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition mt-4 sm:mt-0"
+                      >
+                        <FaFilePdf size={16} /> Descargar PDF
+                      </button>
+                    </div>
+                    <div className="bg-white shadow rounded-lg overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Fecha
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Código
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Nombre
+                            </th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Total
+                            </th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Carga Máxima
+                            </th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Cabaleo
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {envDailyStats.map((stat, idx) => (
+                            <tr key={idx} className="hover:bg-gray-100">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {stat.fecha}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {userData.codigo || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {userData.nombreCompleto || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                {stat.total}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                {stat.cargaMaxima}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+                                {stat.cabaleo}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
+              </>
             )}
           </>
-        )}
-
-        {/* Contenido de la pestaña de Envasados */}
-        {activeTab === "envasados" && (
-          <>
-            {/* Estadísticas Globales para Envasados */}
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                Estadísticas Globales
-              </h2>
-              {loading ? (
-                <div className="flex justify-center items-center h-32">
-                  <FiLoader className="animate-spin mr-2" size={24} />
-                  <span className="text-gray-500">Cargando...</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <p className="text-sm text-gray-500">Total Registros</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {globalStatsEnv?.total}
-                    </p>
-                  </div>
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <p className="text-sm text-gray-500">Total Realizados</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {globalStatsEnv?.totalRegistros}
-                    </p>
-                  </div>
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <p className="text-sm text-gray-500">Cabaleo</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-800">
-                    {globalStatsEnv?.totalCabaleo}
-                    </p>
-                  </div>
-                  <div className="bg-white p-6 rounded-lg shadow-md">
-                    <p className="text-sm text-gray-500">Carga Máxima</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-800">
-                      {globalStatsEnv?.totalCargaMaxima}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </section>
-
-            {/* Estadísticas Diarias y opción para PDF en Envasados */}
-            {envDailyStats?.length > 0 && userData && (
-              <section className="mb-8">
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    Estadísticas Diarias
-                  </h2>
-                  <button
-                    onClick={handleDownloadPDF}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition mt-4 sm:mt-0"
-                  >
-                    <FaFilePdf size={16} /> Descargar PDF
-                  </button>
-                </div>
-                <div className="bg-white shadow rounded-lg overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Fecha
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Código
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Nombre
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Carga Máxima
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Cabaleo
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {envDailyStats.map((stat, idx) => (
-                        <tr key={idx} className="hover:bg-gray-100">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {stat.fecha}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {userData.codigo || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {userData.nombreCompleto || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                            {stat.total}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                            {stat.cargaMaxima}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                            {stat.cabaleo}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-          </>
-        )}
-        </>
         )}
       </main>
     </div>
