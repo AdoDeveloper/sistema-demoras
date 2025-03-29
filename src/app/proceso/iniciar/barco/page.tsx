@@ -386,6 +386,14 @@ export default function Bitacora() {
         cancelButtonText: "Cancelar",
       }).then(async (result) => {
         if (result.isConfirmed) {
+          // Mostrar alerta de "Enviando datos..."
+          Swal.fire({
+            title: "Enviando datos...",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
           try {
             const res = await fetch(`/api/barcos/${activeFormData.barco.id}`, {
               method: "PUT",
@@ -397,6 +405,7 @@ export default function Bitacora() {
             const updatedInfo = await fetchBarcoInfo(activeFormData.barco.id);
             if (updatedInfo) {
               updateBarcoData(updatedInfo);
+              Swal.close();
               Swal.fire({
                 icon: "success",
                 title: "Información del barco actualizada",
@@ -404,12 +413,13 @@ export default function Bitacora() {
                 timer: 1200,
               });
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error(error);
+            Swal.close();
             Swal.fire({
               icon: "error",
               title: "Error",
-              text: "Error al actualizar barco",
+              text: error.message || "Error al actualizar barco",
             });
           }
         }
@@ -682,7 +692,7 @@ export default function Bitacora() {
         router.push("/proceso/iniciar");
       }
     });
-    };
+  };
 
   const handleEndTurn = async () => {
     // Preguntar al usuario si desea finalizar el turno
@@ -770,6 +780,15 @@ export default function Bitacora() {
       second: "2-digit",
     });
   
+    // Mostrar alerta de "Enviando datos..."
+    Swal.fire({
+      title: "Enviando datos...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+  
     try {
       // Recorremos cada pestaña (cada bitácora)
       for (const tab of tabs) {
@@ -800,14 +819,15 @@ export default function Bitacora() {
           throw new Error(`Error al guardar la bitácora para ${tab.label}`);
         }
       }
-
+  
+      Swal.close();
       Swal.fire({
         icon: "success",
         title: "Turno finalizado y bitácoras guardadas",
         showConfirmButton: false,
         timer: 1500,
       });
-
+  
       tabs.forEach((tab) => {
         localStorage.removeItem(`barcoData_${tab.id}`);
         localStorage.removeItem(`bitacoraData_${tab.id}`);
@@ -816,11 +836,12 @@ export default function Bitacora() {
       localStorage.removeItem("tabsList");
       localStorage.removeItem("turnoInicio");
       localStorage.removeItem("turnoFin");
-
+  
       // Redirige a la ruta deseada o limpia los datos
       router.push("/proceso/iniciar");
     } catch (error: any) {
       console.error(error);
+      Swal.close();
       Swal.fire({
         icon: "error",
         title: "Error al guardar bitácoras",
