@@ -50,6 +50,10 @@ export default function Header() {
     localStorage.removeItem("activityFormCache");
     localStorage.removeItem("molidoProcess");
     localStorage.removeItem("nextauth.message");
+
+    localStorage.removeItem("tabsList");
+    localStorage.removeItem("turnoInicio");
+    localStorage.removeItem("turnoFin");
     signOut();
   }
 
