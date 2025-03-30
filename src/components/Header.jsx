@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { signOut } from "next-auth/react";
 import { FiHome, FiChevronDown, FiLogOut, FiUser } from "react-icons/fi";
-import { User } from "lucide-react";
 
 export default function Header() {
   const router = useRouter();
@@ -12,7 +11,7 @@ export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef(null);
 
-  // Obtener usuario desde sessionStorage
+  // Retrieve user data from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const cached = localStorage.getItem("userName");
@@ -22,7 +21,7 @@ export default function Header() {
     }
   }, []);
 
-  // Cerrar menú al hacer clic fuera
+  // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -50,7 +49,6 @@ export default function Header() {
     localStorage.removeItem("activityFormCache");
     localStorage.removeItem("molidoProcess");
     localStorage.removeItem("nextauth.message");
-
     localStorage.removeItem("tabsList");
     localStorage.removeItem("turnoInicio");
     localStorage.removeItem("turnoFin");

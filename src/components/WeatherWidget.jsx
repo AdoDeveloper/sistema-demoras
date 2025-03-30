@@ -11,9 +11,9 @@ import {
   WiDaySunny,
 } from "react-icons/wi";
 import { FaArrowUp, FaSun } from "react-icons/fa";
-import WeatherLoader from './WeatherLoader'
+import WeatherLoader from "./WeatherLoader";
 
-/** Calcula la duración del día (sunrise -> sunset) en horas y minutos. */
+// Funciones auxiliares (sin cambios)
 function getDayLength(sunriseStr, sunsetStr) {
   const today = new Date();
   const sunriseDate = new Date(`${today.toDateString()} ${sunriseStr}`);
@@ -25,7 +25,6 @@ function getDayLength(sunriseStr, sunsetStr) {
   return `${diffH}h ${diffM}m`;
 }
 
-/** Interpreta el índice UV en texto. */
 function getUvLabel(uv) {
   if (uv < 3) return "Bajo";
   if (uv < 6) return "Moderado";
@@ -34,14 +33,12 @@ function getUvLabel(uv) {
   return "Extremo";
 }
 
-/** Sugerencia de FPS (ejemplo). */
 function getFpsSuggestion(uv) {
   if (uv < 3) return "FPS: no";
   if (uv < 8) return "FPS: 30";
   return "FPS: 50";
 }
 
-/** Mapea el índice US EPA a descripción y color. */
 function getAirQualityInfo(index) {
   switch (index) {
     case 1:
@@ -104,10 +101,17 @@ const WeatherWidget = () => {
   const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
   const url = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=13.571590310635003,-89.83056926998199&days=7&aqi=yes&alerts=yes&lang=es`;
 
+  const CACHE_KEY = "weatherData";
+  const CACHE_TIMESTAMP_KEY = "weatherDataTimestamp";
+  const CACHE_DURATION = 15 * 60 * 1000; // 15 minutos en milisegundos
+
   const fetchWeather = useCallback(async () => {
     try {
       const response = await fetch(url);
       const data = await response.json();
+      // Guardamos la data y el timestamp en localStorage
+      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
       setWeatherData(data);
     } catch (error) {
       console.error("Error al obtener los datos del clima:", error);
@@ -117,22 +121,34 @@ const WeatherWidget = () => {
   }, [url]);
 
   useEffect(() => {
-    fetchWeather();
-    const interval = setInterval(fetchWeather, 60000);
+    // Al montar, comprobamos si hay datos cacheados y si aún son válidos
+    const cachedData = localStorage.getItem(CACHE_KEY);
+    const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+    const now = Date.now();
+
+    if (cachedData && cachedTimestamp && now - parseInt(cachedTimestamp) < CACHE_DURATION) {
+      setWeatherData(JSON.parse(cachedData));
+      setLoading(false);
+    } else {
+      fetchWeather();
+    }
+
+    // Programamos la actualización cada 15 minutos
+    const interval = setInterval(fetchWeather, CACHE_DURATION);
     return () => clearInterval(interval);
   }, [fetchWeather]);
 
   // Actualiza la hora local cada segundo
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime((prev) => new Date(prev.getTime() + 1000));
+      setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
-    return <WeatherLoader/>;
-  } 
+    return <WeatherLoader />;
+  }
   if (!weatherData) {
     return <div className="text-center text-red-500">Error al cargar los datos.</div>;
   }
@@ -237,7 +253,6 @@ const WeatherWidget = () => {
 
         {/* Detalles del día actual */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-sm">
-          {/* Celda de Temperatura Aparente (con min y max aparente calculadas) */}
           <div className="flex flex-col items-center bg-blue-50 p-2 rounded-md">
             <WiThermometer className="text-xl mb-1" />
             <span className="font-semibold">Aparente</span>

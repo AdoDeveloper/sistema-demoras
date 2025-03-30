@@ -2,11 +2,22 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { FiArrowLeft, FiEdit, FiTrash2, FiLoader } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiEdit,
+  FiTrash2,
+  FiLoader,
+  FiRefreshCw,
+  FiUsers,
+  FiTag,
+} from "react-icons/fi";
 import { FaPlus } from "react-icons/fa";
 
 export default function UserRoleManagement() {
   const router = useRouter();
+
+  // Estado para pestañas: "users" o "roles"
+  const [activeTab, setActiveTab] = useState("users");
 
   // Estados para usuarios y roles
   const [users, setUsers] = useState([]);
@@ -14,6 +25,10 @@ export default function UserRoleManagement() {
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [allLoaded, setAllLoaded] = useState(false);
+
+  // Estados para búsquedas
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [roleSearchQuery, setRoleSearchQuery] = useState("");
 
   // Estados para modales y formularios
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
@@ -78,6 +93,12 @@ export default function UserRoleManagement() {
     setLoadingRoles(false);
   };
 
+  // Función para refrescar datos
+  const refreshData = async () => {
+    await Promise.all([fetchUsers(), fetchRoles()]);
+    Swal.fire("Refrescado", "Datos actualizados", "success");
+  };
+
   // Cargar todos los datos al montar el componente
   useEffect(() => {
     async function loadAllData() {
@@ -86,6 +107,61 @@ export default function UserRoleManagement() {
     }
     loadAllData();
   }, []);
+
+  // Filtrar usuarios según la búsqueda
+  const filteredUsers = users.filter(
+    (user) =>
+      user.username.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.nombreCompleto.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.codigo.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+  );
+
+  // Filtrar roles según la búsqueda
+  const filteredRoles = roles.filter((role) =>
+    role.name.toLowerCase().includes(roleSearchQuery.toLowerCase())
+  );
+
+  // Manejo del switch de activo en la tabla de usuarios
+  const handleToggleActivo = async (user) => {
+    const newActivo = !user.activo;
+    const payload = {
+      username: user.username,
+      nombreCompleto: user.nombreCompleto,
+      codigo: user.codigo,
+      email: user.email,
+      roleId: user.role?.id,
+      activo: newActivo,
+    };
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const updatedUser = await res.json();
+        setUsers(users.map((u) => (u.id === user.id ? updatedUser : u)));
+        Swal.fire("¡Éxito!", "Estado de activo actualizado", "success");
+      } else {
+        const errorData = await res.json();
+        Swal.fire("Error", errorData.error || "No se pudo actualizar el estado de activo", "error");
+      }
+    } catch (error) {
+      console.error("Error actualizando estado de activo:", error);
+      Swal.fire("Error", "No se pudo actualizar el estado de activo", "error");
+    }
+  };
+
+  // Función para asignar colores a la etiqueta de rol (colores distintos para cada rol)
+  const getRoleBadgeClass = (roleName) => {
+    if (!roleName) return "bg-yellow-200 text-yellow-800";
+    const r = roleName.toLowerCase();
+    if (r.includes("administrador")) return "bg-blue-200 text-blue-800 font-bold";
+    if (r.includes("asistente operativo")) return "bg-green-200 text-green-800 font-bold";
+    if (r.includes("muellero")) return "bg-orange-200 text-orange-800 font-bold";
+    return "bg-pink-200 text-pink-800";
+  };
 
   // Abrir modal para crear usuario
   const openCreateUserModal = () => {
@@ -107,7 +183,6 @@ export default function UserRoleManagement() {
 
   const handleCreateUserSubmit = async (e) => {
     e.preventDefault();
-    // Mostrar alerta de carga
     Swal.fire({
       title: "Creando usuario...",
       allowOutsideClick: false,
@@ -131,7 +206,8 @@ export default function UserRoleManagement() {
         setIsCreateUserModalOpen(false);
         Swal.fire("¡Éxito!", "Usuario creado correctamente", "success");
       } else {
-        Swal.fire("Error", "No se pudo crear el usuario", "error");
+        const errorData = await res.json();
+        Swal.fire("Error", errorData.error || "No se pudo crear el usuario", "error");
       }
     } catch (error) {
       Swal.close();
@@ -172,7 +248,6 @@ export default function UserRoleManagement() {
     if (password.trim() !== "") {
       payload.password = password;
     }
-    // Mostrar alerta de carga
     Swal.fire({
       title: "Actualizando usuario...",
       allowOutsideClick: false,
@@ -193,7 +268,8 @@ export default function UserRoleManagement() {
         setIsEditUserModalOpen(false);
         Swal.fire("¡Éxito!", "Usuario actualizado correctamente", "success");
       } else {
-        Swal.fire("Error", "No se pudo actualizar el usuario", "error");
+        const errorData = await res.json();
+        Swal.fire("Error", errorData.error || "No se pudo actualizar el usuario", "error");
       }
     } catch (error) {
       Swal.close();
@@ -216,7 +292,8 @@ export default function UserRoleManagement() {
         setIsDeleteUserModalOpen(false);
         Swal.fire("¡Éxito!", "Usuario eliminado correctamente", "success");
       } else {
-        Swal.fire("Error", "No se pudo eliminar el usuario", "error");
+        const errorData = await res.json();
+        Swal.fire("Error", errorData.error || "No se pudo eliminar el usuario", "error");
       }
     } catch (error) {
       console.error("Error eliminando usuario:", error);
@@ -233,7 +310,6 @@ export default function UserRoleManagement() {
   const handleCreateRoleSubmit = async (e) => {
     e.preventDefault();
     if (!newRoleName.trim()) return;
-    // Mostrar alerta de carga
     Swal.fire({
       title: "Creando rol...",
       allowOutsideClick: false,
@@ -254,7 +330,8 @@ export default function UserRoleManagement() {
         setIsCreateRoleModalOpen(false);
         Swal.fire("¡Éxito!", "Rol creado correctamente", "success");
       } else {
-        Swal.fire("Error", "No se pudo crear el rol", "error");
+        const errorData = await res.json();
+        Swal.fire("Error", errorData.error || "No se pudo crear el rol", "error");
       }
     } catch (error) {
       Swal.close();
@@ -279,7 +356,6 @@ export default function UserRoleManagement() {
   const handleEditRoleSubmit = async (e) => {
     e.preventDefault();
     const { id, name } = editRoleForm;
-    // Mostrar alerta de carga
     Swal.fire({
       title: "Actualizando rol...",
       allowOutsideClick: false,
@@ -300,7 +376,8 @@ export default function UserRoleManagement() {
         setIsEditRoleModalOpen(false);
         Swal.fire("¡Éxito!", "Rol actualizado correctamente", "success");
       } else {
-        Swal.fire("Error", "No se pudo actualizar el rol", "error");
+        const errorData = await res.json();
+        Swal.fire("Error", errorData.error || "No se pudo actualizar el rol", "error");
       }
     } catch (error) {
       Swal.close();
@@ -323,7 +400,8 @@ export default function UserRoleManagement() {
         setIsDeleteRoleModalOpen(false);
         Swal.fire("¡Éxito!", "Rol eliminado correctamente", "success");
       } else {
-        Swal.fire("Error", "No se pudo eliminar el rol", "error");
+        const errorData = await res.json();
+        Swal.fire("Error", errorData.error || "No se pudo eliminar el rol", "error");
       }
     } catch (error) {
       console.error("Error eliminando rol:", error);
@@ -331,7 +409,6 @@ export default function UserRoleManagement() {
     }
   };
 
-  // Loader global hasta que se carguen todos los datos
   if (!allLoaded) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
@@ -342,133 +419,203 @@ export default function UserRoleManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 p-4 sm:p-6">
-      {/* Contenedor principal responsive */}
-      {/* Header */}
-      <div className="flex items-center pb-3">
+    <div className="min-h-screen bg-gray-100">
+      {/* Encabezado principal con azul oscuro */}
+      <header className="bg-blue-800 text-white p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => (window.location.href = "/")}
+            className="bg-blue-900 hover:bg-blue-950 text-white p-2 rounded-full transition-all duration-300 transform hover:scale-105"
+            title="Volver"
+          >
+            <FiArrowLeft size={20} />
+          </button>
+          <h1 className="text-xl font-bold">Gestión de Usuarios</h1>
+        </div>
         <button
-          onClick={() => (window.location.href = "/")}
-          className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
-          title="Volver"
+          onClick={refreshData}
+          className="flex items-center bg-blue-900 hover:bg-blue-950 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
+          title="Actualizar"
         >
-          <FiArrowLeft size={20} />
+          <FiRefreshCw className="mr-2 animate-spin-slow" size={20} />
+          Actualizar
         </button>
-        <h1 className="text-xl font-bold">Gestión de Usuarios</h1>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto">
-
-        {/* Contenido principal */}
-        <main className="space-y-8">
-          {/* Sección de Usuarios */}
-          <section>
-            <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Usuarios</h2>
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 py-6">
+        <main className="space-y-8 bg-white p-4 border-b border-gray-300">
+          {/* Barra de Tabs y Buscador */}
+          <div>
+            <nav className="flex items-center space-x-6 mb-4">
               <button
-                onClick={openCreateUserModal}
-                className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+                onClick={() => setActiveTab("users")}
+                className={`flex items-center space-x-1 pb-1 border-b-2 transition-all duration-300 ${
+                  activeTab === "users"
+                    ? "text-blue-600 border-blue-600"
+                    : "text-gray-500 border-transparent hover:text-blue-600 hover:border-blue-600"
+                }`}
               >
-                <FaPlus className="mr-2" />
-                Nuevo Usuario
+                <FiUsers size={18} />
+                <span>Usuarios</span>
               </button>
-            </div>
-            <div className="overflow-x-auto">
-              {loadingUsers ? (
-                <p className="text-center text-gray-500">Cargando usuarios...</p>
-              ) : (
-                <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-                  <thead className="bg-gray-300 text-gray-800">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-medium">Username</th>
-                      <th className="px-4 py-2 text-left font-medium">Nombre Completo</th>
-                      <th className="px-4 py-2 text-left font-medium">Código</th>
-                      <th className="px-4 py-2 text-left font-medium">Email</th>
-                      <th className="px-4 py-2 text-left font-medium">Rol</th>
-                      <th className="px-4 py-2 text-center font-medium">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {users.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.username}</td>
-                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.nombreCompleto}</td>
-                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.codigo}</td>
-                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.email}</td>
-                        <td className="px-4 py-2 text-gray-700 text-nowrap">{user.role?.name}</td>
-                        <td className="px-4 py-2 text-center space-x-2 flex items-center justify-center">
-                          <button
-                            onClick={() => openEditUserModal(user)}
-                            title="Editar usuario"
-                            className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full transition-colors"
-                          >
-                            <FiEdit size={16} />
-                          </button>
-                          <button
-                            onClick={() => openDeleteUserModal(user.id)}
-                            title="Eliminar usuario"
-                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
-                          >
-                            <FiTrash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </section>
-
-          {/* Sección de Roles */}
-          <section>
-            <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-700">Roles</h2>
               <button
-                onClick={openCreateRoleModal}
-                className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+                onClick={() => setActiveTab("roles")}
+                className={`flex items-center space-x-1 pb-1 border-b-2 transition-all duration-300 ${
+                  activeTab === "roles"
+                    ? "text-blue-600 border-blue-600"
+                    : "text-gray-500 border-transparent hover:text-blue-600 hover:border-blue-600"
+                }`}
               >
-                <FaPlus className="mr-2" />
-                Nuevo Rol
+                <FiTag size={18} />
+                <span>Roles</span>
               </button>
-            </div>
-            <div className="overflow-x-auto">
-              {loadingRoles ? (
-                <p className="text-center text-gray-500">Cargando roles...</p>
-              ) : (
-                <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-                  <thead className="bg-gray-300 text-gray-800">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-medium">Nombre</th>
-                      <th className="px-4 py-2 text-center font-medium">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {roles.map((role) => (
-                      <tr key={role.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 text-gray-700 text-nowrap">{role.name}</td>
-                        <td className="px-4 py-2 text-center space-x-2">
-                          <button
-                            onClick={() => openEditRoleModal(role)}
-                            title="Editar rol"
-                            className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full transition-colors"
-                          >
-                            <FiEdit size={16} />
-                          </button>
-                          <button
-                            onClick={() => openDeleteRoleModal(role.id)}
-                            title="Eliminar rol"
-                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
-                          >
-                            <FiTrash2 size={16} />
-                          </button>
-                        </td>
+            </nav>
+            {activeTab === "users" && (
+              <div className="flex items-center space-x-4">
+                <input
+                  type="text"
+                  placeholder="Buscar usuarios..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+                <button
+                  onClick={openCreateUserModal}
+                  className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-md transition"
+                >
+                  <FaPlus className="mr-2" />
+                  Agregar
+                </button>
+              </div>
+            )}
+            {activeTab === "roles" && (
+              <div className="flex items-center space-x-4">
+                <input
+                  type="text"
+                  placeholder="Buscar roles..."
+                  value={roleSearchQuery}
+                  onChange={(e) => setRoleSearchQuery(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+                <button
+                  onClick={openCreateRoleModal}
+                  className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-md transition"
+                >
+                  <FaPlus className="mr-2" />
+                  Agregar
+                </button>
+              </div>
+            )}
+          </div>
+          {/* Renderizar tabla según la pestaña activa */}
+          {activeTab === "users" ? (
+            <section>
+              <div className="overflow-x-auto">
+                {loadingUsers ? (
+                  <p className="text-center text-gray-500">Cargando usuarios...</p>
+                ) : (
+                  <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+                    <thead className="bg-gray-200 text-gray-800">
+                      <tr>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Username</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Nombre Completo</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Código</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Email</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Rol</th>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">Activo</th>
+                        <th className="px-4 py-3 text-center whitespace-nowrap">Acciones</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </section>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.username}</td>
+                          <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.nombreCompleto}</td>
+                          <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.codigo}</td>
+                          <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.email}</td>
+                          <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeClass(
+                                user.role?.name
+                              )}`}
+                            >
+                              {user.role?.name}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            <label className="switch">
+                              <input
+                                type="checkbox"
+                                checked={user.activo}
+                                onChange={() => handleToggleActivo(user)}
+                              />
+                              <span className="slider round"></span>
+                            </label>
+                          </td>
+                          <td className="px-4 py-2 text-center flex items-center justify-center space-x-2">
+                            <button
+                              onClick={() => openEditUserModal(user)}
+                              title="Editar usuario"
+                              className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full transition-colors"
+                            >
+                              <FiEdit size={16} />
+                            </button>
+                            <button
+                              onClick={() => openDeleteUserModal(user.id)}
+                              title="Eliminar usuario"
+                              className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          ) : (
+            <section>
+              <div className="overflow-x-auto">
+                {loadingRoles ? (
+                  <p className="text-center text-gray-500">Cargando roles...</p>
+                ) : (
+                  <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+                    <thead className="bg-gray-200 text-gray-800">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Nombre</th>
+                        <th className="px-4 py-3 text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredRoles.map((role) => (
+                        <tr key={role.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-gray-700">{role.name}</td>
+                          <td className="px-4 py-2 text-center flex items-center justify-center space-x-2">
+                            <button
+                              onClick={() => openEditRoleModal(role)}
+                              title="Editar rol"
+                              className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full transition-colors"
+                            >
+                              <FiEdit size={16} />
+                            </button>
+                            <button
+                              onClick={() => openDeleteRoleModal(role.id)}
+                              title="Eliminar rol"
+                              className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          )}
         </main>
       </div>
 
@@ -655,9 +802,7 @@ export default function UserRoleManagement() {
               <h3 className="text-lg font-semibold">Confirmar Eliminación</h3>
             </div>
             <div className="p-4">
-              <p>
-                ¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede revertir.
-              </p>
+              <p>¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede revertir.</p>
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   type="button"
@@ -757,9 +902,7 @@ export default function UserRoleManagement() {
               <h3 className="text-lg font-semibold">Confirmar Eliminación</h3>
             </div>
             <div className="p-4">
-              <p>
-                ¿Estás seguro de que deseas eliminar este rol? Esta acción no se puede revertir.
-              </p>
+              <p>¿Estás seguro de que deseas eliminar este rol? Esta acción no se puede revertir.</p>
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   type="button"
@@ -780,6 +923,60 @@ export default function UserRoleManagement() {
           </div>
         </div>
       )}
+
+      {/* Estilos para el switch y animación */}
+      <style jsx>{`
+        @keyframes spin-slow {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 2s linear infinite;
+        }
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 40px;
+          height: 20px;
+        }
+        .switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          transition: 0.4s;
+          border-radius: 20px;
+        }
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 16px;
+          width: 16px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: 0.4s;
+          border-radius: 50%;
+        }
+        input:checked + .slider {
+          background-color: #4caf50;
+        }
+        input:checked + .slider:before {
+          transform: translateX(20px);
+        }
+      `}</style>
     </div>
   );
 }

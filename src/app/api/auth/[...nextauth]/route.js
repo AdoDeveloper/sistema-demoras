@@ -3,10 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import NodeCache from "node-cache";
 
 const prisma = new PrismaClient();
-const sessionCache = new NodeCache({ stdTTL: 3600 });
 
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -23,27 +21,24 @@ const handler = NextAuth({
           throw new Error("Faltan credenciales");
         }
 
-        // Intentar obtener el usuario desde la cache
-        let user = sessionCache.get(`user-${credentials.username}`);
+        // Siempre obtener el usuario desde la base de datos para asegurarse de tener la información actualizada
+        const user = await prisma.user.findUnique({
+          where: { username: credentials.username },
+          include: { role: true },
+        });
         if (!user) {
-          // Buscar el usuario en la base de datos
-          user = await prisma.user.findUnique({
-            where: { username: credentials.username },
-            include: { role: true },
-          });
-          if (!user) {
-            throw new Error("Usuario no encontrado");
-          }
-          // Comparar la contraseña proporcionada con la almacenada (hasheada)
-          const isValid = await bcrypt.compare(credentials.password, user.password);
-          if (!isValid) {
-            throw new Error("Credenciales incorrectas");
-          }
-          // Almacenar en caché los datos del usuario
-          sessionCache.set(`user-${credentials.username}`, user);
+          throw new Error("Usuario no encontrado");
         }
-
-        // Retornar la información del usuario, incluyendo nombreCompleto si roleId es 3
+        // Validar si el usuario está activo
+        if (!user.activo) {
+          throw new Error("El usuario está inactivo. Por favor, comuníquese con el administrador.");
+        }
+        // Comparar la contraseña proporcionada con la almacenada (hasheada)
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
+          throw new Error("Credenciales incorrectas");
+        }
+        // Retornar la información del usuario
         return {
           id: user.id,
           username: user.username,
@@ -70,8 +65,6 @@ const handler = NextAuth({
           roleName: token.roleName,
           ...(token.roleId === 3 && { nombreCompleto: token.nombreCompleto }),
         };
-        // Opcional: guardar la sesión en cache
-        sessionCache.set(`session-${token.id}`, session);
       }
       return session;
     },

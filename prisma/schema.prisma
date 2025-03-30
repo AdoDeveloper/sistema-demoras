@@ -16,6 +16,8 @@ model User {
   codigo         String    @unique @map("codigo")
   email          String?   @unique @map("email")
   password       String?   @map("password")
+  eliminado      Boolean   @default(false) @map("eliminado") // 0 por defecto (no eliminado)
+  activo         Boolean   @default(true)  @map("activo")     // 1 por defecto (activo)
   createdAt      DateTime  @default(now()) @map("created_at")
   demoras        Demora[]
   envasados      Envasado[]

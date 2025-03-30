@@ -10,8 +10,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "No tienes permiso para acceder a este endpoint" }, { status: 403 });
   }
   
-  const paramsData = await params;
-  const { id } = paramsData;
+  const { id } = await params;
   try {
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id, 10) },
@@ -33,11 +32,10 @@ export async function PUT(request, { params }) {
     return NextResponse.json({ error: "No tienes permiso para actualizar este usuario" }, { status: 403 });
   }
   
-  const paramsData = await params;
-  const { id } = paramsData;
+  const { id } = await params;
   try {
     const body = await request.json();
-    const { username, nombreCompleto, codigo, email, password, roleId } = body;
+    const { username, nombreCompleto, codigo, email, password, roleId, activo } = body;
     // Preparar los datos a actualizar
     const data = { username, nombreCompleto, codigo, email, roleId };
 
@@ -45,6 +43,30 @@ export async function PUT(request, { params }) {
     if (password && password.trim() !== "") {
       const hashedPassword = await bcrypt.hash(password, 10);
       data.password = hashedPassword;
+    }
+    
+    // Actualizar el campo "activo" si se proporciona
+    if (typeof activo !== "undefined") {
+      data.activo = activo;
+    }
+
+    // Obtener el usuario actual
+    const currentUser = await prisma.user.findUnique({
+      where: { id: parseInt(id, 10) },
+      include: { role: true },
+    });
+    if (!currentUser) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+    
+    // Si el usuario es administrador y se intenta desactivar, verificar que no sea el único admin activo
+    if (currentUser.roleId === 1 && data.activo === false) {
+      const adminCount = await prisma.user.count({
+        where: { roleId: 1, activo: true, eliminado: false },
+      });
+      if (adminCount <= 1) {
+        return NextResponse.json({ error: "No se puede desactivar porque solo hay un usuario administrador" }, { status: 400 });
+      }
     }
 
     const updatedUser = await prisma.user.update({
@@ -66,11 +88,33 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: "No tienes permiso para eliminar este usuario" }, { status: 403 });
   }
   
-  const paramsData = await params;
-  const { id } = paramsData;
+  const { id } = await params;
   try {
-    const deletedUser = await prisma.user.delete({
+    // Obtener el usuario actual
+    const currentUser = await prisma.user.findUnique({
       where: { id: parseInt(id, 10) },
+    });
+    if (!currentUser) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+    
+    // Si el usuario es administrador, verificar que no sea el único admin activo
+    if (currentUser.roleId === 1) {
+      const adminCount = await prisma.user.count({
+        where: { roleId: 1, activo: true, eliminado: false },
+      });
+      if (adminCount <= 1) {
+        return NextResponse.json({ error: "No se puede eliminar porque solo hay un usuario administrador" }, { status: 400 });
+      }
+    }
+    
+    // Soft delete: se actualizan los campos "eliminado" y "activo"
+    const deletedUser = await prisma.user.update({
+      where: { id: parseInt(id, 10) },
+      data: {
+        eliminado: true,
+        activo: false,
+      },
     });
     return NextResponse.json(deletedUser, { status: 200 });
   } catch (error) {

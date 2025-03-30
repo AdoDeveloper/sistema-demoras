@@ -37,8 +37,19 @@ export async function DELETE(request, { params }) {
   const paramsData = await params;
   const { id } = paramsData;
   try {
+    const roleId = parseInt(id, 10);
+    // Validar que no existan usuarios asignados al rol que no estén eliminados
+    const assignedUsers = await prisma.user.count({
+      where: { roleId, eliminado: false },
+    });
+    if (assignedUsers > 0) {
+      return NextResponse.json(
+        { error: "No se puede eliminar el rol porque tiene usuarios asignados" },
+        { status: 400 }
+      );
+    }
     const deletedRole = await prisma.role.delete({
-      where: { id: parseInt(id, 10) },
+      where: { id: roleId },
     });
     return NextResponse.json(deletedRole, { status: 200 });
   } catch (error) {
