@@ -2,17 +2,29 @@
 
 import { useState, useEffect } from "react";
 import React from "react";
-import { FaEye, FaEdit } from "react-icons/fa";
+import { FaEye, FaEdit, FaRegUser } from "react-icons/fa";
 import Loader from "../../../../components/Loader";
 import { useRouter } from "next/navigation";
 import {
   FiArrowLeft,
+  FiCheckCircle,
+  FiClock,
   FiDownload,
   FiFileText,
+  FiLogIn,
+  FiLogOut,
+  FiPlayCircle,
   FiRefreshCw,
+  FiStopCircle,
+  FiX,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { HiOutlineCalendarDateRange } from "react-icons/hi2";
+
+function displayValue(value: any): string {
+  return value == null || value === "" ? "-" : String(value);
+}
 
 // -------------------------
 // Funciones de Utilidad
@@ -40,6 +52,22 @@ function formatInterval(hoursDecimal: number): string {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(
     ss
   ).padStart(2, "0")}`;
+}
+
+// Para el modal, se omiten llaves de relación y campos innecesarios
+function filterModalDetailData(data: any) {
+  if (!data) return data;
+  const excludeKeys = [
+    "id",
+    "createdAt",
+    "updatedAt",
+    "vueltas",
+    "demoraId",
+    "tercerProcesoId",
+  ];
+  return Object.fromEntries(
+    Object.entries(data).filter(([key]) => !excludeKeys.includes(key))
+  );
 }
 
 function timeStrToSeconds(timeStr: string) {
@@ -74,21 +102,28 @@ function formatKey(key: string) {
 function DetailTable({ title, data }: { title: string; data: any }) {
   if (!data) return null;
   const entries = Object.entries(data);
+
   return (
     <div className="mb-4">
-      <h3 className="text-lg font-semibold text-blue-700 mb-1">{title}</h3>
-      <table className="w-full text-xs border-collapse">
-        <tbody>
-          {entries.map(([key, value]) => (
-            <tr key={key} className="border-b">
-              <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">
-                {formatKey(key)}
-              </td>
-              <td className="px-2 py-1 whitespace-nowrap">{String(value || "-")}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {title && (
+        <h3 className="text-base font-semibold text-blue-700 mb-2">{title}</h3>
+      )}
+      <div className="border rounded-lg overflow-hidden">
+        <table className="w-full text-sm border-collapse">
+          <tbody className="divide-y">
+            {entries.map(([key, value], i) => (
+              <tr key={i} className="hover:bg-gray-50">
+                <td className="px-2 py-2 font-semibold text-gray-600 whitespace-nowrap w-1/2">
+                  {formatKey(key)}
+                </td>
+                <td className="px-2 py-2 text-gray-800 whitespace-nowrap w-1/2">
+                  {displayValue(value)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -96,26 +131,32 @@ function DetailTable({ title, data }: { title: string; data: any }) {
 function VueltasDetail({ vueltas }: { vueltas: any[] }) {
   if (!vueltas || vueltas.length === 0) return null;
   return (
-    <div className="mb-4">
+    <div className="space-y-3">
+      <h3 className="text-base font-semibold text-blue-700">Vueltas</h3>
       {vueltas.map((vuelta, index) => (
-        <div key={vuelta.id} className="mb-2 border rounded">
-          <div className="bg-blue-50 px-2 py-1 font-bold text-xs whitespace-nowrap">
-            Vuelta {index + 1}
+        <div key={vuelta.id} className="border rounded-lg">
+          <div className="font-bold text-xs p-2">Vuelta {index + 1}</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <tbody>
+                {Object.entries(vuelta)
+                  .filter(
+                    ([key]) =>
+                      !["id", "createdAt", "updatedAt", "tercerProcesoId"].includes(key)
+                  )
+                  .map(([key, value]) => (
+                    <tr key={key} className="border-b border-t">
+                      <td className="px-2 py-1 font-bold bg-orange-50 whitespace-nowrap">
+                        {formatKey(key)}
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap">
+                        {displayValue(value)}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
           </div>
-          <table className="w-full text-xs border-collapse">
-            <tbody>
-              {Object.entries(vuelta).map(([key, value]) =>
-                ["id", "tercerProcesoId", "createdAt", "updatedAt"].includes(key) ? null : (
-                  <tr key={key} className="border-b">
-                    <td className="px-2 py-1 font-bold bg-blue-50 whitespace-nowrap">
-                      {formatKey(key)}
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap">{String(value || "-")}</td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
         </div>
       ))}
     </div>
@@ -232,6 +273,11 @@ export default function DemorasPage() {
   const [roleId, setRoleId] = useState<number | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const router = useRouter();
+
+  // Tabs del modal
+  const [activeTab, setActiveTab] = useState<"procesos" | "vueltas" | "intervalos">(
+    "procesos"
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -407,7 +453,8 @@ export default function DemorasPage() {
     return lines;
   };
 
-  const handleDescargarPDF = async () => {
+  // Generación y descarga de PDF
+  const handleDescargarPDF = async (selectedDemora: any) => {
     if (!selectedDemora) {
       Swal.fire("Error", "No hay registro seleccionado", "error");
       return;
@@ -646,6 +693,30 @@ export default function DemorasPage() {
       </div>
     );
   }
+
+    // -----------------------
+    // Componente para la línea de tiempo con iconos de colores
+    // -----------------------
+    const TimelineItem = ({
+      label,
+      time,
+      iconColor,
+      icon,
+    }: {
+      label: string;
+      time: string;
+      iconColor: string;
+      icon: React.ReactNode;
+    }) => {
+      return (
+        <div className="flex items-center space-x-2 text-base text-gray-700">
+          <div style={{ color: iconColor }}>{icon}</div>
+          <div>
+            <strong>{label}:</strong> {time || "-"}
+          </div>
+        </div>
+      );
+    };
 
   return (
     <div className="p-1 bg-gray-50 min-h-screen text-gray-800 pb-6">
@@ -892,88 +963,208 @@ export default function DemorasPage() {
         </div>
       </div>
 
-      {/* Modal */}
-      {showModal && selectedDemora && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
-          <div className="bg-white w-full max-w-md md:max-w-4xl shadow-lg p-4 relative max-h-full overflow-y-auto">
-            <button
-              onClick={handleCloseModal}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl"
-              title="Cerrar"
-            >
-              &times;
-            </button>
-            <h2 className="text-xl font-bold mb-4 text-blue-700 text-center">
-              Detalle del Registro
-            </h2>
-            <div className="space-y-4">
-              <DetailTable
-                title="Información General"
-                data={{
-                  Registro: selectedDemora.id,
-                  "Fecha Inicio": selectedDemora.fechaInicio,
-                  "Tiempo Total": selectedDemora.tiempoTotal || "-",
-                  "Nº Transacción": selectedDemora.primerProceso?.numeroTransaccion || "-",
-                  Realizado: selectedDemora.userName || "-",
-                }}
-              />
-              <DetailTable
-                title="Primer Proceso"
-                data={filterDetailData(selectedDemora.primerProceso)}
-              />
-              <DetailTable
-                title="Segundo Proceso"
-                data={filterDetailData(selectedDemora.segundoProceso)}
-              />
-              <DetailTable
-                title="Tercer Proceso"
-                data={filterDetailData(selectedDemora.tercerProceso)}
-              />
-              {selectedDemora.tercerProceso &&
-                selectedDemora.tercerProceso.vueltas && (
-                  <div>
-                    <p className="text-sm font-bold mb-2">
-                      Total de Vueltas: {selectedDemora.tercerProceso.vueltas.length}
-                    </p>
-                    <VueltasDetail vueltas={selectedDemora.tercerProceso.vueltas} />
-                  </div>
-              )}
-              <DetailTable
-                title="Proceso Final"
-                data={filterDetailData(selectedDemora.procesoFinal)}
-              />
-              <DetailTable
-                title="Intervalos entre Procesos"
-                data={{
-                  "B.E. (Entr → Sal)": calcularIntervalos(selectedDemora).calc1,
-                  "Sal. B.E. → Lleg. Punto": calcularIntervalos(selectedDemora).calc2,
-                  "Punto → Inicio Carga": calcularIntervalos(selectedDemora).calc7,
-                  "Tiempo Total Carga": calcularIntervalos(selectedDemora).calc3,
-                  "Sal. Punto → B.S. Entr.": calcularIntervalos(selectedDemora).calc4,
-                  "B.S. (Entr → Sal)": calcularIntervalos(selectedDemora).calc5,
-                  "B.S. → Salida Planta": calcularIntervalos(selectedDemora).calc6,
-                  "Autorizac → Ing. Planta": calcularIntervalos(selectedDemora).calc8,
-                  "Termina Carga → Salida Punto": calcularIntervalos(selectedDemora).calc12,
-                  "Ing. Planta → Lleg. Básq.": calcularIntervalos(selectedDemora).calcIngresoBascula,
-                  "Llegada → Entrada Básq. (P1)": calcularIntervalos(selectedDemora).calcExtra1,
-                  "Llegada → Entrada Básq. (P3)": calcularIntervalos(selectedDemora).calcExtra2,
-                  "Entrada (P3) 1ra → Salida (P3) Última": calcularIntervalos(selectedDemora).calcExtra3,
-                }}
-              />
-            </div>
-            <div className="flex justify-between mt-4">
+{/* Modal de Detalle */}
+{showModal && selectedDemora && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-3xl rounded-lg shadow-lg p-6 relative max-h-[90vh] overflow-y-auto">
+            {/* Encabezado del Modal */}
+            <div className="flex justify-between items-center mb-4">
               <button
                 onClick={handleCloseModal}
-                className="bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded flex items-center gap-1"
+                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+                title="Regresar"
               >
-                <FiArrowLeft size={20} />
-                <span>Regresar</span>
+                <FiArrowLeft className="mr-2" /> Regresar
               </button>
               <button
-                onClick={handleDescargarPDF}
-                className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded flex items-center gap-1"
+                onClick={handleCloseModal}
+                className="text-gray-600 hover:text-gray-800 transition-colors"
+                title="Cerrar"
               >
-                <FiDownload size={20} />
+                <FiX size={24} />
+              </button>
+            </div>
+
+            {/* Resumen */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-gray-100 rounded-lg p-4 shadow-sm flex flex-col items-center">
+                <FiFileText className="text-blue-700 mb-2" size={20} />
+                <span className="font-semibold text-sm">Transacción</span>
+                <span className="text-sm">
+                  {selectedDemora.primerProceso?.numeroTransaccion || "-"}
+                </span>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-4 shadow-sm flex flex-col items-center">
+                <FiFileText className="text-blue-700 mb-2" size={20} />
+                <span className="font-semibold text-sm">Orden</span>
+                <span className="text-sm">
+                  {selectedDemora.primerProceso?.numeroOrden || "-"}
+                </span>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-4 shadow-sm flex flex-col items-center">
+                <HiOutlineCalendarDateRange  className="text-blue-700 mb-2" size={20} />
+                <span className="font-semibold text-sm">Fecha</span>
+                <span className="text-sm">{selectedDemora.fechaInicio || "-"}</span>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-4 shadow-sm flex flex-col items-center">
+                <FiClock className="text-blue-700 mb-2" size={20} />
+                <span className="font-semibold text-sm">Tiempo Total</span>
+                <span className="text-sm">{selectedDemora.tiempoTotal || "-"}</span>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-4 shadow-sm flex flex-col items-center md:col-span-2">
+                <FaRegUser className="text-blue-700 mb-2" size={20} />
+                <span className="font-semibold text-sm">Usuario</span>
+                <span className="text-sm">{selectedDemora.userName || "-"}</span>
+              </div>
+            </div>
+
+            {/* Línea de Tiempo (con iconos de colores) */}
+            <div className="border rounded-lg p-4 mb-6 hover:shadow-md transition-shadow">
+              <h3 className="text-base font-semibold text-blue-700 mb-2">
+                Línea de Tiempo
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                <TimelineItem
+                  label="Autorización"
+                  time={selectedDemora.primerProceso?.tiempoAutorizacion || "-"}
+                  iconColor="#22c55e" // verde
+                  icon={<FiCheckCircle />}
+                />
+                <TimelineItem
+                  label="Ingreso Planta"
+                  time={selectedDemora.primerProceso?.tiempoIngresoPlanta || "-"}
+                  iconColor="#3b82f6" // azul
+                  icon={<FiLogIn />}
+                />
+                <TimelineItem
+                  label="Inicio Carga"
+                  time={selectedDemora.segundoProceso?.tiempoInicioCarga || "-"}
+                  iconColor="#f97316" // naranja
+                  icon={<FiPlayCircle />}
+                />
+                <TimelineItem
+                  label="Termina Carga"
+                  time={selectedDemora.segundoProceso?.tiempoTerminaCarga || "-"}
+                  iconColor="#ef4444" // rojo
+                  icon={<FiStopCircle />}
+                />
+                <TimelineItem
+                  label="Salida Planta"
+                  time={selectedDemora.procesoFinal?.tiempoSalidaPlanta || "-"}
+                  iconColor="#a855f7" // morado
+                  icon={<FiLogOut />}
+                />
+              </div>
+            </div>
+
+            {/* Pestañas */}
+            <div>
+              <div className="flex space-x-2 border-b mb-4">
+                <button
+                  onClick={() => setActiveTab("procesos")}
+                  className={`px-3 py-2 text-sm font-medium ${
+                    activeTab === "procesos"
+                      ? "text-blue-700 border-b-2 border-blue-700"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Procesos
+                </button>
+                <button
+                  onClick={() => setActiveTab("vueltas")}
+                  className={`px-3 py-2 text-sm font-medium ${
+                    activeTab === "vueltas"
+                      ? "text-blue-700 border-b-2 border-blue-700"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Vueltas
+                </button>
+                <button
+                  onClick={() => setActiveTab("intervalos")}
+                  className={`px-3 py-2 text-sm font-medium ${
+                    activeTab === "intervalos"
+                      ? "text-blue-700 border-b-2 border-blue-700"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Intervalos
+                </button>
+              </div>
+
+              <div>
+                {/* Tab: Procesos */}
+                {activeTab === "procesos" && (
+                  <div className="space-y-4">
+                    <DetailTable
+                      title="Primer Proceso"
+                      data={filterModalDetailData(selectedDemora.primerProceso)}
+                    />
+                    <DetailTable
+                      title="Segundo Proceso"
+                      data={filterModalDetailData(selectedDemora.segundoProceso)}
+                    />
+                    <DetailTable
+                      title="Tercer Proceso"
+                      data={filterModalDetailData(selectedDemora.tercerProceso)}
+                    />
+                    <DetailTable
+                      title="Proceso Final"
+                      data={filterModalDetailData(selectedDemora.procesoFinal)}
+                    />
+                  </div>
+                )}
+
+                {/* Tab: Vueltas */}
+                {activeTab === "vueltas" && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-gray-700">Tercer Proceso</h3>
+                    <DetailTable
+                      title=""
+                      data={filterModalDetailData(selectedDemora.tercerProceso)}
+                    />
+                    {selectedDemora.tercerProceso?.vueltas &&
+                      selectedDemora.tercerProceso.vueltas.length > 0 && (
+                        <VueltasDetail vueltas={selectedDemora.tercerProceso.vueltas} />
+                      )}
+                  </div>
+                )}
+
+                {/* Tab: Intervalos */}
+                {activeTab === "intervalos" && (
+                  <DetailTable
+                    title="Intervalos entre Procesos"
+                    data={{
+                      "B.E. (Entr -> Sal)": calcularIntervalos(selectedDemora).calc1,
+                      "Sal. B.E. -> Lleg. Punto": calcularIntervalos(selectedDemora).calc2,
+                      "Punto -> Inicio Carga": calcularIntervalos(selectedDemora).calc7,
+                      "Tiempo Total Carga": calcularIntervalos(selectedDemora).calc3,
+                      "Sal. Punto -> B.S. Entr.": calcularIntervalos(selectedDemora).calc4,
+                      "B.S. (Entr -> Sal)": calcularIntervalos(selectedDemora).calc5,
+                      "B.S. -> Salida Planta": calcularIntervalos(selectedDemora).calc6,
+                      "Autorizac -> Ing. Planta": calcularIntervalos(selectedDemora).calc8,
+                      "Termina Carga -> Salida Punto": calcularIntervalos(selectedDemora).calc12,
+                      "Ing. Planta -> Lleg. Básq.":
+                        calcularIntervalos(selectedDemora).calcIngresoBascula,
+                      "Llegada -> Entrada Básq. (P1)":
+                        calcularIntervalos(selectedDemora).calcExtra1,
+                      "Llegada -> Entrada Básq. (P3)":
+                        calcularIntervalos(selectedDemora).calcExtra2,
+                      "Entrada (P3) 1ra -> Salida (P3) Última":
+                        calcularIntervalos(selectedDemora).calcExtra3,
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Botones al final */}
+            <div className="flex justify-end mt-6 space-x-3">
+              <button
+                onClick={() => handleDescargarPDF(selectedDemora)}
+                className="flex items-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+              >
+                <FiDownload className="mr-2" />
                 <span>Descargar PDF</span>
               </button>
             </div>
