@@ -91,19 +91,35 @@ function getAirQualityInfo(index) {
   }
 }
 
+// Claves y duración de la caché (15 minutos)
+const CACHE_KEY = "weatherData";
+const CACHE_TIMESTAMP_KEY = "weatherDataTimestamp";
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutos en milisegundos
+
+// Función para obtener datos cacheados, si existen y son válidos
+const getCachedWeather = () => {
+  if (typeof window !== "undefined") {
+    const cachedData = localStorage.getItem(CACHE_KEY);
+    const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+    const now = Date.now();
+    if (cachedData && cachedTimestamp && now - parseInt(cachedTimestamp, 10) < CACHE_DURATION) {
+      return JSON.parse(cachedData);
+    }
+  }
+  return null;
+};
+
 const WeatherWidget = () => {
-  const [weatherData, setWeatherData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Inicializa el estado con datos cacheados si están disponibles
+  const initialData = getCachedWeather();
+  const [weatherData, setWeatherData] = useState(initialData);
+  const [loading, setLoading] = useState(initialData ? false : true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [rotateIcon, setRotateIcon] = useState(false);
 
   // API key y endpoint (coordenadas de Acajutla – Planta Almapac)
   const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
   const url = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=13.571590310635003,-89.83056926998199&days=7&aqi=yes&alerts=yes&lang=es`;
-
-  const CACHE_KEY = "weatherData";
-  const CACHE_TIMESTAMP_KEY = "weatherDataTimestamp";
-  const CACHE_DURATION = 15 * 60 * 1000; // 15 minutos en milisegundos
 
   const fetchWeather = useCallback(async () => {
     try {
@@ -126,7 +142,7 @@ const WeatherWidget = () => {
     const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
     const now = Date.now();
 
-    if (cachedData && cachedTimestamp && now - parseInt(cachedTimestamp) < CACHE_DURATION) {
+    if (cachedData && cachedTimestamp && now - parseInt(cachedTimestamp, 10) < CACHE_DURATION) {
       setWeatherData(JSON.parse(cachedData));
       setLoading(false);
     } else {

@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import WeatherLoader from "../components/WeatherLoader";
 
 // Iconos
 import { FaPlay, FaChartBar, FaArrowRight } from "react-icons/fa";
@@ -17,9 +18,10 @@ import { GiGrain } from "react-icons/gi";
 import { MdPendingActions } from "react-icons/md";
 import { HiClipboardDocumentList } from "react-icons/hi2";
 
-// Importación dinámica para evitar problemas de hidratación con Next.js
+// Importación dinámica para el WeatherWidget con fallback al WeatherLoader
 const WeatherWidget = dynamic(() => import("../components/WeatherWidget"), {
   ssr: false,
+  loading: () => <WeatherLoader />,
 });
 
 // Botón reutilizable con ícono en círculo, flecha en hover y sombra interior
@@ -90,7 +92,7 @@ export default function Dashboard() {
       <Header />
 
       <main className="pt-24 pb-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        {/* Tarjeta de bienvenida y WeatherWidget */}
+        {/* Tarjeta de bienvenida */}
         <section className="bg-white rounded-xl shadow p-6 space-y-4">
           <div className="flex items-center space-x-3">
             <HiOutlineUserCircle size={48} className="text-blue-600" />
@@ -100,6 +102,7 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
+        {/* WeatherWidget */}
         <WeatherWidget />
 
         {/* Sección: Acciones rápidas */}
