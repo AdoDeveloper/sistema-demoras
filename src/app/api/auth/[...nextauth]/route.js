@@ -21,15 +21,19 @@ const handler = NextAuth({
           throw new Error("Faltan credenciales");
         }
 
-        // Siempre obtener el usuario desde la base de datos para asegurarse de tener la información actualizada
+        // Siempre obtener el usuario desde la base de datos para tener la información actualizada
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
           include: { role: true },
         });
         if (!user) {
-          throw new Error("Usuario no encontrado");
+          throw new Error("Credenciales incorrectas");
         }
-        // Validar si el usuario está activo
+        // Si el usuario está eliminado (eliminado === true), se retorna error de credenciales incorrectas
+        if (user.eliminado) {
+          throw new Error("Credenciales incorrectas");
+        }
+        // Si el usuario no está activo (activo === false), se retorna error de inactividad
         if (!user.activo) {
           throw new Error("El usuario está inactivo. Por favor, comuníquese con el administrador.");
         }
