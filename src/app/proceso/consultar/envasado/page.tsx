@@ -1068,6 +1068,13 @@ export default function DemorasPage() {
                 </span>
               </div>
               <div className="bg-gray-100 rounded-lg p-4 shadow-sm flex flex-col items-center">
+                <FiFileText className="text-blue-700 mb-2" size={20} />
+                <span className="font-semibold text-sm">Orden</span>
+                <span className="text-sm">
+                  {selectedDemora.primerProceso?.numeroOrden || "-"}
+                </span>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-4 shadow-sm flex flex-col items-center">
                 <HiOutlineCalendarDateRange  className="text-blue-700 mb-2" size={20} />
                 <span className="font-semibold text-sm">Fecha</span>
                 <span className="text-sm">{selectedDemora.fechaInicio || "-"}</span>
