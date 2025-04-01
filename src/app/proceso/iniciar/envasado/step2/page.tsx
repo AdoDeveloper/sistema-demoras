@@ -89,8 +89,10 @@ const modeloEquipoOptions: OptionType[] = [
 const razonesParoOptions: OptionType[] = [
   { value: "Cambio de jumbo de subproducto", label: "Cambio de jumbo de subproducto"},
   { value: "Cabaleo de peso", label: "Cabaleo de peso" },
+  { value: "Cambio de turno", label: "Cambio de turno" },
   { value: "Corte de energía eléctrica", label: "Corte de energía eléctrica" },
   { value: "Esperando auditor para programar básculas", label: "Esperando auditor para programar básculas" },
+  { value: "Espera llenar tolva de producto", label: "Espera llenar tolva de producto"},
   { value: "Falla de costuradora de sacos", label: "Falla de costuradora de sacos" },
   { value: "Falla en banda transportadora de sacos", label: "Falla en banda transportadora de sacos" },
   { value: "Falla en básculas pesasacos", label: "Falla en básculas pesasacos" },
@@ -98,6 +100,7 @@ const razonesParoOptions: OptionType[] = [
   { value: "Falla mecánica en la unidad de carga", label: "Falla mecánica en la unidad de carga" },
   { value: "Falta de equipo frontal por despachos a granel", label: "Falta de equipo frontal por despachos a granel" },
   { value: "Falta de equipo frontal por tráfico y carga en el mismo punto de carga", label: "Falta de equipo frontal por tráfico y carga en el mismo punto de carga" },
+  { value: "Falta de producto en tolva", label: "Falta de producto en tolva" },
   { value: "Limpieza de sistema", label: "Limpieza de sistema" },
   { value: "Limpieza en tolva", label: "Limpieza en tolva" },
   { value: "Llenado de tolva", label: "Llenado de tolva" },

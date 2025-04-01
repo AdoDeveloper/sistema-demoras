@@ -28,29 +28,28 @@ export default function ProcesoFinal() {
   const router = useRouter();
 
   // Estados de campos en la pantalla final según el esquema
-  const [tiempoLlegadaPorteria, setTiempoLlegadaPorteria] = useState({
+  const [tiempoLlegadaPorteria, setTiempoLlegadaPorteria] = useState<{ hora: string; comentarios: string }>({
     hora: "",
     comentarios: "",
   });
-  const [tiempoSalidaPlanta, setTiempoSalidaPlanta] = useState({
+  // El estado de salida de planta incluye fecha, hora y comentarios, pero la fecha no se enviará en el payload
+  const [tiempoSalidaPlanta, setTiempoSalidaPlanta] = useState<{ fecha: string; hora: string; comentarios: string }>({
+    fecha: "",
     hora: "",
     comentarios: "",
   });
-  const [porteriaSalida, setPorteriaSalida] = useState("");
+  const [porteriaSalida, setPorteriaSalida] = useState<string>("");
 
-  // Almacenará toda la información (resumen) de "molidoProcess"
+  // Almacenará la información del editMolino (payload sin la fecha de salida)
   const [dataResumen, setDataResumen] = useState<any>(null);
-
-  // Estado para almacenar el resumen de tiempos calculado
+  // Estado para el resumen de tiempos calculado
   const [timeSummary, setTimeSummary] = useState<{
     autorizacion: string;
     salidaPlanta: string;
     total: string;
   } | null>(null);
-
-  // Estado para habilitar el botón Guardar Nota
+  // Estado para habilitar el botón "Guardar Nota"
   const [notaHabilitada, setNotaHabilitada] = useState(false);
-
   // Control de acordeones
   const [accordionOpen, setAccordionOpen] = useState({
     primerProceso: false,
@@ -76,9 +75,9 @@ export default function ProcesoFinal() {
     cargarDatosDeLocalStorage();
   }, []);
 
-  // Función para cargar la info de localStorage
+  // Cargar la data de "editMolino" y de "fechaSalidaPlanta" desde localStorage
   function cargarDatosDeLocalStorage() {
-    let stored = localStorage.getItem("molidoProcess");
+    let stored = localStorage.getItem("editMolino");
     if (!stored) {
       const initialData = {
         fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
@@ -89,15 +88,20 @@ export default function ProcesoFinal() {
         tercerProceso: {},
         procesoFinal: {},
       };
-      localStorage.setItem("molidoProcess", JSON.stringify(initialData));
-      stored = localStorage.getItem("molidoProcess");
+      localStorage.setItem("editMolino", JSON.stringify(initialData));
+      stored = localStorage.getItem("editMolino");
     }
     if (stored) {
       const parsed = JSON.parse(stored);
       setDataResumen(parsed);
       if (parsed.procesoFinal) {
         setTiempoLlegadaPorteria(parsed.procesoFinal.tiempoLlegadaPorteria || { hora: "", comentarios: "" });
-        setTiempoSalidaPlanta(parsed.procesoFinal.tiempoSalidaPlanta || { hora: "", comentarios: "" });
+        // Se descarta la fecha que pudo haberse guardado en el payload anterior
+        setTiempoSalidaPlanta((prev) => ({
+          ...prev,
+          hora: parsed.procesoFinal.tiempoSalidaPlanta?.hora || "",
+          comentarios: parsed.procesoFinal.tiempoSalidaPlanta?.comentarios || "",
+        }));
         setPorteriaSalida(parsed.procesoFinal.porteriaSalida || "");
       }
       if (parsed.tiempoTotal) {
@@ -108,20 +112,24 @@ export default function ProcesoFinal() {
         });
       }
     }
+    // Cargar también la fecha de salida almacenada aparte
+    const fechaSalidaCache = localStorage.getItem("fechaSalidaPlanta") || "";
+    setTiempoSalidaPlanta((prev) => ({ ...prev, fecha: fechaSalidaCache }));
   }
 
-  // Helper para setear la hora actual
-  const handleSetNow = (setter) => {
+  // Helper para setear la hora y fecha actual
+  const handleSetNowWithDate = (setter: any) => {
     const now = new Date();
     const hora = now.toLocaleTimeString("en-GB", {
       hour12: false,
       timeZone: "America/El_Salvador",
     });
-    setter((prev) => ({ ...prev, hora }));
+    const fecha = now.toISOString().slice(0, 10);
+    setter((prev: any) => ({ ...prev, hora, fecha }));
   };
 
   // Función para parsear una hora (campo con {hora, comentarios})
-  const parserHora = (campo) => {
+  const parserHora = (campo: any) => {
     if (!campo?.hora) return null;
     try {
       const now = new Date();
@@ -133,8 +141,8 @@ export default function ProcesoFinal() {
     }
   };
 
-  // Función para parsear fecha y hora (en caso de tener fecha y hora separados)
-  const parserFechaHora = (campo) => {
+  // Función para parsear fecha y hora (cuando se tienen ambos separados)
+  const parserFechaHora = (campo: any) => {
     if (!campo?.fecha || !campo?.hora) return null;
     try {
       const [year, month, day] = campo.fecha.split("-").map(Number);
@@ -237,42 +245,34 @@ export default function ProcesoFinal() {
     return note;
   };
 
-  // Función para guardar los datos del Proceso Final en localStorage (sin mostrar alertas)
+  // Actualiza el objeto editMolino sin la fecha de salida y lo guarda en localStorage
   const guardarDatosProcesoFinal = () => {
-    const stored = localStorage.getItem("molidoProcess");
-    if (!stored) {
-      console.error("No se encontró molidoProcess en localStorage");
-      return;
-    }
-    const parsed = JSON.parse(stored);
-    if (!parsed || typeof parsed !== "object") {
-      console.error("Datos en cache inválidos.");
-      return;
-    }
-    parsed.procesoFinal = {
-      tiempoLlegadaPorteria,
-      tiempoSalidaPlanta,
-      porteriaSalida,
+    if (!dataResumen) return;
+    const updated = {
+      ...dataResumen,
+      procesoFinal: {
+        tiempoLlegadaPorteria,
+        tiempoSalidaPlanta: {
+          hora: tiempoSalidaPlanta.hora,
+          comentarios: tiempoSalidaPlanta.comentarios,
+        },
+        porteriaSalida,
+      },
     };
-    const primerProceso = parsed.primerProceso;
-    const autorizacionDate = primerProceso.tiempoAutorizacion
-      ? parserFechaHora(primerProceso.tiempoAutorizacion)
-      : null;
-    const salidaDate = parserHora(tiempoSalidaPlanta);
-    let tiempoTotal = "";
-    if (autorizacionDate && salidaDate) {
-      const diffMillis = salidaDate.getTime() - autorizacionDate.getTime();
-      tiempoTotal = formatTime(diffMillis);
-    }
-    parsed.tiempoTotal = tiempoTotal;
-    localStorage.setItem("molidoProcess", JSON.stringify(parsed));
+    setDataResumen(updated);
+    localStorage.setItem("editMolino", JSON.stringify(updated));
   };
 
   // Botón "Guardar" (para guardar datos en caché)
   const handleGuardarLocal = () => {
-    const stored = localStorage.getItem("molidoProcess");
+    localStorage.setItem("fechaSalidaPlanta", tiempoSalidaPlanta.fecha || "");
+    if (!tiempoSalidaPlanta.fecha) {
+      Swal.fire("Advertencia", "Debe ingresar la fecha de salida de planta", "warning");
+      return;
+    }
+    const stored = localStorage.getItem("editMolino");
     if (!stored) {
-      Swal.fire("Error", "No se encontró molidoProcess en localStorage", "error");
+      Swal.fire("Error", "No se encontró editMolino en localStorage", "error");
       return;
     }
     const parsed = JSON.parse(stored);
@@ -282,21 +282,22 @@ export default function ProcesoFinal() {
     }
     parsed.procesoFinal = {
       tiempoLlegadaPorteria,
-      tiempoSalidaPlanta,
+      tiempoSalidaPlanta: {
+        hora: tiempoSalidaPlanta.hora,
+        comentarios: tiempoSalidaPlanta.comentarios,
+      },
       porteriaSalida,
     };
     const primerProceso = parsed.primerProceso;
-    const autorizacionDate = primerProceso.tiempoAutorizacion
-      ? parserFechaHora(primerProceso.tiempoAutorizacion)
-      : null;
-    const salidaDate = parserHora(tiempoSalidaPlanta);
+    const autorizacionDate = primerProceso.tiempoAutorizacion ? parserFechaHora(primerProceso.tiempoAutorizacion) : null;
+    const salidaDate = parserFechaHora(tiempoSalidaPlanta);
     let tiempoTotal = "";
     if (autorizacionDate && salidaDate) {
       const diffMillis = salidaDate.getTime() - autorizacionDate.getTime();
       tiempoTotal = formatTime(diffMillis);
     }
     parsed.tiempoTotal = tiempoTotal;
-    localStorage.setItem("molidoProcess", JSON.stringify(parsed));
+    localStorage.setItem("editMolino", JSON.stringify(parsed));
     if (primerProceso.tiempoAutorizacion && primerProceso.tiempoAutorizacion.hora) {
       setTimeSummary({
         autorizacion: primerProceso.tiempoAutorizacion.hora,
@@ -305,7 +306,6 @@ export default function ProcesoFinal() {
       });
     }
     cargarDatosDeLocalStorage();
-    // Se activa la opción para Guardar Nota
     setNotaHabilitada(true);
     Swal.fire(
       "Guardado",
@@ -314,17 +314,16 @@ export default function ProcesoFinal() {
     );
   };
 
-  // Botón "Guardar Nota": descarga un archivo TXT con la info formateada
+  // Botón "Guardar Nota": descarga un archivo TXT con la información formateada
   const handleGuardarNota = () => {
-    const stored = localStorage.getItem("molidoProcess");
+    const stored = localStorage.getItem("editMolino");
     if (!stored) {
-      Swal.fire("Error", "No se encontró molidoProcess en localStorage", "error");
+      Swal.fire("Error", "No se encontró editMolino en localStorage", "error");
       return;
     }
     const parsed = JSON.parse(stored);
     const content = generateReadableNote(parsed);
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    // Generar nombre de archivo: <userName>-YYYY-MM-DD-HH-MM-SS.txt
     const userName = localStorage.getItem("userName") || "Usuario";
     const now = new Date();
     const formattedDate = now.toISOString().slice(0, 10);
@@ -341,8 +340,8 @@ export default function ProcesoFinal() {
     Swal.fire("Nota guardada", "Archivo txt generado.", "success");
   };
 
-  // Validación de procesos
-  function validarTodosLosProcesos() {
+  // Validación de campos obligatorios
+  function validarTodosLosProcesos(): string {
     if (!dataResumen) {
       return "No se encontraron datos en caché.";
     }
@@ -362,7 +361,6 @@ export default function ProcesoFinal() {
     }
     if (
       !segundoProceso ||
-      !segundoProceso.grupo ||
       !segundoProceso.operador ||
       !segundoProceso.personalAsignado ||
       !segundoProceso.modeloEquipo
@@ -377,16 +375,16 @@ export default function ProcesoFinal() {
     ) {
       return "El Tercer Proceso está incompleto o faltan campos obligatorios.";
     }
-    if (!tiempoLlegadaPorteria.hora || !tiempoSalidaPlanta.hora || !porteriaSalida) {
-      return "Faltan datos de Llegada Portería, Portería Salida o Salida Planta.";
+    if (!tiempoLlegadaPorteria.hora || !tiempoSalidaPlanta.hora || !tiempoSalidaPlanta.fecha || !porteriaSalida) {
+      return "Faltan datos de Llegada Portería, Portería Salida o Salida Planta (fecha u hora).";
     }
-    if (!primerProceso.tiempoAutorizacion || !primerProceso.tiempoAutorizacion.hora) {
+    if (!dataResumen.primerProceso.tiempoAutorizacion || !dataResumen.primerProceso.tiempoAutorizacion.hora) {
       return "Falta el dato de Autorización en el Primer Proceso.";
     }
     return "";
   }
 
-  // Botón "Enviar" con debug
+  // Botón "Enviar": actualiza la data en localStorage y envía el payload (sin la fecha de salida)
   const handleEnviar = async () => {
     const errorProceso = validarTodosLosProcesos();
     if (errorProceso) {
@@ -412,86 +410,52 @@ export default function ProcesoFinal() {
         },
       });
       try {
-        const stored = localStorage.getItem("molidoProcess");
-        if (!stored) {
-          Swal.close();
-          Swal.fire("Error", "No se encontró molidoProcess en localStorage", "error");
-          return;
-        }
-        const parsed = JSON.parse(stored);
-        if (!parsed || typeof parsed !== "object") {
-          Swal.close();
-          Swal.fire("Error", "Datos en caché inválidos.", "error");
-          return;
-        }
-        parsed.procesoFinal = {
-          tiempoLlegadaPorteria,
-          tiempoSalidaPlanta,
-          porteriaSalida,
-        };
-        const primerProceso = parsed.primerProceso;
-        const autorizacionDate = primerProceso.tiempoAutorizacion
-          ? parserFechaHora(primerProceso.tiempoAutorizacion)
-          : null;
-        const salidaDate = parserHora(tiempoSalidaPlanta);
-        let tiempoTotal = "";
-        if (autorizacionDate && salidaDate) {
-          const diffMillis = salidaDate.getTime() - autorizacionDate.getTime();
-          tiempoTotal = formatTime(diffMillis);
-        }
-        parsed.tiempoTotal = tiempoTotal;
-        localStorage.setItem("molidoProcess", JSON.stringify(parsed));
-
-        // Debug: imprimir el payload a enviar
-        console.log("Payload a enviar:", JSON.stringify({ molinoProcess: parsed }, null, 2));
-
-        const res = await fetch("/api/demoras/molino", {
-          method: "POST",
+        guardarDatosProcesoFinal();
+        const stored = localStorage.getItem("editMolino");
+        if (!stored) throw new Error("No se encontró editMolino en storage");
+        const payload = JSON.parse(stored);
+        console.log("Payload enviado:", JSON.stringify(payload, null, 2));
+        const molinoId = localStorage.getItem("molinoId") || "0";
+        const res = await fetch(`/api/demoras/molino/${molinoId}`, {
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ molinoProcess: parsed }),
+          body: JSON.stringify({ editMolino: payload }),
         });
         Swal.close();
         if (res.ok) {
-          localStorage.removeItem("molidoProcess");
-          localStorage.removeItem("parosCache");
-          Swal.fire("Enviado", "Datos enviados y guardados correctamente.", "success").then(() => {
-            router.push("/");
+          localStorage.removeItem("editMolino");
+          localStorage.removeItem("molinoId");
+          localStorage.removeItem("fechaSalidaPlanta");
+          Swal.fire("Enviado", "Datos actualizados correctamente.", "success").then(() => {
+            router.push("/proceso/consultar/molino");
           });
         } else {
           const errorResponse = await res.text();
-          console.error("Error de respuesta:", errorResponse);
-          try {
-            const errorObj = JSON.parse(errorResponse);
-            Swal.fire("Error", `Error al guardar en DB: ${errorObj.error || "Desconocido"}`, "error");
-          } catch {
-            Swal.fire("Error", "Error al guardar en DB: Respuesta inesperada.", "error");
-          }
+          Swal.fire("Error", `Error al actualizar: ${errorResponse}`, "error");
         }
       } catch (err) {
         console.error("Error en handleEnviar:", err);
         Swal.close();
-        Swal.fire("Error", "Error de conexión al guardar los datos.", "error");
+        Swal.fire("Error", "Error de conexión al actualizar los datos.", "error");
       }
     }
   };
 
-  // Botón "Anterior": guardar datos en localStorage y navegar a la etapa anterior
+  // Botón "Anterior": guarda los cambios y navega a la etapa anterior
   const handleAtras = () => {
-    // Guardamos los datos del Proceso Final en localStorage
     guardarDatosProcesoFinal();
-    // Luego, navegamos a la página del Tercer Proceso
-    router.push("/proceso/iniciar/molino/step3");
+    router.push("/proceso/editar/molino/step3");
   };
 
-  // Toggles de acordeón
-  const toggleAccordion = (section) => {
+  // Toggle del acordeón para mostrar/ocultar secciones del resumen
+  const toggleAccordion = (section: string) => {
     setAccordionOpen((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
   };
 
-  // Render de cada sección en acordeón
+  // Render de cada sección del resumen (se mantiene igual)
   function renderResumenAcordeon() {
     if (!dataResumen) {
       return <p className="text-gray-500">No se encontraron datos en caché.</p>;
@@ -550,13 +514,22 @@ export default function ProcesoFinal() {
                   <strong>Portería Entrada:</strong> {primerProceso.porteriaEntrada || "N/A"}
                 </div>
                 <div>
+                  <strong>Báscula Entrada:</strong> {primerProceso.basculaEntrada || "N/A"}
+                </div>
+                <div>
+                  <strong>Molino:</strong> {primerProceso.numeroMolino || "N/A"}
+                </div>
+                <div>
+                  <strong>Criba:</strong> {primerProceso.numeroCriba || "N/A"}
+                </div>
+                <div>
+                  <strong>Presentación:</strong> {primerProceso.presentacion || "N/A"}
+                </div>
+                <div>
                   <strong>Punto Despacho:</strong> {primerProceso.puntoDespacho || "N/A"}
                 </div>
                 <div>
                   <strong>Punto Envasado:</strong> {primerProceso.puntoEnvasado || "N/A"}
-                </div>
-                <div>
-                  <strong>Báscula Entrada:</strong> {primerProceso.basculaEntrada || "N/A"}
                 </div>
                 <div>
                   <strong>Método de Carga:</strong> {primerProceso.metodoCarga || "N/A"}
@@ -646,10 +619,16 @@ export default function ProcesoFinal() {
                     <strong>Llegada del Equipo:</strong> {segundoProceso?.tiempoLlegadaEquipo?.hora || "N/A"} | <em>{segundoProceso?.tiempoLlegadaEquipo?.comentarios || ""}</em>
                   </li>
                   <li>
+                    <strong>Inicio Molido:</strong> {segundoProceso?.tiempoInicioMolido?.hora || "N/A"} | <em>{segundoProceso?.tiempoInicioMolido?.comentarios || ""}</em>
+                  </li>
+                  <li>
                     <strong>Inicio de Carga:</strong> {segundoProceso?.tiempoInicioCarga?.hora || "N/A"} | <em>{segundoProceso?.tiempoInicioCarga?.comentarios || ""}</em>
                   </li>
                   <li>
                     <strong>Termina Carga:</strong> {segundoProceso?.tiempoTerminaCarga?.hora || "N/A"} | <em>{segundoProceso?.tiempoTerminaCarga?.comentarios || ""}</em>
+                  </li>
+                  <li>
+                    <strong>Termina Molido:</strong> {segundoProceso?.tiempoTerminaMolido?.hora || "N/A"} | <em>{segundoProceso?.tiempoTerminaMolido?.comentarios || ""}</em>
                   </li>
                   <li>
                     <strong>Salida del Punto:</strong> {segundoProceso?.tiempoSalidaPunto?.hora || "N/A"} | <em>{segundoProceso?.tiempoSalidaPunto?.comentarios || ""}</em>
@@ -657,11 +636,11 @@ export default function ProcesoFinal() {
                 </ul>
                 {Array.isArray(segundoProceso.paros) && segundoProceso.paros.length > 0 && (
                   <div className="mt-2">
-                    <p className="font-semibold">Paros:</p>
+                    <p className="font-semibold">Paros/Actividades:</p>
                     <ul className="list-disc list-inside">
                       {segundoProceso.paros.map((p, idx) => (
                         <li key={idx}>
-                          <strong>Paro {idx + 1}:</strong> Inicio: {p.inicio}, Fin: {p.fin}, Razón: {p.razon}, Diff: {p.diffCargaInicio}, Duración: {p.duracionParo}
+                          <strong>Paro/Actividad {idx + 1}:</strong> Inicio: {p.inicio}, Fin: {p.fin}, Razón: {p.razon}, Diff: {p.diffCargaInicio}, Duración: {p.duracionParo}
                         </li>
                       ))}
                     </ul>
@@ -772,8 +751,12 @@ export default function ProcesoFinal() {
     );
   }
 
+  // Condición para habilitar el botón Enviar
   const isEnviarHabilitado =
-    !!tiempoLlegadaPorteria.hora && !!tiempoSalidaPlanta.hora && !!porteriaSalida;
+    !!tiempoLlegadaPorteria.hora &&
+    !!tiempoSalidaPlanta.hora &&
+    !!tiempoSalidaPlanta.fecha &&
+    !!porteriaSalida;
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 text-slate-900">
@@ -784,7 +767,10 @@ export default function ProcesoFinal() {
           <div className="flex-1 bg-orange-500 py-2 px-4 text-center"></div>
           <div className="flex-1 bg-orange-500 text-white font-semibold py-2 px-4 rounded-r-lg"></div>
         </div>
-        <h2 className="text-xl font-bold mb-4 text-orange-600">Proceso Final</h2>
+        <h2 className="text-xl font-bold mb-4 text-orange-600">
+          Proceso Final <span className="text-lg text-gray-400">[Modo Edicion]</span>
+        </h2>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="border rounded p-2 md:col-span-2">
             <label className="block font-semibold mb-1 text-sm">Portería Salida</label>
@@ -806,7 +792,7 @@ export default function ProcesoFinal() {
                 type="time"
                 step="1"
                 className="border p-1 w-full text-sm"
-                value={tiempoLlegadaPorteria.hora}
+                value={tiempoLlegadaPorteria.hora || ""}
                 onChange={(e) =>
                   setTiempoLlegadaPorteria((prev) => ({
                     ...prev,
@@ -816,7 +802,7 @@ export default function ProcesoFinal() {
               />
               <button
                 className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                onClick={() => handleSetNow(setTiempoLlegadaPorteria)}
+                onClick={() => handleSetNowWithDate(setTiempoLlegadaPorteria)}
               >
                 Ahora
               </button>
@@ -824,7 +810,7 @@ export default function ProcesoFinal() {
             <textarea
               className="border w-full mt-1 p-1 text-xs"
               placeholder="Comentarios..."
-              value={tiempoLlegadaPorteria.comentarios}
+              value={tiempoLlegadaPorteria.comentarios || ""}
               onChange={(e) =>
                 setTiempoLlegadaPorteria((prev) => ({
                   ...prev,
@@ -835,30 +821,43 @@ export default function ProcesoFinal() {
           </div>
           <div className="border rounded p-2">
             <label className="block font-semibold mb-1 text-sm">Salida Planta</label>
-            <div className="flex gap-2 mt-1">
+            <div className="flex flex-col gap-2 mt-1">
               <input
-                type="time"
-                step="1"
+                type="date"
                 className="border p-1 w-full text-sm"
-                value={tiempoSalidaPlanta.hora}
+                value={tiempoSalidaPlanta.fecha || ""}
                 onChange={(e) =>
                   setTiempoSalidaPlanta((prev) => ({
                     ...prev,
-                    hora: e.target.value,
+                    fecha: e.target.value,
                   }))
                 }
               />
-              <button
-                className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                onClick={() => handleSetNow(setTiempoSalidaPlanta)}
-              >
-                Ahora
-              </button>
+              <div className="flex gap-2">
+                <input
+                  type="time"
+                  step="1"
+                  className="border p-1 w-full text-sm"
+                  value={tiempoSalidaPlanta.hora || ""}
+                  onChange={(e) =>
+                    setTiempoSalidaPlanta((prev) => ({
+                      ...prev,
+                      hora: e.target.value,
+                    }))
+                  }
+                />
+                <button
+                  className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
+                  onClick={() => handleSetNowWithDate(setTiempoSalidaPlanta)}
+                >
+                  Ahora
+                </button>
+              </div>
             </div>
             <textarea
               className="border w-full mt-1 p-1 text-xs"
               placeholder="Comentarios..."
-              value={tiempoSalidaPlanta.comentarios}
+              value={tiempoSalidaPlanta.comentarios || ""}
               onChange={(e) =>
                 setTiempoSalidaPlanta((prev) => ({
                   ...prev,

@@ -453,8 +453,9 @@ model SegundoProcesoMol {
   
   // Campos específicos de molido
   tiempoInicioMolido            String?  @map("tiempo_inicio_molido")
+  inicioMolidoObservaciones     String?  @map("inicio_molido_obs") @db.LongText
   tiempoTerminaMolido           String?  @map("tiempo_termina_molido")
-  
+  terminaMolidoObservaciones    String?  @map("termina_molido_obs") @db.LongText
   tiempoSalidaPunto             String?  @map("tiempo_salida_punto")
   salidaPuntoObservaciones      String?  @map("salida_punto_obs") @db.LongText
 

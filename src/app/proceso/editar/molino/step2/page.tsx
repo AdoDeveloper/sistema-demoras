@@ -18,14 +18,14 @@ interface OptionType {
 const grupoOptions: OptionType[] = [
   { value: "NO REQUIERE", label: "NO REQUIERE" },
   { value: "GRUPO 1", label: "GRUPO 1" },
-  { value: "GRUPO 1 Y 2", label: "GRUPO 1 Y 2"},
-  { value: "GRUPO 1 Y OFICIOS VARIOS", label: "GRUPO 1 Y OFICIOS VARIOS"},
+  { value: "GRUPO 1 Y 2", label: "GRUPO 1 Y 2" },
+  { value: "GRUPO 1 Y OFICIOS VARIOS", label: "GRUPO 1 Y OFICIOS VARIOS" },
   { value: "GRUPO 2", label: "GRUPO 2" },
-  { value: "GRUPO 2 Y OFICIOS VARIOS", label: "GRUPO 2 Y OFICIOS VARIOS"},
+  { value: "GRUPO 2 Y OFICIOS VARIOS", label: "GRUPO 2 Y OFICIOS VARIOS" },
   { value: "GRUPO 3", label: "GRUPO 3" },
   { value: "GRUPO 4", label: "GRUPO 4" },
-  { value: "OFICIOS VARIOS", label: "OFICIOS VARIOS"},
-  { value: "POR OBRA", label: "POR OBRA"},
+  { value: "OFICIOS VARIOS", label: "OFICIOS VARIOS" },
+  { value: "POR OBRA", label: "POR OBRA" },
 ];
 
 // Opciones para Modelo de Equipo
@@ -37,7 +37,7 @@ const modeloEquipoOptions: OptionType[] = [
 
 // Opciones para Razón de Paro
 const razonesParoOptions: OptionType[] = [
-  { value: "Cambio de jumbo de subproducto", label: "Cambio de jumbo de subproducto"},
+  { value: "Cambio de jumbo de subproducto", label: "Cambio de jumbo de subproducto" },
   { value: "Cabaleo de peso", label: "Cabaleo de peso" },
   { value: "Cambio de turno", label: "Cambio de turno" },
   { value: "Corte de energía eléctrica", label: "Corte de energía eléctrica" },
@@ -56,8 +56,8 @@ const razonesParoOptions: OptionType[] = [
   { value: "Llenado de tolva", label: "Llenado de tolva" },
   { value: "Lluvia", label: "Lluvia" },
   { value: "Media hora de comida", label: "Media hora de comida" },
-  { value: "Movimiento de banda transportadora de sacos", label: "Movimiento de banda transportadora de sacos"},
-  { value: "Movimiento de jumbo de subproducto", label: "Movimiento de jumbo de subproducto"},
+  { value: "Movimiento de banda transportadora de sacos", label: "Movimiento de banda transportadora de sacos" },
+  { value: "Movimiento de jumbo de subproducto", label: "Movimiento de jumbo de subproducto" },
   { value: "Movimiento de tolva a otro punto de carga", label: "Movimiento de tolva a otro punto de carga" },
   { value: "Preparacion del sistema", label: "Preparacion del sistema" },
   { value: "Reubicación de tolva", label: "Reubicación de tolva" },
@@ -75,7 +75,7 @@ const razonesParoOptions: OptionType[] = [
   { value: "Solo un operador con equipo para todos los despachos", label: "Solo un operador con equipo para todos los despachos" },
   { value: "Traslado de producto", label: "Traslado de producto" },
   { value: "Tráfico congestionado", label: "Tráfico congestionado" },
-  { value: "Otro", label: "Otro"},
+  { value: "Otro", label: "Otro" },
 ];
 
 // ---------------------------------------
@@ -101,9 +101,7 @@ const handleTimeInputChange = (
   setter((prev: any) => ({ ...prev, hora: formatted }));
 };
 
-// ---------------------------------------
-// Funciones para conversión de tiempo
-// ---------------------------------------
+// Funciones de conversión de tiempo
 const timeStringToSeconds = (timeStr: string): number => {
   const parts = timeStr.split(":");
   if (parts.length !== 3) return 0;
@@ -121,30 +119,46 @@ const secondsToTimeString = (seconds: number): string => {
 };
 
 // ---------------------------------------
-// Helper para actualizar la caché de Paros (clave "parosCache")
-// Ahora se incluye además la razón (razon)
-const updateParosCache = (
-  newInicioParo?: { hora: string },
-  newFinParo?: { hora: string },
-  newRazon?: string
-) => {
-  const existingCache = JSON.parse(
-    localStorage.getItem("parosCache") || '{"inicioParo":{"hora":""},"finParo":{"hora":""},"razon":""}'
-  );
-  const cache = {
-    inicioParo: newInicioParo ? newInicioParo : existingCache.inicioParo,
-    finParo: newFinParo ? newFinParo : existingCache.finParo,
-    razon: newRazon !== undefined ? newRazon : existingCache.razon,
-  };
-  localStorage.setItem("parosCache", JSON.stringify(cache));
-};
-
+// Estados para el Segundo Proceso (Molino)
+// ---------------------------------------
 export default function SegundoProceso() {
   const router = useRouter();
 
-  // -------------------------------
-  // ESTADOS PRINCIPALES (SIN CAMBIOS)
-  // -------------------------------
+  useEffect(() => {
+    // Interceptar navegación atrás y recargas para confirmar cancelación
+    window.history.pushState(null, "", window.location.href);
+    const handlePopState = (event) => {
+      Swal.fire({
+        title: "¿Está seguro?",
+        text: "Debe cancelar para salir. Se perderán los cambios realizados.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, cancelar",
+        cancelButtonText: "No, continuar",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.removeEventListener("popstate", handlePopState);
+          localStorage.removeItem("editMolino");
+          router.push("/proceso/iniciar/molino");
+        } else {
+          window.history.pushState(null, "", window.location.href);
+        }
+      });
+    };
+    window.addEventListener("popstate", handlePopState);
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [router]);
+
+  // Estados principales del Segundo Proceso
   const [grupo, setGrupo] = useState("");
   const [operador, setOperador] = useState("");
   const [personalAsignado, setPersonalAsignado] = useState("");
@@ -157,62 +171,22 @@ export default function SegundoProceso() {
   const [tiempoLlegadaEquipo, setTiempoLlegadaEquipo] = useState({ hora: "", comentarios: "" });
   const [tiempoInicioCarga, setTiempoInicioCarga] = useState({ hora: "", comentarios: "" });
   const [tiempoTerminaCarga, setTiempoTerminaCarga] = useState({ hora: "", comentarios: "" });
+  // Campos específicos de molido
   const [tiempoInicioMolido, setTiempoInicioMolido] = useState({ hora: "", comentarios: "" });
   const [tiempoTerminaMolido, setTiempoTerminaMolido] = useState({ hora: "", comentarios: "" });
   const [tiempoSalidaPunto, setTiempoSalidaPunto] = useState({ hora: "", comentarios: "" });
 
-  // -------------------------------
-  // ESTADOS PARA PAROS Y ESTADÍSTICAS
-  // -------------------------------
-  // Mientras no se presione Agregar, estos valores se guardan en caché en "parosCache"
-  const [inicioParo, setInicioParo] = useState({ hora: "" });
-  const [finParo, setFinParo] = useState({ hora: "" });
-  const [razonParo, setRazonParo] = useState("");
+  // Estados para Paros (en edición: solo se actualizan, no se agregan o eliminan)
   const [parosList, setParosList] = useState<any[]>([]);
   const [tiempoTotalParos, setTiempoTotalParos] = useState("00:00:00");
 
-  // -------------------------------
-  // Cargar datos de LocalStorage (molidoProcess) y precargar caché de paros
-  // -------------------------------
+  // Cargar datos desde localStorage ("editMolino") y precargar paros del segundo proceso
   useEffect(() => {
     cargarDatosDeLocalStorage();
-    const cache = localStorage.getItem("parosCache");
-    if (cache) {
-      const parsedCache = JSON.parse(cache);
-      if (parsedCache.inicioParo) setInicioParo(parsedCache.inicioParo);
-      if (parsedCache.finParo) setFinParo(parsedCache.finParo);
-      if (parsedCache.razon) setRazonParo(parsedCache.razon);
-    }
   }, []);
 
-  useEffect(() => {
-    let totalSeconds = 0;
-    parosList.forEach((paro) => {
-      totalSeconds += timeStringToSeconds(paro.duracionParo);
-    });
-    const totalTiempo = secondsToTimeString(totalSeconds);
-    setTiempoTotalParos(totalTiempo);
-  }, [parosList]);
-
   function cargarDatosDeLocalStorage() {
-    let stored = localStorage.getItem("molidoProcess");
-    if (!stored) {
-      const initialData = {
-        fechaInicio: new Date().toLocaleString("en-GB", { timeZone: "America/El_Salvador" }),
-        userId: localStorage.getItem("userId"),
-        userName: localStorage.getItem("userName"),
-        primerProceso: {},
-        segundoProceso: {
-          // Estructura por defecto para paros similar a vueltas
-          paros: [],
-          parosStats: { totalParos: 0, tiempoTotalParos: "00:00:00" },
-        },
-        tercerProceso: {},
-        procesoFinal: {},
-      };
-      localStorage.setItem("molidoProcess", JSON.stringify(initialData));
-      stored = localStorage.getItem("molidoProcess");
-    }
+    const stored = localStorage.getItem("editMolino");
     if (stored) {
       const parsed = JSON.parse(stored);
       if (parsed.segundoProceso) {
@@ -237,121 +211,59 @@ export default function SegundoProceso() {
     }
   }
 
-  // -------------------------------
-  // Actualizar caché de paros (incluye razón)
-  // -------------------------------
-  const handleInicioParoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = { hora: e.target.value };
-    setInicioParo(newVal);
-    updateParosCache(newVal, undefined, undefined);
+  // Función para actualizar un campo de un paro en parosList
+  const handleParoChange = (index: number, field: "inicio" | "fin" | "razon", value: string) => {
+    setParosList((prev) => {
+      const newList = [...prev];
+      newList[index] = { ...newList[index], [field]: value };
+      return newList;
+    });
   };
 
-  const handleFinParoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = { hora: e.target.value };
-    setFinParo(newVal);
-    updateParosCache(undefined, newVal, undefined);
-  };
-
-  // Actualizar razón en caché
-  const handleRazonChange = (option: OptionType | null) => {
-    const newRazon = option ? option.value : "";
-    setRazonParo(newRazon);
-    updateParosCache(undefined, undefined, newRazon);
-  };
-
-  // Botones "Ahora" para paros
-  const handleAhoraInicioParo = () => {
+  // Función para asignar la hora actual a un campo de un paro (Inicio o Fin)
+  const handleSetNowParo = (index: number, field: "inicio" | "fin") => {
     const now = new Date();
     const hora = now.toLocaleTimeString("en-GB", {
       hour12: false,
       timeZone: "America/El_Salvador",
     });
-    const newVal = { hora };
-    setInicioParo(newVal);
-    updateParosCache(newVal, undefined, undefined);
-  };
-
-  const handleAhoraFinParo = () => {
-    const now = new Date();
-    const hora = now.toLocaleTimeString("en-GB", {
-      hour12: false,
-      timeZone: "America/El_Salvador",
+    setParosList((prev) => {
+      const newList = [...prev];
+      newList[index] = { ...newList[index], [field]: hora };
+      return newList;
     });
-    const newVal = { hora };
-    setFinParo(newVal);
-    updateParosCache(undefined, newVal, undefined);
   };
 
-  // -------------------------------
-  // Agregar Paro: valida campos, usa SweetAlert para alertas individuales,
-  // agrega a la lista y limpia la caché de paros.
-  // -------------------------------
-  const handleAgregarParo = () => {
+  // Botón para actualizar (recalcular) los paros editados y actualizar la caché en "editMolino"
+  const handleActualizarParos = () => {
     if (!tiempoInicioCarga.hora) {
-      Swal.fire("Error", "Falta la hora de inicio de carga", "error");
-      return;
-    }
-    if (!inicioParo.hora) {
-      Swal.fire("Error", "Falta la hora de inicio del paro", "error");
-      return;
-    }
-    if (!finParo.hora) {
-      Swal.fire("Error", "Falta la hora de fin del paro", "error");
-      return;
-    }
-    if (!razonParo) {
-      Swal.fire("Error", "Falta la razón del paro", "error");
+      Swal.fire("Error", "Debe tener la hora de inicio de carga para recalcular paros.", "error");
       return;
     }
     const inicioCargaSec = timeStringToSeconds(tiempoInicioCarga.hora);
-    const inicioParoSec = timeStringToSeconds(inicioParo.hora);
-    const finParoSec = timeStringToSeconds(finParo.hora);
-
-    const diffCargaInicio = inicioParoSec - inicioCargaSec;
-    const duracionParo = finParoSec - inicioParoSec;
-
-    const newParo = {
-      inicio: inicioParo.hora,
-      fin: finParo.hora,
-      razon: razonParo,
-      diffCargaInicio: secondsToTimeString(diffCargaInicio >= 0 ? diffCargaInicio : 0),
-      duracionParo: secondsToTimeString(duracionParo >= 0 ? duracionParo : 0),
-    };
-
-    setParosList((prev) => [...prev, newParo]);
-    // Vaciar campos de paro y limpiar la caché
-    setInicioParo({ hora: "" });
-    setFinParo({ hora: "" });
-    setRazonParo("");
-    localStorage.removeItem("parosCache");
-  };
-
-  // -------------------------------
-  // Eliminar Paro con confirmación
-  // -------------------------------
-  const handleEliminarParo = (index: number) => {
-    Swal.fire({
-      title: "¿Está seguro?",
-      text: "¿Desea eliminar este paro?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar"
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setParosList((prev) => prev.filter((_, i) => i !== index));
-      }
+    const updatedParos = parosList.map((paro) => {
+      const inicioSec = timeStringToSeconds(paro.inicio);
+      const finSec = timeStringToSeconds(paro.fin);
+      return {
+        ...paro,
+        diffCargaInicio: secondsToTimeString(inicioSec - inicioCargaSec >= 0 ? inicioSec - inicioCargaSec : 0),
+        duracionParo: secondsToTimeString(finSec - inicioSec >= 0 ? finSec - inicioSec : 0),
+      };
     });
+    setParosList(updatedParos);
+    // Actualizar la caché en "editMolino"
+    const stored = localStorage.getItem("editMolino");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      parsed.segundoProceso.paros = updatedParos;
+      localStorage.setItem("editMolino", JSON.stringify(parsed));
+    }
+    Swal.fire("Actualizado", "Los paros han sido actualizados en la caché.", "success");
   };
 
-  // -------------------------------
-  // Guardar datos en molidoProcess (incluyendo parosStats)
-  // Si no se registró ningún paro, se guarda el arreglo vacío.
-  // -------------------------------
+  // Botón Guardar y Continuar: guardar la información actualizada en "editMolino"
   const handleGuardarYContinuar = () => {
-    const stored = localStorage.getItem("molidoProcess");
+    const stored = localStorage.getItem("editMolino");
     const parosStats = {
       totalParos: parosList.length,
       tiempoTotalParos: parosList.length > 0 ? tiempoTotalParos : "00:00:00",
@@ -373,16 +285,16 @@ export default function SegundoProceso() {
         tiempoInicioMolido,
         tiempoTerminaMolido,
         tiempoSalidaPunto,
-        paros: parosList, // Si no hay paros, se guarda como []
+        paros: parosList,
         parosStats,
       };
-      localStorage.setItem("molidoProcess", JSON.stringify(parsed));
+      localStorage.setItem("editMolino", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar/molino/step3");
+    router.push("/proceso/editar/molino/step3");
   };
 
   const handleAtras = () => {
-    const stored = localStorage.getItem("molidoProcess");
+    const stored = localStorage.getItem("editMolino");
     const parosStats = {
       totalParos: parosList.length,
       tiempoTotalParos: parosList.length > 0 ? tiempoTotalParos : "00:00:00",
@@ -404,19 +316,17 @@ export default function SegundoProceso() {
         tiempoInicioMolido,
         tiempoTerminaMolido,
         tiempoSalidaPunto,
-        paros: parosList, // Si no hay paros, se guarda como []
+        paros: parosList,
         parosStats,
       };
-      localStorage.setItem("molidoProcess", JSON.stringify(parsed));
+      localStorage.setItem("editMolino", JSON.stringify(parsed));
     }
-    router.push("/proceso/iniciar/molino");
+    router.push("/proceso/editar/molino");
   };
 
   const timePattern = "^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$";
 
-  // ---------------------------------------
-  // Helper: Asignar "Ahora" en formato HH:mm:ss (para otros campos)
-  // ---------------------------------------
+  // Helper: Asignar "Ahora" en formato HH:mm:ss para otros campos
   const handleSetNow = (setter: Function) => {
     const now = new Date();
     const hora = now.toLocaleTimeString("en-GB", {
@@ -436,7 +346,9 @@ export default function SegundoProceso() {
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center"></div>
           <div className="flex-1 bg-blue-600 py-2 px-4 text-center rounded-r-lg"></div>
         </div>
-        <h2 className="text-xl font-bold mb-4 text-orange-600">Segundo Proceso</h2>
+        <h2 className="text-xl font-bold mb-4 text-orange-600">
+          Segundo Proceso <span className="text-lg text-gray-400">[Modo Edición]</span>
+        </h2>
 
         {/* CAMPOS PRINCIPALES */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -452,12 +364,13 @@ export default function SegundoProceso() {
               onChange={(option: OptionType | null) => setGrupo(option ? option.value : "")}
             />
           </div>
-          {/* Operador */}
+          {/* Operador Molino */}
           <div>
             <label className="block font-semibold mb-1 text-sm sm:text-base">Operador Molino</label>
             <input
               type="text"
               className="border w-full p-2 text-sm sm:text-base"
+              placeholder="Ingrese el operador"
               value={operador}
               onChange={(e) => setOperador(e.target.value)}
             />
@@ -468,7 +381,7 @@ export default function SegundoProceso() {
             <input
               type="number"
               className="border w-full p-2 text-sm sm:text-base"
-              placeholder="Ingrese la Cantidad"
+              placeholder="Ingrese la cantidad"
               value={personalAsignado}
               onChange={(e) => setPersonalAsignado(e.target.value)}
             />
@@ -500,9 +413,6 @@ export default function SegundoProceso() {
         {/* TIEMPOS */}
         <div className="mt-6">
           <h3 className="font-bold text-lg mb-2 sm:text-sm">Tiempos</h3>
-          <div className="text-sm sm:text-base text-orange-600 mb-2">
-            <strong>NOTA:</strong> Si no requiere ingresar 6 dígitos de 0.
-          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Llegada al Punto */}
             <div className="border rounded p-2">
@@ -533,7 +443,7 @@ export default function SegundoProceso() {
                 }
               />
             </div>
-            {/* Llegada del Operador */}
+            {/* Llegada del Operador Molino */}
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">Llegada del Operador Molino</label>
               <div className="flex gap-2 mt-1">
@@ -617,13 +527,13 @@ export default function SegundoProceso() {
                 }
               />
             </div>
-            {/* Inicio de Molido */}
-            <div className="border rounded p-2">
+                        {/* Inicio de Molido */}
+                        <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">Inicio de Molido</label>
               <div className="flex gap-2 mt-1">
-                <input
-                  type="time"
-                  step="1"
+                <input 
+                  type="time" 
+                  step="1" 
                   className="border p-1 w-full text-sm sm:text-base"
                   value={tiempoInicioMolido.hora}
                   onChange={(e) =>
@@ -708,9 +618,9 @@ export default function SegundoProceso() {
             <div className="border rounded p-2">
               <label className="block font-semibold text-sm sm:text-base">Termina Molido</label>
               <div className="flex gap-2 mt-1">
-                <input
-                  type="time"
-                  step="1"
+                <input 
+                  type="time" 
+                  step="1" 
                   className="border p-1 w-full text-sm sm:text-base"
                   value={tiempoTerminaMolido.hora}
                   onChange={(e) =>
@@ -765,113 +675,86 @@ export default function SegundoProceso() {
           </div>
         </div>
 
-        {/* SECCIÓN DE PAROS (estilo de la imagen) */}
+        {/* SECCIÓN DE PAROS - Edición (solo actualizar, no agregar ni eliminar) */}
         <div className="mt-6 bg-white rounded-lg shadow p-4">
-          <h3 className="text-lg font-semibold mb-4">Registrar Paro/Actividad</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            {/* Hora de Inicio del Paro */}
-            <div className="flex flex-col border rounded p-3">
-              <label className="block font-semibold text-sm sm:text-base">Hora de Inicio</label>
-              <div className="flex gap-2 mt-1">
-                <input
-                  type="time"
-                  step="1"
-                  className="border p-1 w-full text-sm sm:text-base rounded"
-                  value={inicioParo.hora}
-                  onChange={handleInicioParoChange}
-                />
-                <button
-                  className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                  onClick={handleAhoraInicioParo}
-                >
-                  Ahora
-                </button>
-              </div>
-            </div>
-            {/* Hora de Fin del Paro */}
-            <div className="flex flex-col border rounded p-3">
-              <label className="block font-semibold text-sm sm:text-base">Hora Final</label>
-              <div className="flex gap-2 mt-1">
-                <input
-                  type="time"
-                  step="1"
-                  className="border p-1 w-full text-sm sm:text-base rounded"
-                  value={finParo.hora}
-                  onChange={handleFinParoChange}
-                />
-                <button
-                  className="bg-orange-500 text-white px-3 rounded text-sm sm:text-base"
-                  onClick={handleAhoraFinParo}
-                >
-                  Ahora
-                </button>
-              </div>
-            </div>
-          </div>
-          {/* Seleccionar Razón del Paro */}
-          <div className="mb-4">
-            <label className="block font-semibold text-sm sm:text-base mb-1">Razón</label>
-            <Select
-              className="react-select-container"
-              classNamePrefix="react-select"
-              options={razonesParoOptions}
-              placeholder="Seleccione la razón"
-              value={razonParo ? { value: razonParo, label: razonParo } : null}
-              onChange={handleRazonChange}
-            />
-          </div>
-          <div className="flex justify-center">
-            <button
-              className="bg-orange-500 text-white px-4 py-1 rounded text-sm sm:text-base"
-              onClick={handleAgregarParo}
-            >
-              + Agregar
-            </button>
-          </div>
-        </div>
-
-        {/* LISTA DE PAROS REGISTRADOS */}
-        <div className="mt-6 bg-white rounded-lg shadow p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold mb-2 sm:mb-0">Paros/Actividades Registrados</h3>
-            <div className="text-sm sm:text-base">
-              <span className="font-semibold">Total:</span> {parosList.length} &nbsp;|&nbsp;
-              <span className="font-semibold">Tiempo Total:</span> {tiempoTotalParos}
-            </div>
-          </div>
+          <h3 className="text-lg font-semibold mb-4">Editar Paros Registrados</h3>
           {parosList.length === 0 ? (
-            <div className="text-gray-500 text-sm">No hay paros/actividades registrados.</div>
+            <div className="text-gray-500 text-sm">No hay paros registrados.</div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-4">
               {parosList.map((paro, index) => (
-                <div key={index} className="border rounded p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <div className="text-sm sm:text-base">
+                <div key={index} className="border rounded p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {/* Inicio del Paro */}
                     <div>
-                      <span className="font-semibold">Inicio:</span>{" "}
-                      {typeof paro.inicio === "object" ? paro.inicio.hora : paro.inicio}{" "}
-                      <span className="font-semibold">Fin:</span>{" "}
-                      {typeof paro.fin === "object" ? paro.fin.hora : paro.fin}
+                      <label className="block font-semibold text-sm">Inicio</label>
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          type="time"
+                          step="1"
+                          className="border p-1 w-full text-sm"
+                          value={paro.inicio}
+                          onChange={(e) => handleParoChange(index, "inicio", e.target.value)}
+                        />
+                        <button
+                          className="bg-orange-500 text-white px-3 rounded text-sm"
+                          onClick={() => handleSetNowParo(index, "inicio")}
+                        >
+                          Ahora
+                        </button>
+                      </div>
                     </div>
+                    {/* Fin del Paro */}
                     <div>
-                      <span className="font-semibold">Razón:</span> {paro.razon}
+                      <label className="block font-semibold text-sm">Fin</label>
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          type="time"
+                          step="1"
+                          className="border p-1 w-full text-sm"
+                          value={paro.fin}
+                          onChange={(e) => handleParoChange(index, "fin", e.target.value)}
+                        />
+                        <button
+                          className="bg-orange-500 text-white px-3 rounded text-sm"
+                          onClick={() => handleSetNowParo(index, "fin")}
+                        >
+                          Ahora
+                        </button>
+                      </div>
                     </div>
+                    {/* Razón del Paro */}
                     <div>
-                      <span className="font-semibold">Duración:</span> {paro.duracionParo}{" "}
-                      <span className="font-semibold">Desde Inicio de Carga:</span> {paro.diffCargaInicio}
+                      <label className="block font-semibold text-sm">Razón</label>
+                      <Select
+                        className="react-select-container"
+                        classNamePrefix="react-select"
+                        options={razonesParoOptions}
+                        placeholder="Seleccione Razón"
+                        value={paro.razon ? { value: paro.razon, label: paro.razon } : null}
+                        onChange={(option: OptionType | null) =>
+                          handleParoChange(index, "razon", option ? option.value : "")
+                        }
+                      />
                     </div>
                   </div>
-                  <div className="mt-2 sm:mt-0">
-                    <button
-                      onClick={() => handleEliminarParo(index)}
-                      className="bg-red-500 text-white px-3 py-1 rounded text-sm"
-                    >
-                      Eliminar
-                    </button>
+                  <div className="mt-2 text-sm">
+                    <span className="font-semibold">Duración:</span> {paro.duracionParo || "00:00:00"}{" "}
+                    <span className="font-semibold">Desde Inicio de Carga:</span> {paro.diffCargaInicio || "00:00:00"}
                   </div>
                 </div>
               ))}
             </div>
           )}
+          {/* Botón para actualizar los paros editados y guardarlos en la caché */}
+          <div className="flex justify-center mt-4">
+            <button
+              className="bg-orange-500 text-white px-4 py-2 rounded text-sm"
+              onClick={handleActualizarParos}
+            >
+              Actualizar Paros
+            </button>
+          </div>
         </div>
 
         {/* BOTONES DE NAVEGACIÓN */}

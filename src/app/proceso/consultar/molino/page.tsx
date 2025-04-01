@@ -1018,7 +1018,6 @@ export default function DemorasPage() {
                       <button
                         onClick={() => handleEditRecord(item)}
                         title="Editar"
-                        hidden
                         className="bg-amber-500 hover:bg-amber-600 text-white p-2 rounded ml-2 transition-all duration-300 transform hover:scale-105 text-xs"
                       >
                         <FaEdit size={18} />
