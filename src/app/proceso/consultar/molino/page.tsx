@@ -179,7 +179,7 @@ function DetailTable({ title, data }: { title: string; data: any }) {
       {title && (
         <h3 className="text-base font-semibold text-blue-700 mb-2">{title}</h3>
       )}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg">
         <table className="w-full text-sm border-collapse">
           <tbody className="divide-y">
             {entries.map(([key, value], i) => (
@@ -881,7 +881,7 @@ export default function DemorasPage() {
       {/* Encabezado */}
       <header className="bg-gradient-to-r bg-orange-400 text-white shadow-lg md:sticky md:top-0 z-50">
         <div className="mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between">
             <div className="flex items-center">
               <button
                 onClick={() => (window.location.href = "/")}
@@ -896,26 +896,26 @@ export default function DemorasPage() {
               <button
                 onClick={handleExportarExcel}
                 title="Exportar Excel"
-                className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-transform duration-300 transform hover:scale-105 shadow-md"
+                className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 {exportLoading ? (
-                  <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4" />
+                  <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
                 ) : (
                   <FiFileText size={20} />
                 )}
-                <span>Exportar Excel</span>
+                <span className="md:inline">Exportar Excel</span>
               </button>
               <button
                 onClick={handleRefresh}
                 title="Refrescar"
-                className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-transform duration-300 transform hover:scale-105 shadow-md"
+                className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
               >
                 {refreshLoading ? (
-                  <span className="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4" />
+                  <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
                 ) : (
                   <FiRefreshCw size={20} />
                 )}
-                <span>Refrescar</span>
+                <span className="md:inline">Refrescar</span>
               </button>
             </div>
           </div>
@@ -925,7 +925,7 @@ export default function DemorasPage() {
               <label className="text-sm">Fecha Inicio</label>
               <input
                 type="date"
-                className="border p-1 rounded text-black"
+                className="border text-black p-1 w-full rounded"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
               />
@@ -934,7 +934,7 @@ export default function DemorasPage() {
               <label className="text-sm">Fecha Final</label>
               <input
                 type="date"
-                className="border p-1 rounded text-black"
+                className="border text-black p-1 w-full rounded"
                 value={fechaFinal}
                 onChange={(e) => setFechaFinal(e.target.value)}
               />
@@ -1089,8 +1089,8 @@ export default function DemorasPage() {
 
       {/* Modal de Detalle */}
       {showModal && selectedDemora && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-3xl rounded-lg shadow-lg p-6 relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white w-full max-w-3xl rounded-lg shadow-lg p-4 relative max-h-[95vh] overflow-y-auto">
             {/* Encabezado del Modal */}
             <div className="flex justify-between items-center mb-4">
               <button
@@ -1186,7 +1186,7 @@ export default function DemorasPage() {
               <div className="flex space-x-2 border-b mb-4">
                 <button
                   onClick={() => setActiveTab("procesos")}
-                  className={`px-3 py-2 text-sm font-medium ${
+                  className={`py-2 text-sm font-medium ${
                     activeTab === "procesos"
                       ? "text-blue-700 border-b-2 border-blue-700"
                       : "text-gray-500 hover:text-gray-700"

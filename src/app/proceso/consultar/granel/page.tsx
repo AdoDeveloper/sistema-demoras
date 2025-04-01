@@ -108,7 +108,7 @@ function DetailTable({ title, data }: { title: string; data: any }) {
       {title && (
         <h3 className="text-base font-semibold text-blue-700 mb-2">{title}</h3>
       )}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg">
         <table className="w-full text-sm border-collapse">
           <tbody className="divide-y">
             {entries.map(([key, value], i) => (
@@ -963,10 +963,10 @@ export default function DemorasPage() {
         </div>
       </div>
 
-{/* Modal de Detalle */}
-{showModal && selectedDemora && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-3xl rounded-lg shadow-lg p-6 relative max-h-[90vh] overflow-y-auto">
+    {/* Modal de Detalle */}
+    {showModal && selectedDemora && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white w-full max-w-3xl rounded-lg shadow-lg p-4 relative max-h-[95vh] overflow-y-auto">
             {/* Encabezado del Modal */}
             <div className="flex justify-between items-center mb-4">
               <button
