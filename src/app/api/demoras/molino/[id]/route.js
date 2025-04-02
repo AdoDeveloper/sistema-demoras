@@ -117,6 +117,7 @@ export async function PUT(request, { params }) {
       }
     }
 
+    // Se aumenta el timeout de la transacción a 10 segundos para evitar que expire durante la operación
     const updatedMolino = await prisma.$transaction(async (tx) => {
       // Actualizar molino principal
       const molinoUpdated = await tx.molino.update({
@@ -299,7 +300,7 @@ export async function PUT(request, { params }) {
       console.debug(">>> [API Debug] Proceso Final de Molino actualizado:", procesoFinalUpdated);
 
       return molinoUpdated;
-    });
+    }, { timeout: 10000 }); // Timeout ajustado a 10 segundos
 
     console.debug(">>> [API Debug] Transacción completada exitosamente. Resultado final:", updatedMolino);
     return NextResponse.json({ ok: true, molino: updatedMolino }, { status: 200 });
