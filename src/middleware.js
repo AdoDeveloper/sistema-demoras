@@ -72,6 +72,7 @@ export async function middleware(req) {
 
     // EQUIPOS
     "/api/equipos",
+    "/api/equipos/export-excel",
     "/proceso/iniciar/equipo",
     "/proceso/consultar/equipo",
 
@@ -181,6 +182,7 @@ export const config = {
 
     // EQUIPOS
     "/api/equipos",
+    "/api/equipos/export-excel",
     "/proceso/iniciar/equipo",
     "/proceso/consultar/equipo",
 
