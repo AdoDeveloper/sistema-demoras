@@ -1,11 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Swal from "sweetalert2";
 import { FaEye, FaFilePdf } from "react-icons/fa";
 import { FiArrowLeft, FiRefreshCw, FiFileText } from "react-icons/fi";
 import PDFBitacora from "../../../../components/PDFBitacora";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+
+// Función debounce
+function debounce(func: Function, wait: number) {
+  let timeout: NodeJS.Timeout;
+  return (...args: any[]) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      func(...args);
+    }, wait);
+  };
+}
 
 // Interfaces según el detalle que retorna la API
 interface Barco {
@@ -102,7 +113,9 @@ function DownloadPDF({
 export default function BitacorasPage() {
   // Estados para consulta y paginación
   const [bitacoras, setBitacoras] = useState<Bitacoras[]>([]);
+  // Estado "search" se actualiza con debounce y "searchInput" refleja el valor inmediato
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
@@ -123,6 +136,14 @@ export default function BitacorasPage() {
   const [renderPDFLink, setRenderPDFLink] = useState(false);
   // Estado para forzar el re-montaje del componente DownloadPDF
   const [pdfKey, setPdfKey] = useState(0);
+
+  // Función debounced para actualizar el estado de búsqueda
+  const debouncedSetSearch = useCallback(
+    debounce((value: string) => {
+      setSearch(value);
+    }, 500),
+    []
+  );
 
   // Función para iniciar la descarga del PDF
   const handleGenerarPDF = () => {
@@ -173,11 +194,12 @@ export default function BitacorasPage() {
     }
   }
 
-  // Función para refrescar la lista de bitácoras
+  // Función para refrescar la lista de bitácoras y mostrar alerta
   const handleRefresh = async () => {
     setRefreshLoading(true);
     await fetchBitacoras();
     setRefreshLoading(false);
+    Swal.fire("Refrescado", "Datos actualizados", "success");
   };
 
   // Exportar Excel
@@ -243,7 +265,7 @@ export default function BitacorasPage() {
     <div className="min-h-screen bg-gray-100">
       {/* Encabezado */}
       <header className="bg-[#003E9B] text-white shadow-lg md:sticky md:top-0 z-50">
-      <div className="mx-auto px-4 py-4">
+        <div className="mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row justify-between">
             <div className="flex items-center">
               <button
@@ -282,7 +304,7 @@ export default function BitacorasPage() {
               </button>
             </div>
           </div>
-          {/* Filtros de fecha */}
+          {/* Filtros de fecha y búsqueda en una sola línea */}
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex flex-col">
               <label className="text-sm">Fecha Inicio</label>
@@ -310,28 +332,29 @@ export default function BitacorasPage() {
                 }}
               />
             </div>
+            <div className="flex flex-col">
+              <label className="text-sm">Buscar</label>
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  debouncedSetSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="border text-black p-1 w-full rounded"
+              />
+            </div>
           </div>
         </div>
       </header>
 
       {/* Contenido principal */}
       <div className="p-4 max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-          <input
-            type="text"
-            placeholder="Buscar..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="border px-2 py-1 rounded-md"
-          />
-        </div>
-
         <div className="overflow-x-auto">
           <table className="min-w-full border text-sm bg-white">
-            <thead className="bg-gray-100">
+            <thead className="bg-gray-300">
               <tr>
                 <th className="p-2 border text-center whitespace-nowrap">Fecha</th>
                 <th className="p-2 border text-center whitespace-nowrap">Muellero</th>
@@ -378,35 +401,38 @@ export default function BitacorasPage() {
           </table>
         </div>
 
+        {/* Paginación y opción de registros por página */}
         <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-2 sm:space-y-0">
-          <div className="flex overflow-x-auto space-x-2">
+          <div className="flex overflow-x-auto space-x-2 w-full sm:w-auto">
             <button
-              className="px-3 py-1 border rounded disabled:opacity-50"
+              className="px-3 py-1 bg-white border rounded disabled:opacity-50 flex-shrink-0"
               onClick={() => setPage((prev) => prev - 1)}
-              disabled={page === 1}
+              disabled={page === 1 || loading || totalCount === 0}
             >
               Anterior
             </button>
             {Array.from({ length: totalPages }, (_, index) => (
               <button
                 key={index}
-                className={`px-3 py-1 border rounded ${page === index + 1 ? "bg-blue-500 text-white" : ""}`}
+                className={`px-3 py-1 border rounded flex-shrink-0 ${
+                  page === index + 1 ? "bg-blue-500 text-white" : ""
+                }`}
                 onClick={() => setPage(index + 1)}
               >
                 {index + 1}
               </button>
             ))}
             <button
-              className="px-3 py-1 border rounded disabled:opacity-50"
+              className="px-3 py-1 bg-white border rounded disabled:opacity-50 flex-shrink-0"
               onClick={() => setPage((prev) => prev + 1)}
-              disabled={page === totalPages}
+              disabled={page === totalPages || loading || totalCount === 0}
             >
               Siguiente
             </button>
           </div>
-          <div className="flex flex-col sm:flex-row items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2 text-center">
             <span className="text-sm">
-              Mostrando {bitacoras.length} de {totalCount} registros
+              Mostrando {bitacoras.length} de {totalCount} registros.
             </span>
             <div className="flex items-center gap-1">
               <label htmlFor="recordsPerPage" className="text-sm">
@@ -790,7 +816,6 @@ export default function BitacorasPage() {
                 Cerrar
               </button>
             </div>
-            {/* Se pasa la propiedad "pdfKey" explícitamente además de usar "key" */}
             {renderPDFLink && viewData && (
               <DownloadPDF
                 key={pdfKey}

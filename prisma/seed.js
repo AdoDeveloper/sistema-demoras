@@ -40,15 +40,6 @@ async function main() {
     },
     {
       id: 3,
-      username: "Marcela",
-      email: "marcela@sistemademoras.com",
-      password: "Almapac2025",
-      nombreCompleto: "Marcela Cuevas",
-      codigo: "2265",
-      roleId: 2,
-    },
-    {
-      id: 4,
       username: "Gabriela",
       email: "gabriela@sistemademoras.com",
       password: "Almapac2025",
@@ -56,12 +47,22 @@ async function main() {
       codigo: "2266",
       roleId: 2,
     },
+    {
+      id: 4,
+      username: "Marcela",
+      email: "marcela@sistemademoras.com",
+      password: "Almapac2025",
+      nombreCompleto: "Marcela Cuevas",
+      codigo: "2265",
+      roleId: 2,
+    },
   ];
 
   for (const user of users) {
     const hashedPassword = await bcrypt.hash(user.password, 10);
+  
     await prisma.user.upsert({
-      where: { email: user.email },
+      where: { id: user.id },  // Usa el id único en lugar de email
       update: {},
       create: {
         username: user.username,
@@ -69,6 +70,8 @@ async function main() {
         codigo: user.codigo,
         email: user.email,
         password: hashedPassword,
+        eliminado: false,
+        activo: true,
         roleId: user.roleId,
       },
     });

@@ -15,7 +15,7 @@ import { FiUsers, FiLoader } from "react-icons/fi";
 import { HiOutlineUserCircle } from "react-icons/hi";
 import { IoBoatSharp } from "react-icons/io5";
 import { GiGrain } from "react-icons/gi";
-import { MdPendingActions } from "react-icons/md";
+import { MdPendingActions, MdHistory, MdFrontLoader } from "react-icons/md";
 import { HiClipboardDocumentList } from "react-icons/hi2";
 
 // Importación dinámica para el WeatherWidget con fallback al WeatherLoader
@@ -36,10 +36,11 @@ const ActionButton = ({ onClick, icon: Icon, label, bgColor, hoverColor }) => {
         text-white font-medium
         whitespace-nowrap
         shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1)]
-        transition-transform duration-150
-        hover:-translate-y-0.5 hover:shadow-md
+        transition-all duration-150
+        hover:-translate-y-0.5 
+        hover:shadow-[inset_0_0_0_2px_rgba(255,255,255,0.2),0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]
         active:translate-y-0 active:shadow-inner
-        ${bgColor} hover:${hoverColor}
+        ${bgColor} ${hoverColor}
       `}
     >
       <div className="flex items-center space-x-3">
@@ -109,59 +110,72 @@ export default function Dashboard() {
         <section className="bg-white p-4 rounded-xl shadow space-y-4">
           <h2 className="text-xl font-bold text-gray-800">Acciones rápidas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <ActionButton
-              onClick={() => router.push("/proceso/iniciar")}
-              icon={FaPlay}
-              label="Iniciar Proceso"
-              bgColor="bg-green-500"
-              hoverColor="bg-green-600"
-            />
+            {(roleId === 1 || roleId === 2 || roleId === 3 || roleId === 4) && (
+              <>
+                <ActionButton
+                  onClick={() => router.push("/proceso/iniciar")}
+                  icon={FaPlay}
+                  label="Iniciar Proceso"
+                  bgColor="bg-green-700"
+                  hoverColor="hover:bg-green-800"
+                />
+              </>
+            )}
             {(roleId === 1 || roleId === 2) && (
               <>
                 <ActionButton
                   onClick={() => router.push("/proceso/consultar/granel")}
                   icon={PiBarnFill}
                   label="Registros Granel"
-                  bgColor="bg-purple-500"
-                  hoverColor="bg-purple-600"
+                  bgColor="bg-blue-900"
+                  hoverColor="hover:bg-blue-950"
                 />
                 <ActionButton
                   onClick={() => router.push("/proceso/consultar/envasado")}
                   icon={PiTruckTrailerFill}
                   label="Registros Envasado"
-                  bgColor="bg-blue-500"
-                  hoverColor="bg-blue-600"
+                  bgColor="bg-amber-500"
+                  hoverColor="hover:bg-amber-600"
                 />
                 <ActionButton
                   onClick={() => router.push("/proceso/consultar/molino")}
                   icon={GiGrain}
                   label="Registros Molino"
-                  bgColor="bg-orange-500"
-                  hoverColor="bg-orange-600"
+                  bgColor="bg-emerald-600"
+                  hoverColor="hover:bg-emerald-700"
                 />
                 <ActionButton
                   onClick={() => router.push("/proceso/consultar/molino/actividades")}
                   icon={MdPendingActions}
                   label="Registros Actividades"
-                  bgColor="bg-red-500"
-                  hoverColor="bg-red-600"
+                  bgColor="bg-yellow-600"
+                  hoverColor="hover:bg-yellow-700"
                 />
                 <ActionButton
                   onClick={() => router.push("/proceso/analisis")}
                   icon={FaChartBar}
                   label="Datos"
-                  bgColor="bg-violet-500"
-                  hoverColor="bg-violet-600"
+                  bgColor="bg-teal-600"
+                  hoverColor="hover:bg-teal-700"
                 />
               </>
+            )}
+            {(roleId === 1 || roleId === 4) && (
+              <ActionButton
+                onClick={() => router.push("/proceso/consultar/equipo")}
+                icon={MdFrontLoader}
+                label="Historial de Equipos"
+                bgColor="bg-red-700"
+                hoverColor="hover:bg-red-800"
+              />
             )}
             {(roleId === 1 || roleId === 3) && (
               <ActionButton
                 onClick={() => router.push("/proceso/consultar/bitacora")}
                 icon={HiClipboardDocumentList}
-                label="Registros Bitácoras"
-                bgColor="bg-cyan-500"
-                hoverColor="bg-cyan-600"
+                label="Registros Bitácoras Barco"
+                bgColor="bg-indigo-700"
+                hoverColor="hover:bg-indigo-800"
               />
             )}
             {roleId === 1 && (
@@ -170,15 +184,15 @@ export default function Dashboard() {
                   onClick={() => router.push("/proceso/consultar/barco")}
                   icon={IoBoatSharp}
                   label="Registros Barcos"
-                  bgColor="bg-sky-500"
-                  hoverColor="bg-sky-600"
+                  bgColor="bg-orange-700"
+                  hoverColor="hover:bg-orange-800"
                 />
                 <ActionButton
                   onClick={() => router.push("/usuarios")}
                   icon={FiUsers}
                   label="Usuarios"
-                  bgColor="bg-gray-600"
-                  hoverColor="bg-gray-700"
+                  bgColor="bg-gray-700"
+                  hoverColor="hover:bg-gray-800"
                 />
               </>
             )}

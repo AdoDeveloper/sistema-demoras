@@ -378,7 +378,7 @@ export default function ProcesoFinal() {
     });
     if (confirmResult.isConfirmed) {
       Swal.fire({
-        title: "Enviando datos...",
+        title: "Procesando solicitud...",
         allowOutsideClick: false,
         didOpen: () => {
           Swal.showLoading();
@@ -427,7 +427,7 @@ export default function ProcesoFinal() {
         if (res.ok) {
           localStorage.removeItem("demorasProcess");
           Swal.fire("Enviado", "Datos enviados y guardados correctamente.", "success").then(() => {
-            router.push("/");
+            router.push("/proceso/iniciar");
           });
         } else {
           const errorResponse = await res.text();

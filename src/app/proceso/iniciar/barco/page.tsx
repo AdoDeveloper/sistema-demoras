@@ -576,7 +576,7 @@ export default function Bitacora() {
         });
         Swal.fire({
           icon: "success",
-          title: "Operación eliminada",
+          title: "Actividad eliminada",
           showConfirmButton: false,
           timer: 1200,
         });
@@ -782,7 +782,7 @@ export default function Bitacora() {
   
     // Mostrar alerta de "Enviando datos..."
     Swal.fire({
-      title: "Enviando datos...",
+      title: "Procesando solicitud...",
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();

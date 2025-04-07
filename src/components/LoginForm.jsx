@@ -30,6 +30,9 @@ export default function LoginForm() {
       if(session.user.roleId === 3){
       localStorage.setItem("userNameAll", session.user.nombreCompleto);
       }
+      if(session.user.roleId === 4){
+      localStorage.setItem("userNameAll", session.user.nombreCompleto);
+      }
     }
   }, [session]);
 
@@ -66,11 +69,13 @@ export default function LoginForm() {
         {/* Logo */}
         <div className="flex justify-center mb-4">
           <Image
-            src="/logo.png"
+            src="https://res.cloudinary.com/dw7txgvbh/image/upload/f_auto,q_auto/almapac-logo"
             alt="Almapac Logo"
             width={250}
             height={120}
+            style={{ width: "100%", height: "auto" }} // Ensures the height scales automatically
             className="object-contain"
+            priority
           />
         </div>
 

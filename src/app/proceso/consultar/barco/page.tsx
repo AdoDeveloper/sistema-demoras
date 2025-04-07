@@ -1,10 +1,21 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, useCallback } from "react";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import { FaEye, FaEdit } from "react-icons/fa";
 import { FiArrowLeft, FiTrash2 } from "react-icons/fi";
+
+// Función debounce
+function debounce(func: Function, wait: number) {
+  let timeout: NodeJS.Timeout;
+  return (...args: any[]) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      func(...args);
+    }, wait);
+  };
+}
 
 // Interfaz de un Barco (ajusta campos según tu modelo)
 interface Barco {
@@ -44,15 +55,16 @@ const SISTEMA_UTILIZADO_OPCIONES = [
 ];
 
 export default function BarcosPage() {
-  // Estados
+  // Estados para la lista y paginación
   const [barcos, setBarcos] = useState<Barco[]>([]);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Control de modales para crear, editar y ver
+  // Estados para modales
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -76,6 +88,14 @@ export default function BarcosPage() {
 
   // Estado para datos a visualizar en el modal de ver detalles
   const [viewData, setViewData] = useState<Barco | null>(null);
+
+  // Función debounced para actualizar el estado de búsqueda
+  const debouncedSetSearch = useCallback(
+    debounce((value: string) => {
+      setSearch(value);
+    }, 500),
+    []
+  );
 
   // Función para cargar datos de la API
   async function fetchBarcos() {
@@ -104,7 +124,7 @@ export default function BarcosPage() {
     fetchBarcos();
   }, [search, page, limit]);
 
-  // Función para ver detalles completos del barco (modal personalizado con formato similar a los formularios)
+  // Función para ver detalles completos del barco
   async function handleView(id: number) {
     try {
       const res = await fetch(`/api/barcos/${id}`);
@@ -146,14 +166,11 @@ export default function BarcosPage() {
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     
-    // Inicializar arreglo para campos faltantes
     const missingFields = [];
-    
     if (!muelle.trim()) missingFields.push("muelle");
     if (!vaporBarco.trim()) missingFields.push("vapor/barco");
     if (tipoCarga.length === 0) missingFields.push("tipo de carga");
   
-    // Si hay campos faltantes, mostrar alerta especificando cuáles
     if (missingFields.length > 0) {
       return Swal.fire({
         icon: "warning",
@@ -213,38 +230,34 @@ export default function BarcosPage() {
     }
   }
 
-  // Abre el modal de edición cargando los datos del barco
-  async function openEditModal(id: number) {
-    try {
-      const res = await fetch(`/api/barcos/${id}`);
-      if (!res.ok) throw new Error("Barco no encontrado");
-      const data = await res.json();
-      setEditId(data.id);
-      setMuelle(data.muelle || "");
-      setVaporBarco(data.vaporBarco || "");
-      setFechaArribo(data.fechaArribo || "");
-      setHoraArribo(data.horaArribo || "");
-      setFechaAtraque(data.fechaAtraque || "");
-      setHoraAtraque(data.horaAtraque || "");
-      setFechaRecibido(data.fechaRecibido || "");
-      setHoraRecibido(data.horaRecibido || "");
-      setFechaInicioOp(data.fechaInicioOperaciones || "");
-      setHoraInicioOp(data.horaInicioOperaciones || "");
-      setFechaFinOp(data.fechaFinOperaciones || "");
-      setHoraFinOp(data.horaFinOperaciones || "");
-      const tc = data.tipoCarga ? JSON.parse(data.tipoCarga) : [];
-      const su = data.sistemaUtilizado ? JSON.parse(data.sistemaUtilizado) : [];
-      setTipoCarga(tc);
-      setSistemaUtilizado(su);
-      setShowEditModal(true);
-    } catch (error) {
-      console.error("Error al abrir modal de edición:", error);
-      Swal.fire({
+  // Abre el modal de edición precargando los datos del registro actual
+  function openEditModal(id: number) {
+    const barcoData = barcos.find((b) => b.id === id);
+    if (!barcoData) {
+      return Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo cargar el barco",
+        text: "Barco no encontrado",
       });
     }
+    setEditId(barcoData.id);
+    setMuelle(barcoData.muelle || "");
+    setVaporBarco(barcoData.vaporBarco || "");
+    setFechaArribo(barcoData.fechaArribo || "");
+    setHoraArribo(barcoData.horaArribo || "");
+    setFechaAtraque(barcoData.fechaAtraque || "");
+    setHoraAtraque(barcoData.horaAtraque || "");
+    setFechaRecibido(barcoData.fechaRecibido || "");
+    setHoraRecibido(barcoData.horaRecibido || "");
+    setFechaInicioOp(barcoData.fechaInicioOperaciones || "");
+    setHoraInicioOp(barcoData.horaInicioOperaciones || "");
+    setFechaFinOp(barcoData.fechaFinOperaciones || "");
+    setHoraFinOp(barcoData.horaFinOperaciones || "");
+    const tc = barcoData.tipoCarga ? JSON.parse(barcoData.tipoCarga) : [];
+    const su = barcoData.sistemaUtilizado ? JSON.parse(barcoData.sistemaUtilizado) : [];
+    setTipoCarga(tc);
+    setSistemaUtilizado(su);
+    setShowEditModal(true);
   }
 
   // Actualiza un barco (PUT)
@@ -354,22 +367,22 @@ export default function BarcosPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-          <header className="bg-[#003E9B] text-white shadow-lg md:sticky md:top-0 z-50">
-            <div className="mx-auto px-4 py-4">
-              <div className="flex flex-col md:flex-row justify-between">
-                <div className="flex items-center gap-3">
-                <button
-                  onClick={() => (window.location.href = "/")}
-                  className="bg-white hover:bg-gray-200 text-blue-600 p-2 rounded-full transition-all duration-300 transform hover:scale-105"
-                  title="Volver"
-                >
-                  <FiArrowLeft size={20} />
-                </button>
-                  <h1 className="text-xl font-bold">Registros Barco</h1>
-                </div>
+      <header className="bg-[#003E9B] text-white shadow-lg md:sticky md:top-0 z-50">
+        <div className="mx-auto px-4 py-4">
+          <div className="flex flex-col md:flex-row justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => (window.location.href = "/")}
+                className="bg-white hover:bg-gray-200 text-blue-600 p-2 rounded-full transition-all duration-300 transform hover:scale-105"
+                title="Volver"
+              >
+                <FiArrowLeft size={20} />
+              </button>
+              <h1 className="text-xl font-bold">Registros Barco</h1>
             </div>
           </div>
-    </header>
+        </div>
+      </header>
 
       {/* Contenido */}
       <div className="p-4 max-w-6xl mx-auto">
@@ -378,9 +391,10 @@ export default function BarcosPage() {
           <input
             type="text"
             placeholder="Buscar..."
-            value={search}
+            value={searchInput}
             onChange={(e) => {
-              setSearch(e.target.value);
+              setSearchInput(e.target.value);
+              debouncedSetSearch(e.target.value);
               setPage(1);
             }}
             className="border px-2 py-1 rounded-md"
@@ -389,22 +403,23 @@ export default function BarcosPage() {
             onClick={openCreateModal}
             className="bg-blue-600 text-white px-4 py-2 rounded-md"
           >
-            + Nuevo Registro
+            + Agregar
           </button>
         </div>
 
         {/* Tabla */}
         <div className="overflow-x-auto">
           <table className="min-w-full border text-sm bg-white">
-            <thead className="bg-gray-100">
+            <thead className="bg-gray-300">
               <tr>
-                <th className="p-2 border whitespace-nowrap">MUELLE</th>
-                <th className="p-2 border whitespace-nowrap">VAPOR/BARCO</th>
-                <th className="p-2 border whitespace-nowrap">FECHA ARRIBO</th>
-                <th className="p-2 border whitespace-nowrap">HORA ARRIBO</th>
-                <th className="p-2 border whitespace-nowrap">FECHA INIC. OP</th>
-                <th className="p-2 border whitespace-nowrap">HORA INIC. OP</th>
-                <th className="p-2 border whitespace-nowrap">ACCIONES</th>
+                <th className="p-2 border whitespace-nowrap">Muelle</th>
+                <th className="p-2 border whitespace-nowrap">Vapor/Barco</th>
+                <th className="p-2 border whitespace-nowrap">Arribo</th>
+                <th className="p-2 border whitespace-nowrap">Atraque</th>
+                <th className="p-2 border whitespace-nowrap">Recibido</th>
+                <th className="p-2 border whitespace-nowrap">Inicio Operaciones</th>
+                <th className="p-2 border whitespace-nowrap">Fin Operaciones</th>
+                <th className="p-2 border whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -416,13 +431,24 @@ export default function BarcosPage() {
                 </tr>
               ) : (
                 barcos.map((barco) => (
-                  <tr key={barco.id} className="border-b">
+                  <tr key={barco.id} className="border-b text-center">
                     <td className="p-2 border whitespace-nowrap">{barco.muelle}</td>
                     <td className="p-2 border whitespace-nowrap">{barco.vaporBarco}</td>
-                    <td className="p-2 border whitespace-nowrap">{barco.fechaArribo}</td>
-                    <td className="p-2 border whitespace-nowrap">{barco.horaArribo}</td>
-                    <td className="p-2 border whitespace-nowrap">{barco.fechaInicioOperaciones}</td>
-                    <td className="p-2 border whitespace-nowrap">{barco.horaInicioOperaciones}</td>
+                    <td className="p-2 border whitespace-nowrap">
+                      {barco.fechaArribo} {barco.horaArribo}
+                    </td>
+                    <td className="p-2 border whitespace-nowrap">
+                      {barco.fechaAtraque} {barco.horaAtraque}
+                    </td>
+                    <td className="p-2 border whitespace-nowrap">
+                      {barco.fechaRecibido} {barco.horaRecibido}
+                    </td>
+                    <td className="p-2 border whitespace-nowrap">
+                      {barco.fechaInicioOperaciones} {barco.horaInicioOperaciones}
+                    </td>
+                    <td className="p-2 border whitespace-nowrap">
+                      {barco.fechaFinOperaciones} {barco.horaFinOperaciones}
+                    </td>
                     <td className="p-2 border text-center whitespace-nowrap flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleView(barco.id)}
@@ -454,9 +480,9 @@ export default function BarcosPage() {
         <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-2 sm:space-y-0">
           <div className="flex overflow-x-auto space-x-2 w-full sm:w-auto">
             <button
-              className="px-3 py-1 border rounded disabled:opacity-50 flex-shrink-0"
+              className="px-3 py-1 bg-white border rounded disabled:opacity-50 flex-shrink-0"
               onClick={() => setPage((prev) => prev - 1)}
-              disabled={page === 1}
+              disabled={page === 1 || loading || totalCount === 0}
             >
               Anterior
             </button>
@@ -472,16 +498,16 @@ export default function BarcosPage() {
               </button>
             ))}
             <button
-              className="px-3 py-1 border rounded disabled:opacity-50 flex-shrink-0"
+              className="px-3 py-1 bg-white border rounded disabled:opacity-50 flex-shrink-0"
               onClick={() => setPage((prev) => prev + 1)}
-              disabled={page === totalPages}
+              disabled={page === totalPages || loading || totalCount === 0}
             >
               Siguiente
             </button>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-2 text-center">
             <span className="text-sm">
-              Mostrando {barcos.length} de {totalCount} registros
+              Mostrando {barcos.length} de {totalCount} registros.
             </span>
             <div className="flex items-center gap-1">
               <label htmlFor="recordsPerPage" className="text-sm">
@@ -519,9 +545,7 @@ export default function BarcosPage() {
               {/* MUELLE y VAPOR/BARCO */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    MUELLE
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">MUELLE</label>
                   <input
                     type="text"
                     value={muelle}
@@ -530,9 +554,7 @@ export default function BarcosPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    VAPOR/BARCO
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">VAPOR/BARCO</label>
                   <input
                     type="text"
                     value={vaporBarco}
@@ -559,9 +581,7 @@ export default function BarcosPage() {
                   ))}
                 </div>
                 <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2">
-                    SISTEMA UTILIZADO
-                  </h3>
+                  <h3 className="text-sm font-semibold mb-2">SISTEMA UTILIZADO</h3>
                   {SISTEMA_UTILIZADO_OPCIONES.map((item) => (
                     <label key={item} className="block text-xs">
                       <input
@@ -580,21 +600,15 @@ export default function BarcosPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* ARRIBO */}
                 <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    ARRIBO
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Arribo
-                  </label>
+                  <h3 className="text-sm font-semibold mb-2 uppercase">ARRIBO</h3>
+                  <label className="block text-xs font-semibold mb-1">Fecha Arribo</label>
                   <input
                     type="date"
                     value={fechaArribo}
                     onChange={(e) => setFechaArribo(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Arribo
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Arribo</label>
                   <input
                     type="time"
                     value={horaArribo}
@@ -604,21 +618,15 @@ export default function BarcosPage() {
                 </div>
                 {/* ATRAQUE */}
                 <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    ATRAQUE
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Atraque
-                  </label>
+                  <h3 className="text-sm font-semibold mb-2 uppercase">ATRAQUE</h3>
+                  <label className="block text-xs font-semibold mb-1">Fecha Atraque</label>
                   <input
                     type="date"
                     value={fechaAtraque}
                     onChange={(e) => setFechaAtraque(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Atraque
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Atraque</label>
                   <input
                     type="time"
                     value={horaAtraque}
@@ -628,21 +636,15 @@ export default function BarcosPage() {
                 </div>
                 {/* RECIBIDO */}
                 <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    RECIBIDO
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Recibido
-                  </label>
+                  <h3 className="text-sm font-semibold mb-2 uppercase">RECIBIDO</h3>
+                  <label className="block text-xs font-semibold mb-1">Fecha Recibido</label>
                   <input
                     type="date"
                     value={fechaRecibido}
                     onChange={(e) => setFechaRecibido(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Recibido
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Recibido</label>
                   <input
                     type="time"
                     value={horaRecibido}
@@ -655,18 +657,14 @@ export default function BarcosPage() {
                   <h3 className="text-sm font-semibold mb-2 uppercase">
                     INICIO OPERACIONES
                   </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Inicio
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Fecha Inicio</label>
                   <input
                     type="date"
                     value={fechaInicioOp}
                     onChange={(e) => setFechaInicioOp(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Inicio
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Inicio</label>
                   <input
                     type="time"
                     value={horaInicioOp}
@@ -679,18 +677,14 @@ export default function BarcosPage() {
                   <h3 className="text-sm font-semibold mb-2 uppercase">
                     FIN OPERACIONES
                   </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Fin
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Fecha Fin</label>
                   <input
                     type="date"
                     value={fechaFinOp}
                     onChange={(e) => setFechaFinOp(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Fin
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Fin</label>
                   <input
                     type="time"
                     value={horaFinOp}
@@ -721,7 +715,7 @@ export default function BarcosPage() {
         </div>
       )}
 
-      {/* MODAL VER (detalles del barco con el mismo formato que crear/editar) */}
+      {/* MODAL VER (detalles del barco) */}
       {showViewModal && viewData && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2">
           <div className="bg-white w-full max-w-3xl p-6 rounded-md overflow-y-auto max-h-screen">
@@ -730,17 +724,13 @@ export default function BarcosPage() {
               {/* Primera fila: MUELLE y VAPOR/BARCO */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    MUELLE
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">MUELLE</label>
                   <div className="w-full border rounded-md px-2 py-1">
                     {viewData.muelle || "-"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    VAPOR/BARCO
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">VAPOR/BARCO</label>
                   <div className="w-full border rounded-md px-2 py-1">
                     {viewData.vaporBarco || "-"}
                   </div>
@@ -749,17 +739,13 @@ export default function BarcosPage() {
               {/* Segunda fila: Fecha Arribo y Hora Arribo */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Fecha Arribo
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Fecha Arribo</label>
                   <div className="w-full border rounded-md px-2 py-1">
                     {viewData.fechaArribo || "-"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Hora Arribo
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Hora Arribo</label>
                   <div className="w-full border rounded-md px-2 py-1">
                     {viewData.horaArribo || "-"}
                   </div>
@@ -768,17 +754,13 @@ export default function BarcosPage() {
               {/* Tercera fila: Fecha Atraque y Hora Atraque */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Fecha Atraque
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Fecha Atraque</label>
                   <div className="w-full border rounded-md px-2 py-1">
                     {viewData.fechaAtraque || "-"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Hora Atraque
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Hora Atraque</label>
                   <div className="w-full border rounded-md px-2 py-1">
                     {viewData.horaAtraque || "-"}
                   </div>
@@ -787,17 +769,13 @@ export default function BarcosPage() {
               {/* Cuarta fila: Fecha Recibido y Hora Recibido */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Fecha Recibido
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Fecha Recibido</label>
                   <div className="w-full border rounded-md px-2 py-1">
                     {viewData.fechaRecibido || "-"}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Hora Recibido
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">Hora Recibido</label>
                   <div className="w-full border rounded-md px-2 py-1">
                     {viewData.horaRecibido || "-"}
                   </div>
@@ -886,9 +864,7 @@ export default function BarcosPage() {
               {/* MUELLE y VAPOR/BARCO */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    MUELLE
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">MUELLE</label>
                   <input
                     type="text"
                     value={muelle}
@@ -897,9 +873,7 @@ export default function BarcosPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    VAPOR/BARCO
-                  </label>
+                  <label className="block text-sm font-semibold mb-1">VAPOR/BARCO</label>
                   <input
                     type="text"
                     value={vaporBarco}
@@ -926,9 +900,7 @@ export default function BarcosPage() {
                   ))}
                 </div>
                 <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2">
-                    SISTEMA UTILIZADO
-                  </h3>
+                  <h3 className="text-sm font-semibold mb-2">SISTEMA UTILIZADO</h3>
                   {SISTEMA_UTILIZADO_OPCIONES.map((item) => (
                     <label key={item} className="block text-xs">
                       <input
@@ -947,21 +919,15 @@ export default function BarcosPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* ARRIBO */}
                 <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    ARRIBO
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Arribo
-                  </label>
+                  <h3 className="text-sm font-semibold mb-2 uppercase">ARRIBO</h3>
+                  <label className="block text-xs font-semibold mb-1">Fecha Arribo</label>
                   <input
                     type="date"
                     value={fechaArribo}
                     onChange={(e) => setFechaArribo(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Arribo
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Arribo</label>
                   <input
                     type="time"
                     value={horaArribo}
@@ -971,21 +937,15 @@ export default function BarcosPage() {
                 </div>
                 {/* ATRAQUE */}
                 <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    ATRAQUE
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Atraque
-                  </label>
+                  <h3 className="text-sm font-semibold mb-2 uppercase">ATRAQUE</h3>
+                  <label className="block text-xs font-semibold mb-1">Fecha Atraque</label>
                   <input
                     type="date"
                     value={fechaAtraque}
                     onChange={(e) => setFechaAtraque(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Atraque
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Atraque</label>
                   <input
                     type="time"
                     value={horaAtraque}
@@ -995,21 +955,15 @@ export default function BarcosPage() {
                 </div>
                 {/* RECIBIDO */}
                 <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    RECIBIDO
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Recibido
-                  </label>
+                  <h3 className="text-sm font-semibold mb-2 uppercase">RECIBIDO</h3>
+                  <label className="block text-xs font-semibold mb-1">Fecha Recibido</label>
                   <input
                     type="date"
                     value={fechaRecibido}
                     onChange={(e) => setFechaRecibido(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Recibido
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Recibido</label>
                   <input
                     type="time"
                     value={horaRecibido}
@@ -1022,18 +976,14 @@ export default function BarcosPage() {
                   <h3 className="text-sm font-semibold mb-2 uppercase">
                     INICIO OPERACIONES
                   </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Inicio
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Fecha Inicio</label>
                   <input
                     type="date"
                     value={fechaInicioOp}
                     onChange={(e) => setFechaInicioOp(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Inicio
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Inicio</label>
                   <input
                     type="time"
                     value={horaInicioOp}
@@ -1046,18 +996,14 @@ export default function BarcosPage() {
                   <h3 className="text-sm font-semibold mb-2 uppercase">
                     FIN OPERACIONES
                   </h3>
-                  <label className="block text-xs font-semibold mb-1">
-                    Fecha Fin
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Fecha Fin</label>
                   <input
                     type="date"
                     value={fechaFinOp}
                     onChange={(e) => setFechaFinOp(e.target.value)}
                     className="w-full border rounded-md px-2 py-1 mb-2"
                   />
-                  <label className="block text-xs font-semibold mb-1">
-                    Hora Fin
-                  </label>
+                  <label className="block text-xs font-semibold mb-1">Hora Fin</label>
                   <input
                     type="time"
                     value={horaFinOp}

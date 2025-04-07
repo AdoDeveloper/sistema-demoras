@@ -403,7 +403,7 @@ export default function ProcesoFinal() {
     });
     if (confirmResult.isConfirmed) {
       Swal.fire({
-        title: "Enviando datos...",
+        title: "Procesando solicitud...",
         allowOutsideClick: false,
         didOpen: () => {
           Swal.showLoading();

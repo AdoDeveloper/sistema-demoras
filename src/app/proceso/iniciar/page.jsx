@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Header from "../../../components/Header";
 import { FiArrowLeft, FiLoader } from "react-icons/fi";
 import { PiTruckTrailerFill, PiBarnFill } from "react-icons/pi";
-import { MdPendingActions } from "react-icons/md";
+import { MdFrontLoader, MdPendingActions } from "react-icons/md";
 import { GiWindmill, GiGrain } from "react-icons/gi";
 import { IoBoatSharp } from "react-icons/io5";
 import Footer from "../../../components/Footer";
@@ -65,45 +65,45 @@ export default function Proceso() {
 
           {(roleId === 1 || roleId === 2) && (
             <>
-              {/* Botón para Iniciar Granel */}
+              {/* Botón para Iniciar Granel - Color azul oscuro */}
               <button
                 onClick={() =>
                   handleProcessConfirm("/proceso/iniciar/granel", "Granel")
                 }
-                className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
+                className="flex items-center justify-center w-full bg-blue-900 hover:bg-blue-950 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
               >
                 <PiBarnFill size={24} className="mr-3" />
                 <span>Iniciar Granel</span>
               </button>
 
-              {/* Botón para Proceso Envasado */}
+              {/* Botón para Proceso Envasado - Color naranja */}
               <button
                 onClick={() =>
                   handleProcessConfirm("/proceso/iniciar/envasado", "Envasado")
                 }
-                className="w-full flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow transition"
+                className="w-full flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
               >
                 <PiTruckTrailerFill size={28} className="mr-3" />
                 <span>Iniciar Envasado</span>
               </button>
 
-              {/* Botón para Iniciar Molido */}
+              {/* Botón para Iniciar Molido - Color verde */}
               <div className="relative">
                 <button
                   onClick={() => setMolidoOpen(!molidoOpen)}
-                  className="w-full flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow transition"
+                  className="w-full flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
                 >
                   <GiWindmill size={28} className="mr-3" />
                   <span>Iniciar Molido</span>
                 </button>
                 {molidoOpen && (
-                  <div className="mt-2 bg-white border border-teal-500 shadow-lg rounded-lg p-4 space-y-2">
+                  <div className="mt-2 bg-white border border-emerald-400 shadow-lg rounded-lg p-4 space-y-2">
                     <button
                       onClick={() => {
                         setMolidoOpen(false);
                         handleProcessConfirm("/proceso/iniciar/molino", "Molido");
                       }}
-                      className="w-full flex items-center justify-start bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-md transition"
+                      className="w-full flex items-center justify-start bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-md transition"
                     >
                       <GiGrain size={24} className="mr-2" />
                       <span>Molido Envasado/Granel</span>
@@ -116,7 +116,7 @@ export default function Proceso() {
                           "Actividades"
                         );
                       }}
-                      className="w-full flex items-center justify-start bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-md transition"
+                      className="w-full flex items-center justify-start bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-md transition"
                     >
                       <MdPendingActions size={24} className="mr-2" />
                       <span>Actividades</span>
@@ -132,10 +132,22 @@ export default function Proceso() {
               onClick={() =>
                 handleProcessConfirm("/proceso/iniciar/barco", "Barco")
               }
-              className="flex items-center justify-center w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
+              className="flex items-center justify-center w-full bg-indigo-700 hover:bg-indigo-800 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
             >
               <IoBoatSharp size={24} className="mr-3" />
               <span>Iniciar Barco</span>
+            </button>
+          )}
+
+          {(roleId === 1 || roleId === 4) && (
+            <button
+              onClick={() =>
+                handleProcessConfirm("/proceso/iniciar/equipo", "Inspección de Equipo")
+              }
+              className="flex items-center justify-center w-full bg-red-700 hover:bg-red-800 text-white font-semibold py-3 px-4 rounded-xl shadow transition transform hover:-translate-y-1"
+            >
+              <MdFrontLoader size={24} className="mr-3" />
+              <span>Inspección de Equipo</span>
             </button>
           )}
 

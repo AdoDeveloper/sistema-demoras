@@ -23,6 +23,7 @@ model User {
   envasados      Envasado[]
   molinos        Molino[]
   actividades    Actividad[]
+  equipos        Equipo[]
   sessions       Session[]
   roleId         Int       @map("role_id")
   role           Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
@@ -648,4 +649,37 @@ model Operacion {
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
   @@map("operaciones_bitacora")
+}
+
+model Equipo {
+  id              Int               @id @default(autoincrement()) @map("id")
+  userId        Int?             @map("user_id")
+  userName        String?          @map("user_name")
+  equipo          String            @map("equipo")          // Nombre o identificador del equipo
+  operador        String            @map("operador")        // Nombre del operador
+  fecha           String            @map("fecha")           // Fecha de la inspección
+  hora            String            @map("hora")            // Hora de inicio inspección
+  horaDe          String            @map("hora_de")         // Hora de inicio
+  horaA           String            @map("hora_a")          // Hora de finalización
+  recomendaciones String?           @map("recomendaciones") @db.LongText // Recomendaciones (opcional)
+  user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inspecciones    Inspeccion[]     @relation("equipo_inspecciones")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@map("equipos")
+}
+
+model Inspeccion {
+  id            Int         @id @default(autoincrement()) @map("id")
+  titulo        String      @map("titulo")        // Ej: "Inspección de llantas"
+  // Se utiliza un solo campo 'cumple': true indica que se cumple (1) y false que no se cumple (0)
+  cumple        Boolean     @default(false) @map("cumple")
+  observaciones String?     @map("observaciones") @db.LongText // Observaciones adicionales (opcional)
+  equipoId      Int         @map("equipo_id")
+  equipo        Equipo      @relation("equipo_inspecciones", fields: [equipoId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("inspecciones")
 }

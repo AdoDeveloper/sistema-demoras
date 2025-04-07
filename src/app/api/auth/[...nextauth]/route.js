@@ -48,7 +48,7 @@ const handler = NextAuth({
           username: user.username,
           roleId: user.roleId,
           roleName: user.role.name,
-          ...(user.roleId === 3 && { nombreCompleto: user.nombreCompleto }),
+          nombreCompleto: user.nombreCompleto,
         };
       },
     }),
@@ -67,7 +67,7 @@ const handler = NextAuth({
           username: token.username,
           roleId: token.roleId,
           roleName: token.roleName,
-          ...(token.roleId === 3 && { nombreCompleto: token.nombreCompleto }),
+          nombreCompleto: token.nombreCompleto,
         };
       }
       return session;
@@ -78,12 +78,10 @@ const handler = NextAuth({
         token.username = user.username;
         token.roleId = user.roleId;
         token.roleName = user.roleName;
-        if (user.roleId === 3 && user.nombreCompleto) {
-          token.nombreCompleto = user.nombreCompleto;
-        }
+        token.nombreCompleto = user.nombreCompleto || null;
       }
       return token;
-    },
+    }
   },
   secret: process.env.NEXTAUTH_SECRET,
 });

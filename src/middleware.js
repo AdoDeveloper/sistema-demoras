@@ -70,6 +70,11 @@ export async function middleware(req) {
     "/api/bitacoras/export-excel",
     "/proceso/consultar/bitacora",
 
+    // EQUIPOS
+    "/api/equipos",
+    "/proceso/iniciar/equipo",
+    "/proceso/consultar/equipo",
+
     // Otras rutas protegidas
     "/perfil",
     "/proceso/analisis",
@@ -173,6 +178,11 @@ export const config = {
     "/api/bitacoras/:path*",
     "/api/bitacoras/export-excel",
     "/proceso/consultar/bitacora",
+
+    // EQUIPOS
+    "/api/equipos",
+    "/proceso/iniciar/equipo",
+    "/proceso/consultar/equipo",
 
     // Otras rutas protegidas
     "/proceso/analisis",

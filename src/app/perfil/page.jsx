@@ -495,7 +495,7 @@ export default function Profile() {
         </div>
 
         {/* Mostrar filtros y contenido solo si roleId !== 3 */}
-        {roleId !== 3 && (
+        {roleId === 1 || roleId === 2 && (
           <>
             {/* Filtro por fechas */}
             <section className="bg-white rounded-lg shadow p-6 mb-8">
