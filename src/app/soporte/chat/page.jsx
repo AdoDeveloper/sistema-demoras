@@ -1,8 +1,7 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import io from "socket.io-client";
 import {
   FiArrowLeft,
   FiLoader,
@@ -11,6 +10,8 @@ import {
   FiCheck,
   FiCalendar,
   FiClock,
+  FiRefreshCw,
+  FiArrowDown
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 
@@ -25,25 +26,24 @@ export default function ChatSoporte() {
   const [uploadImage, setUploadImage] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [socketConnected, setSocketConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const messagesEndRef = useRef(null);
-  // Ref para el contenedor de mensajes (para scroll personalizado)
   const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
-  // Ref para la instancia del socket
-  const socketRef = useRef(null);
-  // Ref para controlar el timeout de la animación de "escribiendo"
   const typingAnimationTimeoutRef = useRef(null);
 
   const currentUserId = session?.user?.id;
   const isSupport = session?.user?.roleId === 1;
 
   // Función de easing para la animación del scroll
-  const easeInOutQuad = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+  const easeInOutQuad = (t) =>
+    t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
   // Función para animar el scroll con duración personalizada
   const smoothScroll = (container, to, duration) => {
@@ -54,9 +54,7 @@ export default function ChatSoporte() {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       container.scrollTop = start + change * easeInOutQuad(progress);
-      if (progress < 1) {
-        requestAnimationFrame(animateScroll);
-      }
+      if (progress < 1) requestAnimationFrame(animateScroll);
     };
     requestAnimationFrame(animateScroll);
   };
@@ -69,7 +67,7 @@ export default function ChatSoporte() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Extraer ticketId de la URL y cargar datos del ticket
+  // Extraer ticketId de la URL y cargar datos del ticket y mensajes
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tId = urlParams.get("ticketId");
@@ -80,13 +78,14 @@ export default function ChatSoporte() {
       return;
     }
     fetchTicketData(tId);
+    fetchMessages(tId);
   }, []);
 
+  // Función para obtener la información del ticket
   async function fetchTicketData(tId) {
-    setLoading(true);
     try {
       const res = await fetch(`/api/chat/${tId}`);
-      if (res.status === 403 || res.status === 401 || res.status === 404) {
+      if ([403, 401, 404].includes(res.status)) {
         router.push("/login");
         return;
       }
@@ -97,15 +96,96 @@ export default function ChatSoporte() {
       const data = await res.json();
       setTicketInfo(data);
       setSelectedStatus(data.estado);
-      setLoading(false);
     } catch (error) {
       console.error("fetchTicketData error:", error);
-      setLoading(false);
       Swal.fire("Error", error.message, "error");
+    } finally {
+      setLoading(false);
     }
   }
 
-  // Función para mostrar mensajes del sistema (ej. al actualizar estado)
+  // Función para obtener mensajes desde /api/chat/messages/[ticketId]
+  async function fetchMessages(tId = ticketId) {
+    if (!tId) return;
+    try {
+      const res = await fetch(`/api/chat/messages/${tId}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error al obtener mensajes");
+      }
+      const data = await res.json();
+      setMessages(data.previousMessages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  }
+
+  // Función para marcar mensajes como entregados usando /api/chat/delivered
+  async function markMessagesAsDelivered(ids = null) {
+    let msgsToMark;
+    if (ids) {
+      msgsToMark = ids;
+    } else {
+      msgsToMark = messages
+        .filter((msg) => msg.senderId !== currentUserId && !msg.delivered)
+        .map((msg) => msg.id);
+    }
+    if (msgsToMark.length > 0) {
+      try {
+        await fetch("/api/chat/delivered", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ticketId, messageIds: msgsToMark }),
+        });
+      } catch (error) {
+        console.error("Error al marcar mensajes como entregados:", error);
+      }
+    }
+  }
+
+  // Función para marcar mensajes como leídos usando /api/chat/read
+  async function markMessagesAsRead() {
+    const msgsToMark = messages
+      .filter((msg) => msg.senderId !== currentUserId && !msg.read)
+      .map((msg) => msg.id);
+    if (msgsToMark.length > 0) {
+      try {
+        await fetch("/api/chat/read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ticketId, messageIds: msgsToMark }),
+        });
+      } catch (error) {
+        console.error("Error al marcar mensajes como leídos:", error);
+      }
+    }
+  }
+
+  // Polling cada 1.2 segundos para actualizar mensajes y datos del ticket
+  useEffect(() => {
+    if (!ticketId) return;
+    const interval = setInterval(() => {
+      fetchMessages();
+      markMessagesAsDelivered();
+      markMessagesAsRead();
+      fetchTicketData(ticketId);
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [ticketId, messages, currentUserId]);
+
+  // Botón de Refresh manual con animación
+  const handleRefreshMessages = async () => {
+    setRefreshing(true);
+    await fetchMessages();
+    await markMessagesAsDelivered();
+    await markMessagesAsRead();
+    await fetchTicketData(ticketId);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  // Mensaje del sistema (para avisar cambios de estado)
   const addSystemMessage = (text) => {
     const message = {
       id: `${Date.now()}-estado`,
@@ -128,7 +208,7 @@ export default function ChatSoporte() {
     }, 5000);
   };
 
-  // Función para actualizar el estado del ticket (solo para soporte)
+  // Actualizar el estado del ticket (solo para soporte)
   const updateTicketStatus = async () => {
     if (!ticketId) return;
     if (selectedStatus === ticketInfo.estado) {
@@ -151,12 +231,9 @@ export default function ChatSoporte() {
       const updatedTicket = await updatedRes.json();
       setTicketInfo(updatedTicket);
       setSelectedStatus(updatedTicket.estado);
-      if (socketRef.current) {
-        socketRef.current.emit("broadcastTicketStatus", {
-          ticketId,
-          updatedTicket,
-        });
-      }
+      addSystemMessage(
+        `El estado del ticket se ha actualizado a ${translateStatus(updatedTicket.estado)}.`
+      );
       Swal.fire({
         toast: true,
         position: "top-end",
@@ -200,259 +277,103 @@ export default function ChatSoporte() {
     }
   };
 
+  // Se ajusta la comparación de senderId convirtiendo ambos a cadena
   const getMessageBubbleClass = (msg) => {
     if (msg.isSystemMessage) return "bg-indigo-600 text-white fade-in";
-    if (msg.senderId === currentUserId) return "bg-blue-800 text-white fade-in";
+    if (String(msg.senderId) === String(currentUserId)) return "bg-blue-800 text-white fade-in";
     return "bg-gray-100 text-gray-800 fade-in";
-  };
-
-  // Función para inicializar el socket; se conecta y se une a la sala
-  const initializeSocket = (tId) => {
-    if (!currentUserId || !tId) {
-      console.error("No se puede inicializar el socket: Falta ticketId o userId", tId, currentUserId);
-      return;
-    }
-    // Se solicita la ruta del socket
-    fetch("/api/socketio").catch((err) =>
-      console.error("Error al obtener /api/socketio:", err)
-    );
-    const socket = io({
-      path: "/api/socketio",
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      console.log("Chat Socket conectado:", socket.id);
-      setSocketConnected(true);
-      socket.emit("joinTicketRoom", {
-        ticketId: tId,
-        userId: currentUserId,
-        isSupport,
-      });
-    });
-
-    // Listener para nuevos mensajes (evitando duplicados)
-    socket.on("newMessage", (nuevoMensaje) => {
-      console.log("Nuevo mensaje recibido:", nuevoMensaje);
-      setMessages((prev) => {
-        if (prev.find((m) => m.id === nuevoMensaje.id)) return prev;
-        return [...prev, nuevoMensaje];
-      });
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("Error de conexión:", err);
-      Swal.fire({
-        title: "Error de conexión",
-        text: "No se pudo establecer conexión. Intente recargar la página.",
-        icon: "error",
-      });
-    });
-
-    socket.on("ticketInfo", (ticket) => {
-      setTicketInfo(ticket);
-      setSelectedStatus(ticket.estado);
-    });
-
-    socket.on("previousMessages", (oldMsgs) => {
-      if (oldMsgs && Array.isArray(oldMsgs)) {
-        console.log("Mensajes anteriores recibidos:", oldMsgs.length);
-        setMessages(oldMsgs);
-      } else {
-        console.error("Formato incorrecto de mensajes anteriores:", oldMsgs);
-      }
-    });
-
-    socket.on("errorMessage", (error) => {
-      Swal.fire("Error", error.message, "error");
-    });
-
-    socket.on("ticketStatusUpdated", (updatedTicket) => {
-      console.log("ticketStatusUpdated recibido:", updatedTicket);
-      setTicketInfo(updatedTicket);
-      setSelectedStatus(updatedTicket.estado);
-      addSystemMessage(
-        `El estado del ticket se ha actualizado a ${translateStatus(updatedTicket.estado)}.`
-      );
-    });
-
-    socket.on("messagesDelivered", ({ messageIds }) => {
-      console.log("Recibido messagesDelivered:", messageIds);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          messageIds.includes(msg.id) ? { ...msg, delivered: true } : msg
-        )
-      );
-    });
-
-    socket.on("messagesRead", ({ messageIds }) => {
-      console.log("Recibido messagesRead:", messageIds);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          messageIds.includes(msg.id) ? { ...msg, read: true } : msg
-        )
-      );
-    });
-
-    socket.on("typing", ({ userId, isTyping }) => {
-      if (currentUserId && userId !== currentUserId) {
-        setIsTyping(isTyping);
-        if (isTyping) setTimeout(() => setIsTyping(false), 3000);
-      }
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Chat Socket desconectado");
-      setSocketConnected(false);
-    });
-
-    socket.on("reconnect", (attemptNumber) => {
-      console.log(`Chat Socket reconectado después de ${attemptNumber} intentos`);
-      setSocketConnected(true);
-      if (tId && currentUserId) {
-        socket.emit("joinTicketRoom", {
-          ticketId: tId,
-          userId: currentUserId,
-          isSupport,
-        });
-      }
-    });
-
-    socket.on("reconnect_failed", () => {
-      Swal.fire({
-        title: "Error de conexión",
-        text: "No se pudo restablecer la conexión. Por favor, recargue la página.",
-        icon: "error",
-      });
-    });
-  };
-
-  // useEffect para inicializar el socket solo una vez y desconectarlo al desmontar
-  useEffect(() => {
-    if (ticketId && status === "authenticated" && session && !socketRef.current) {
-      initializeSocket(ticketId);
-    }
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketId, status, session]);
-
-  // Función para marcar como entregados y leídos los mensajes visibles
-  const handleVisibleMessages = useCallback(() => {
-    if (!socketRef.current) return;
-    const msgsToMarkDelivered = messages
-      .filter((msg) => msg.senderId !== currentUserId && !msg.delivered)
-      .map((msg) => msg.id);
-    const msgsToMarkRead = messages
-      .filter((msg) => msg.senderId !== currentUserId && !msg.read)
-      .map((msg) => msg.id);
-    if (msgsToMarkDelivered.length > 0) {
-      socketRef.current.emit("messageDelivered", {
-        ticketId,
-        messageIds: msgsToMarkDelivered,
-      });
-    }
-    if (msgsToMarkRead.length > 0) {
-      socketRef.current.emit("messageRead", {
-        ticketId,
-        messageIds: msgsToMarkRead,
-      });
-    }
-  }, [messages, currentUserId, ticketId]);
-
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-    if (!socketRef.current) return;
-    const msgsToMarkDelivered = messages
-      .filter((msg) => msg.senderId !== currentUserId && !msg.delivered)
-      .map((msg) => msg.id);
-    if (msgsToMarkDelivered.length > 0) {
-      socketRef.current.emit("messageDelivered", {
-        ticketId,
-        messageIds: msgsToMarkDelivered,
-      });
-    }
-  }, [messages, currentUserId, ticketId]);
-
-  const onMessagesContainerInteraction = () => {
-    handleVisibleMessages();
   };
 
   const handleInputChange = (e) => {
     setNewMessage(e.target.value);
-    if (socketRef.current) {
-      socketRef.current.emit("typing", { userId: currentUserId, isTyping: true });
-    }
   };
 
-  // useEffect para animar el scroll mientras se escribe
+  // Auto-scroll: se realiza scroll si el usuario está al fondo. De lo contrario, se muestra un botón para bajar.
   useEffect(() => {
-    if (!messagesContainerRef.current) return;
-    // Solo se ejecuta si hay texto en el input
-    if (newMessage.trim() === "") return;
-    if (typingAnimationTimeoutRef.current) {
-      clearTimeout(typingAnimationTimeoutRef.current);
-    }
     const container = messagesContainerRef.current;
-    let originalScroll = container.scrollTop;
-    const targetScroll = container.scrollHeight;
-    // Si el contenedor ya está al final, forzamos un pequeño desplazamiento (20px hacia arriba)
-    if (Math.abs(targetScroll - (originalScroll + container.clientHeight)) < 1) {
-      originalScroll = Math.max(originalScroll - 20, 0);
+    if (!container) return;
+
+    const isUserAtBottom = (container) =>
+      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+
+    if (isUserAtBottom(container)) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setShowNewMessageIndicator(false);
+    } else {
+      setShowNewMessageIndicator(true);
     }
-    // Animar hacia abajo rápidamente (300ms)
-    smoothScroll(container, targetScroll, 300);
-    // Después de 200ms, regresar a la posición original con animación de 300ms
-    typingAnimationTimeoutRef.current = setTimeout(() => {
-      smoothScroll(container, originalScroll, 300);
-    }, 200);
-    return () => {
-      if (typingAnimationTimeoutRef.current) {
-        clearTimeout(typingAnimationTimeoutRef.current);
+  }, [messages]);
+
+  // Evento scroll del contenedor para ocultar el indicador si el usuario baja
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const isUserAtBottom = (container) =>
+      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+
+    const handleScroll = () => {
+      if (isUserAtBottom(container)) {
+        setShowNewMessageIndicator(false);
       }
     };
-  }, [newMessage]);
 
-  // Función para enviar mensaje, incluyendo receiverId según rol
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Función para enviar mensaje usando /api/chat/send y luego marcarlo como entregado
   const handleSendMessage = async () => {
+    if (isSending) return;
     if (!newMessage.trim() && !uploadImage) return;
-    if (!socketRef.current || !socketConnected) {
-      Swal.fire("Error", "Conexión no establecida con el chat.", "error");
-      return;
-    }
+    setIsSending(true);
     try {
       let base64 = null;
       if (uploadImage) {
         base64 = await readFileAsBase64(uploadImage);
       }
-      const receiverId =
-        isSupport
-          ? ticketInfo.user?.id || null
-          : ticketInfo.admin?.id || null;
-      socketRef.current.emit("sendMessage", {
-        ticketId,
-        senderId: currentUserId,
-        receiverId,
-        text: newMessage.trim(),
-        imageData: base64,
-        imageSize: uploadImage ? uploadImage.size : null,
-        read: false,
+      const receiverId = isSupport
+        ? ticketInfo.user?.id || null
+        : ticketInfo.admin?.id || null;
+      const res = await fetch("/api/chat/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketId,
+          senderId: currentUserId,
+          receiverId,
+          text: newMessage.trim(),
+          imageData: base64,
+          imageSize: uploadImage ? uploadImage.size : null,
+          read: false,
+        }),
       });
-      // Al enviar, se borra el contenido del input para reiniciar la animación al volver a escribir
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error al enviar mensaje");
+      }
+      const sendData = await res.json();
+      // Actualización optimista: añadir mensaje enviado de inmediato
+      setMessages((prev) => [...prev, sendData.newMessage]);
+      // Realizar scroll hasta el final después de enviar el mensaje
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      // Marcar el mensaje enviado como entregado
+      await fetch("/api/chat/delivered", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId, messageIds: [sendData.newMessage.id] }),
+      });
+      // Limpiar el input y la vista previa
       setNewMessage("");
       setUploadImage(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      // Opcional: se puede llamar a fetchMessages() para sincronización, en este caso ya se agregó el mensaje de forma inmediata
+      // fetchMessages();
     } catch (error) {
       console.error("Error al enviar mensaje:", error);
       Swal.fire("Error", "No se pudo enviar el mensaje", "error");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -529,9 +450,7 @@ export default function ChatSoporte() {
     );
   }
 
-  // Determinar el partner del chat:
-  // Para soporte, el partner es el usuario (ticketInfo.user)
-  // Para cliente, el partner es el soporte (ticketInfo.admin)
+  // Determinar el partner del chat (para mostrar quién es el otro usuario)
   const chatPartner = isSupport
     ? ticketInfo.user
     : ticketInfo.admin || { username: "Soporte" };
@@ -548,11 +467,6 @@ export default function ChatSoporte() {
           <FiArrowLeft size={18} />
         </button>
         <h1 className="text-base md:text-lg font-bold">Chat de Soporte</h1>
-        {!socketConnected && (
-          <span className="ml-3 bg-red-500 text-white text-xs py-1 px-2 rounded-full animate-pulse">
-            Desconectado
-          </span>
-        )}
       </header>
 
       {/* Información del Ticket */}
@@ -582,8 +496,6 @@ export default function ChatSoporte() {
           <p className="text-sm md:text-base text-gray-700 mt-1">
             {ticketInfo.descripcion}
           </p>
-
-          {/* Información adicional del ticket */}
           <div className="mt-3 md:mt-4 flex flex-wrap items-center gap-4 md:gap-6">
             {ticketInfo.user && (
               <div className="flex items-center">
@@ -612,8 +524,6 @@ export default function ChatSoporte() {
               </div>
             )}
           </div>
-
-          {/* Opción para actualizar el estado del ticket (solo para soporte) */}
           {isSupport && (
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">Actualizar Estado</label>
@@ -632,7 +542,9 @@ export default function ChatSoporte() {
                 <button
                   onClick={updateTicketStatus}
                   className={`px-4 py-2 rounded-md flex items-center justify-center min-w-24 transition-colors ${
-                    updatingStatus ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"
+                    updatingStatus
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
                   }`}
                   disabled={updatingStatus || selectedStatus === ticketInfo.estado}
                 >
@@ -665,13 +577,18 @@ export default function ChatSoporte() {
 
       {/* Área de mensajes */}
       <div className="max-w-6xl mx-auto w-full px-3 md:px-4 pb-3 md:pb-4">
-        <div
-          className="bg-white shadow rounded-md flex flex-col"
-          style={{ maxHeight: "70vh" }}
-          onMouseEnter={onMessagesContainerInteraction}
-          onScroll={onMessagesContainerInteraction}
-        >
-          {/* Se asigna el ref para el contenedor de mensajes (scroll personalizado) */}
+        <div className="bg-white shadow rounded-md flex flex-col" style={{ maxHeight: "70vh" }}>
+          {/* Botón de Refresh integrado en la parte superior del contenedor de mensajes */}
+          <div className="p-2 flex justify-end border-b border-gray-200">
+            <button
+              onClick={handleRefreshMessages}
+              className="flex items-center gap-1 text-gray-600 hover:text-gray-800 transition"
+              title="Actualizar mensajes"
+            >
+              <FiRefreshCw size={20} className={refreshing ? "animate-spin" : ""} />
+              <span className="text-base">Refresh</span>
+            </button>
+          </div>
           <div ref={messagesContainerRef} className="p-3 md:p-4 flex-1 overflow-y-auto">
             {finalMessages.length === 0 ? (
               <div className="flex items-center justify-center h-48 text-gray-500">
@@ -680,7 +597,7 @@ export default function ChatSoporte() {
             ) : (
               <div className="space-y-4">
                 {finalMessages.map((msg, index) => {
-                  const isCurrentUserMessage = msg.senderId === currentUserId;
+                  const isCurrentUserMessage = String(msg.senderId) === String(currentUserId);
                   const isSystemMessage = msg.isSystemMessage;
                   let senderName = "";
                   if (isSystemMessage) {
@@ -699,9 +616,7 @@ export default function ChatSoporte() {
                   } else {
                     const currentDate = new Date(msg.createdAt).toLocaleDateString();
                     const prevDate = new Date(finalMessages[index - 1].createdAt).toLocaleDateString();
-                    if (currentDate !== prevDate) {
-                      showDateSeparator = true;
-                    }
+                    if (currentDate !== prevDate) showDateSeparator = true;
                   }
                   return (
                     <div key={`message-${msg.id}-${index}`}>
@@ -765,11 +680,11 @@ export default function ChatSoporte() {
                                     <span className="ml-2 flex items-center">
                                       {msg.read ? (
                                         <>
-                                          <FiCheck size={isMobile ? 16 : 12} className="flex-shrink-0" />
-                                          <FiCheck size={isMobile ? 16 : 12} className="flex-shrink-0" />
+                                          <FiCheck size={isMobile ? 16 : 12} />
+                                          <FiCheck size={isMobile ? 16 : 12} className="ml-1" />
                                         </>
                                       ) : msg.delivered ? (
-                                        <FiCheck size={isMobile ? 16 : 12} className="flex-shrink-0" />
+                                        <FiCheck size={isMobile ? 16 : 12} />
                                       ) : null}
                                     </span>
                                   )}
@@ -787,21 +702,24 @@ export default function ChatSoporte() {
                     </div>
                   );
                 })}
-                {isTyping && newMessage.trim() !== "" && (
-                  <div className="flex justify-start py-4 px-2">
-                    <div className="flex items-center">
-                      <div className="typing-indicator">
-                        <span className="dot"></span>
-                        <span className="dot"></span>
-                        <span className="dot"></span>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 <div ref={messagesEndRef} />
               </div>
             )}
           </div>
+
+          {/* Botón indicador de nuevos mensajes (visible si el usuario no está al fondo) */}
+          {showNewMessageIndicator && (
+            <button
+              onClick={() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                setShowNewMessageIndicator(false);
+              }}
+              className="fixed bottom-20 right-5 bg-blue-600 text-white p-2 rounded-full shadow-lg animate-bounce"
+              title="Ver nuevos mensajes"
+            >
+              <FiArrowDown size={20} />
+            </button>
+          )}
 
           {/* Área de envío de mensajes */}
           <div className="border-t p-3 md:p-4">
@@ -876,14 +794,18 @@ export default function ChatSoporte() {
                     type="button"
                     title="Enviar"
                     onClick={handleSendMessage}
-                    disabled={!newMessage.trim() && !uploadImage}
+                    disabled={isSending || (!newMessage.trim() && !uploadImage)}
                     className={`flex items-center justify-center w-10 h-10 rounded transition ${
-                      !newMessage.trim() && !uploadImage
+                      isSending || (!newMessage.trim() && !uploadImage)
                         ? "bg-blue-400 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700"
                     } text-white`}
                   >
-                    <FiSend size={18} />
+                    {isSending ? (
+                      <FiLoader className="animate-spin" size={18} />
+                    ) : (
+                      <FiSend size={18} />
+                    )}
                   </button>
                 </div>
               </>
@@ -911,42 +833,6 @@ export default function ChatSoporte() {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .typing-indicator {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .dot {
-          display: inline-block;
-          width: 8px;
-          height: 8px;
-          background-color: #4b5563;
-          border-radius: 50%;
-          animation: dotPulse 1.4s infinite ease-in-out;
-        }
-        .dot:nth-child(2) {
-          animation-delay: 0.2s;
-        }
-        .dot:nth-child(3) {
-          animation-delay: 0.4s;
-        }
-        @keyframes dotPulse {
-          0%, 20%, 50%, 80%, 100% {
-            opacity: 0.2;
-            transform: translateY(0);
-          }
-          40% {
-            opacity: 1;
-            transform: translateY(-4px);
-          }
-          60% {
-            opacity: 1;
-            transform: translateY(-2px);
-          }
-        }
-      `}</style>
     </div>
   );
 }
