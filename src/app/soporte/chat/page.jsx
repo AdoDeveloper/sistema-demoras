@@ -32,6 +32,8 @@ export default function ChatSoporte() {
   const [refreshing, setRefreshing] = useState(false);
   const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  // Nueva variable para controlar si el usuario está interactuando con el select
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -95,7 +97,10 @@ export default function ChatSoporte() {
       }
       const data = await res.json();
       setTicketInfo(data);
-      setSelectedStatus(data.estado);
+      // Solo se actualiza el select si el usuario no está editando
+      if (!isEditingStatus) {
+        setSelectedStatus(data.estado);
+      }
     } catch (error) {
       console.error("fetchTicketData error:", error);
       Swal.fire("Error", error.message, "error");
@@ -171,7 +176,7 @@ export default function ChatSoporte() {
       fetchTicketData(ticketId);
     }, 1200);
     return () => clearInterval(interval);
-  }, [ticketId, messages, currentUserId]);
+  }, [ticketId, messages, currentUserId, isEditingStatus]);
 
   // Botón de Refresh manual con animación
   const handleRefreshMessages = async () => {
@@ -230,6 +235,7 @@ export default function ChatSoporte() {
       if (!updatedRes.ok) throw new Error("Error al obtener el ticket actualizado");
       const updatedTicket = await updatedRes.json();
       setTicketInfo(updatedTicket);
+      // Al actualizar, se sincroniza el select con el estado actualizado
       setSelectedStatus(updatedTicket.estado);
       addSystemMessage(
         `El estado del ticket se ha actualizado a ${translateStatus(updatedTicket.estado)}.`
@@ -277,10 +283,11 @@ export default function ChatSoporte() {
     }
   };
 
-  // Se ajusta la comparación de senderId convirtiendo ambos a cadena
+  // Comparación de senderId convirtiendo ambos a cadena
   const getMessageBubbleClass = (msg) => {
     if (msg.isSystemMessage) return "bg-indigo-600 text-white fade-in";
-    if (String(msg.senderId) === String(currentUserId)) return "bg-blue-800 text-white fade-in";
+    if (String(msg.senderId) === String(currentUserId))
+      return "bg-blue-800 text-white fade-in";
     return "bg-gray-100 text-gray-800 fade-in";
   };
 
@@ -288,14 +295,12 @@ export default function ChatSoporte() {
     setNewMessage(e.target.value);
   };
 
-  // Auto-scroll: se realiza scroll si el usuario está al fondo. De lo contrario, se muestra un botón para bajar.
+  // Auto-scroll: se realiza scroll si el usuario está al fondo, de lo contrario se muestra un botón para bajar.
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-
     const isUserAtBottom = (container) =>
       container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-
     if (isUserAtBottom(container)) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       setShowNewMessageIndicator(false);
@@ -308,16 +313,13 @@ export default function ChatSoporte() {
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-
     const isUserAtBottom = (container) =>
       container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-
     const handleScroll = () => {
       if (isUserAtBottom(container)) {
         setShowNewMessageIndicator(false);
       }
     };
-
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
@@ -353,9 +355,8 @@ export default function ChatSoporte() {
         throw new Error(err.error || "Error al enviar mensaje");
       }
       const sendData = await res.json();
-      // Actualización optimista: añadir mensaje enviado de inmediato
+      // Actualización optimista: agregar el mensaje enviado de inmediato
       setMessages((prev) => [...prev, sendData.newMessage]);
-      // Realizar scroll hasta el final después de enviar el mensaje
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       // Marcar el mensaje enviado como entregado
       await fetch("/api/chat/delivered", {
@@ -367,8 +368,6 @@ export default function ChatSoporte() {
       setNewMessage("");
       setUploadImage(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      // Opcional: se puede llamar a fetchMessages() para sincronización, en este caso ya se agregó el mensaje de forma inmediata
-      // fetchMessages();
     } catch (error) {
       console.error("Error al enviar mensaje:", error);
       Swal.fire("Error", "No se pudo enviar el mensaje", "error");
@@ -531,6 +530,9 @@ export default function ChatSoporte() {
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
+                  // Se añaden onFocus y onBlur para controlar si el usuario está interactuando con el select.
+                  onFocus={() => setIsEditingStatus(true)}
+                  onBlur={() => setIsEditingStatus(false)}
                   className="block w-full border-gray-300 rounded-md shadow-sm text-gray-700"
                   disabled={updatingStatus}
                 >
