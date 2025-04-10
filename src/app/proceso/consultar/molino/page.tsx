@@ -221,8 +221,8 @@ const calcularIntervalos = (item: any) => {
     diffEnHoras(parseHora(segundo.tiempoInicioCarga), parseHora(segundo.tiempoTerminaCarga))
   );
 
-  let entradaBS = null;
-  let salidaBS = null;
+  let entradaBS: Date | null = null;
+  let salidaBS: Date | null = null;
   if (tercero.vueltasMol && tercero.vueltasMol.length > 0) {
     const lastVuelta = tercero.vueltasMol[tercero.vueltasMol.length - 1];
     entradaBS = parseHora(lastVuelta.tiempoEntradaBascula);

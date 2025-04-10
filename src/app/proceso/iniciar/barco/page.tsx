@@ -402,6 +402,7 @@ export default function Bitacora() {
             });
             if (!res.ok) throw new Error("Error al actualizar barco");
             // Luego de PUT, consultamos la API para obtener la información actualizada
+            if (!activeFormData.barco.id) return;
             const updatedInfo = await fetchBarcoInfo(activeFormData.barco.id);
             if (updatedInfo) {
               updateBarcoData(updatedInfo);

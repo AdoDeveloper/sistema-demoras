@@ -188,8 +188,8 @@ const calcularIntervalos = (item: any) => {
   );
 
   // Cálculos del tercer proceso: se basan en la última vuelta
-  let entradaBS = null;
-  let salidaBS = null;
+  let entradaBS: Date | null = null;
+  let salidaBS: Date | null = null;
   if (tercero.vueltas && tercero.vueltas.length > 0) {
     const lastVuelta = tercero.vueltas[tercero.vueltas.length - 1];
     entradaBS = parseHora(lastVuelta.tiempoEntradaBascula);
