@@ -233,8 +233,8 @@ export default function PrimerProceso() {
   
       const response = await fetch(`/api/demoras/molino/${parseInt(storedId)}`, {
         headers: {
-          userId,
-          roleId,
+          userId : userId || "",
+          roleId : roleId || "",
         },
       });
   
