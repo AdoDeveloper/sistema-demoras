@@ -166,7 +166,7 @@ export default function BarcosPage() {
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     
-    const missingFields = [];
+    const missingFields: string[] = [];
     if (!muelle.trim()) missingFields.push("muelle");
     if (!vaporBarco.trim()) missingFields.push("vapor/barco");
     if (tipoCarga.length === 0) missingFields.push("tipo de carga");

@@ -86,7 +86,7 @@ export default function ChatSoporte() {
     setLoading(true);
     try {
       const res = await fetch(`/api/chat/${tId}`);
-      if (res.status === 403) {
+      if (res.status === 403 || res.status === 401 || res.status === 404) {
         router.push("/login");
         return;
       }
