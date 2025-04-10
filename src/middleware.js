@@ -76,6 +76,14 @@ export async function middleware(req) {
     "/proceso/iniciar/equipo",
     "/proceso/consultar/equipo",
 
+    // SOPORTE
+    "/api/tickets",
+    "/api/tickets/:path*",
+    "/api/chat/:path*",
+    "/soporte",
+    "/soporte/chat",
+    "/soporte/chat/:path*",
+
     // Otras rutas protegidas
     "/perfil",
     "/proceso/analisis",
@@ -185,6 +193,14 @@ export const config = {
     "/api/equipos/export-excel",
     "/proceso/iniciar/equipo",
     "/proceso/consultar/equipo",
+
+    // SOPORTE
+    "/api/tickets",
+    "/api/tickets/:path*",
+    "/api/chat/:path*",
+    "/soporte",
+    "/soporte/chat",
+    "/soporte/chat/:path*",
 
     // Otras rutas protegidas
     "/proceso/analisis",

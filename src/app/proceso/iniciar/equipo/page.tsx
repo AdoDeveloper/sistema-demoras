@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
-import { FaSave, FaBroom } from "react-icons/fa";
+import { FaSave } from "react-icons/fa";
 
 // Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
 const Select = dynamic(() => import("react-select"), { ssr: false });
@@ -37,38 +37,45 @@ interface InspeccionItem {
 
 // Lista de inspecciones inicial (cumple inicia en null, es decir, sin selección)
 const inspeccionInicial: InspeccionItem[] = [
-  { id: 1, titulo: "Inspección de llantas", cumple: null, observaciones: "" },
-  {
-    id: 2,
-    titulo:
-      "Inspección visual general (no existan fugas en los diferentes sistemas, partes sueltas)",
-    cumple: null,
-    observaciones: "",
-  },
-  { id: 3, titulo: "Inspección de luces de traslado", cumple: null, observaciones: "" },
-  { id: 4, titulo: "Inspección de luces de trabajo", cumple: null, observaciones: "" },
-  { id: 5, titulo: "Inspección de luces de señal de cruce", cumple: null, observaciones: "" },
-  { id: 6, titulo: "Estado de luces de stop (frenos) y luces de parqueo", cumple: null, observaciones: "" },
-  {
-    id: 7,
-    titulo:
-      "Verificación que todos los mandos estén funcionando. (Movimiento de: cucharón, dirección, frenos, velocidades, etc.)",
-    cumple: null,
-    observaciones: "",
-  },
-  { id: 8, titulo: "Verificar las condiciones de los espejos", cumple: null, observaciones: "" },
-  { id: 9, titulo: "Funcionamiento de alarma de retroceso", cumple: null, observaciones: "" },
-  { id: 10, titulo: "Funcionamiento del pito o claxon", cumple: null, observaciones: "" },
-  { id: 11, titulo: "Verificación de lubricación en los puntos móviles", cumple: null, observaciones: "" },
-  { id: 12, titulo: "Inspección de daños estructurales", cumple: null, observaciones: "" },
-  { id: 13, titulo: "Adecuadas condiciones de limpieza", cumple: null, observaciones: "" },
-  { id: 14, titulo: "Ruidos o condiciones no normales del equipo durante su operación", cumple: null, observaciones: "" },
+  { id: 1, titulo: "Revisar si hay fuga de aceite en el equipo.", cumple: null, observaciones: "" },
+  { id: 2, titulo: "Revisar si hay fuga de combustible.", cumple: null, observaciones: "" },
+  { id: 3, titulo: "Revisar fuga de refrigerante.", cumple: null, observaciones: "" },
+  { id: 4, titulo: "Revisar pedal de freno.", cumple: null, observaciones: "" },
+  { id: 5, titulo: "Limpieza del equipo (lavado y sopleteado).", cumple: null, observaciones: "" },
+  { id: 6, titulo: "Revisar el interruptor del freno de estacionamiento.", cumple: null, observaciones: "" },
+  { id: 7, titulo: "Revisar que el interruptor de las baterías esté en apagado antes de iniciar el trabajo del equipo.", cumple: null, observaciones: "" },
+  { id: 8, titulo: "Revisar que el nivel de refrigerante del motor esté correcto.", cumple: null, observaciones: "" },
+  { id: 9, titulo: "Verificar estado de ventilador de enfriamiento.", cumple: null, observaciones: "" },
+  { id: 10, titulo: "Revisar los faros y luces de trabajo.", cumple: null, observaciones: "" },
+  { id: 11, titulo: "Revisar que funcione el claxon (pito).", cumple: null, observaciones: "" },
+  { id: 12, titulo: "Revisar la luz de alto y de parqueo.", cumple: null, observaciones: "" },
+  { id: 13, titulo: "Revisar el funcionamiento de la alarma de retroceso.", cumple: null, observaciones: "" },
+  { id: 14, titulo: "Revisar luces de señal de dirección.", cumple: null, observaciones: "" },
+  { id: 15, titulo: "Revisar luces de retroceso.", cumple: null, observaciones: "" },
+  { id: 16, titulo: "Revisar que el nivel de aceite de motor esté de acuerdo con la marca.", cumple: null, observaciones: "" },
+  { id: 17, titulo: "Inspeccionar que no haya daños estructurales en la carrocería del equipo.", cumple: null, observaciones: "" },
+  { id: 18, titulo: "Revisar el estado del cinturón de seguridad.", cumple: null, observaciones: "" },
+  { id: 19, titulo: "Revisar espejos retrovisores.", cumple: null, observaciones: "" },
+  { id: 20, titulo: "Revisar que el nivel de aceite hidráulico esté correcto.", cumple: null, observaciones: "" },
+  { id: 21, titulo: "Revisar el nivel de aceite de los ejes de transmisión.", cumple: null, observaciones: "" },
+  { id: 22, titulo: "Revisar el estado y apriete de los pernos de las cuchillas del cucharón.", cumple: null, observaciones: "" },
+  { id: 23, titulo: "Revisar que el volante y columna de la dirección estén suaves.", cumple: null, observaciones: "" },
+  { id: 24, titulo: "Revisar el nivel de aceite de transmisión.", cumple: null, observaciones: "" },
+  { id: 25, titulo: "Revisar el apriete de las tuercas de las ruedas.", cumple: null, observaciones: "" },
+  { id: 26, titulo: "Revisar el estado de las llantas.", cumple: null, observaciones: "" },
+  { id: 27, titulo: "Revisar presión de las llantas y regular (del: 60 psi tras: 50 psi).", cumple: null, observaciones: "" },
+  { id: 28, titulo: "Revisar la faja de transmisión del motor.", cumple: null, observaciones: "" },
+  { id: 29, titulo: "Inspeccionar y limpiar (de ser necesario) el filtro de aire primario.", cumple: null, observaciones: "" },
+  { id: 30, titulo: "Verificar el funcionamiento de los limpiaparabrisas.", cumple: null, observaciones: "" },
+  { id: 31, titulo: "Revisar y drenar (de ser necesario) la presencia de agua en el filtro de separador del combustible.", cumple: null, observaciones: "" },
+  { id: 32, titulo: "Lubricar todos los pines y puntos de engrase del equipo.", cumple: null, observaciones: "" }
 ];
 
 export default function InspeccionDeEquipo() {
   const router = useRouter();
   // Estados para campos principales
   const [equipo, setEquipo] = useState<string>("");
+  const [horometro, setHorometro] = useState<string>("");
   const [operador, setOperador] = useState<string>("");
   const [fecha, setFecha] = useState<string>("");
   const [hora, setHora] = useState<string>("");
@@ -83,15 +90,16 @@ export default function InspeccionDeEquipo() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const today = new Date().toISOString().split("T")[0];
-      const currentTime = new Date(); // Hora actual
-      const hours = currentTime.getHours().toString().padStart(2, '0'); // Asegura que la hora tenga 2 dígitos
-      const minutes = currentTime.getMinutes().toString().padStart(2, '0'); // Asegura que los minutos tengan 2 dígitos
-      const hourToday = `${hours}:${minutes}`; // Formato HH:mm
+      const currentTime = new Date();
+      const hours = currentTime.getHours().toString().padStart(2, '0');
+      const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+      const hourToday = `${hours}:${minutes}`;
       const userName = localStorage.getItem("userNameAll") || "";
       const storedData = localStorage.getItem("inspeccionData");
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         setEquipo(parsedData.equipo || "");
+        setHorometro(parsedData.horometro || "");
         setOperador(parsedData.operador || userName);
         setFecha(parsedData.fecha || today);
         setHora(parsedData.hora || hourToday);
@@ -100,7 +108,6 @@ export default function InspeccionDeEquipo() {
         setRecomendaciones(parsedData.recomendaciones || "");
         setInspecciones(parsedData.inspecciones || inspeccionInicial);
       } else {
-        // Si no hay datos almacenados, se asigna el operador y la fecha predeterminados.
         setOperador(userName);
         setFecha(today);
         setHora(hourToday);
@@ -112,6 +119,7 @@ export default function InspeccionDeEquipo() {
   useEffect(() => {
     const data = {
       equipo,
+      horometro,
       operador,
       fecha,
       hora,
@@ -121,9 +129,9 @@ export default function InspeccionDeEquipo() {
       inspecciones,
     };
     localStorage.setItem("inspeccionData", JSON.stringify(data));
-  }, [equipo, operador, fecha, hora, horaDe, horaA, recomendaciones, inspecciones]);
+  }, [equipo, horometro, operador, fecha, hora, horaDe, horaA, recomendaciones, inspecciones]);
 
-  // Evitar la salida o actualización accidental de la página
+  // Prevenir salida accidental
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -133,8 +141,7 @@ export default function InspeccionDeEquipo() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  // Función para manejar el cambio del campo "cumple"
-  // Si el valor ya está seleccionado, se deselecciona (se asigna null)
+  // Función para alternar el valor de "cumple"
   const handleCumpleChange = (id: number, value: boolean) => {
     setInspecciones(prev =>
       prev.map(item =>
@@ -152,7 +159,7 @@ export default function InspeccionDeEquipo() {
 
   // Botón "Guardar": enviar data a /api/equipos
   const handleGuardar = async () => {
-    // Validar que los campos principales estén completos
+    // Validar campos principales
     if (!equipo || !operador || !fecha || !hora || !horaDe || !horaA) {
       Swal.fire({
         icon: "error",
@@ -162,25 +169,19 @@ export default function InspeccionDeEquipo() {
       return;
     }
 
-    // Validar que ninguna inspección esté vacía
-    const inspeccionesIncompletas = inspecciones.filter(
-      item => item.cumple === null
-    );
+    // Validar que todas las inspecciones tengan un valor en "cumple"
+    const inspeccionesIncompletas = inspecciones.filter(item => item.cumple === null);
     if (inspeccionesIncompletas.length > 0) {
-      const mensajes = inspeccionesIncompletas.map(item => {
-        const camposFaltantes = [];
-        if (item.cumple === null) camposFaltantes.push("Cumple");
-        return `[${item.titulo}] ,`;
-      });
+      const mensajes = inspeccionesIncompletas.map(item => `[${item.titulo}]`);
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: `Por favor, complete las siguientes inspecciones:\n${mensajes.join("\n")}`,
+        text: `Complete las siguientes inspecciones:\n${mensajes.join("\n")}`,
       });
       return;
     }
 
-    // Preguntar si se desea guardar y advertir que la acción no se puede revertir
+    // Confirmación de envío irreversible
     const confirmResult = await Swal.fire({
       title: "Confirmar guardado",
       text: "Los datos se enviarán y la acción no se puede revertir. ¿Desea continuar?",
@@ -194,18 +195,16 @@ export default function InspeccionDeEquipo() {
 
     if (!confirmResult.isConfirmed) return;
 
-    // Mostrar alerta de cargando
     Swal.fire({
       title: "Procesando solicitud...",
       allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
+      didOpen: () => Swal.showLoading(),
     });
 
-    // Transformar datos de inspecciones para enviar solo el campo "cumple"
+    // Preparar payload: se envían todos los campos y el arreglo completo de inspecciones
     const payload = {
       equipo,
+      horometro,
       operador,
       fecha,
       hora,
@@ -215,7 +214,7 @@ export default function InspeccionDeEquipo() {
       inspecciones: inspecciones.map(item => ({
         id: item.id,
         titulo: item.titulo,
-        cumple: item.cumple, // true, false o null
+        cumple: item.cumple, // Puede ser true o false (ya se validó)
         observaciones: item.observaciones,
       })),
     };
@@ -228,7 +227,6 @@ export default function InspeccionDeEquipo() {
         },
         body: JSON.stringify(payload),
       });
-      // Cerrar la alerta de cargando
       Swal.close();
       if (res.ok) {
         localStorage.removeItem("inspeccionData");
@@ -236,7 +234,6 @@ export default function InspeccionDeEquipo() {
           router.push("/proceso/iniciar");
         });
       } else {
-        // Extraer el mensaje de error del response
         const errorData = await res.json();
         Swal.fire({
           icon: "error",
@@ -254,7 +251,7 @@ export default function InspeccionDeEquipo() {
     }
   };
 
-  // Botón "Cancelar": confirmación para salir y borrar la data almacenada
+  // Botón "Cancelar": confirmar y borrar datos almacenados
   const handleCancelar = () => {
     Swal.fire({
       title: "¿Estás seguro?",
@@ -280,8 +277,7 @@ export default function InspeccionDeEquipo() {
         Inspección de Equipo
       </h1>
 
-      {/* Formulario de datos principales */}
-      {/* Vista para dispositivos móviles */}
+      {/* Formulario de datos principales: Vista móvil */}
       <div className="md:hidden flex flex-col space-y-4 mb-6">
         <div className="border-2 border-gray-500 p-2 rounded-md">
           <label className="block mb-1 text-base font-semibold text-gray-800">Equipo:</label>
@@ -289,11 +285,21 @@ export default function InspeccionDeEquipo() {
             className="react-select-container text-base border-2 border-gray-500 rounded-md"
             classNamePrefix="react-select"
             options={equipoOptions}
+            required
             placeholder="Seleccione Equipo"
             value={equipo ? { value: equipo, label: equipo } : null}
-            onChange={(option: OptionType | null) =>
-              setEquipo(option ? option.value : "")
-            }
+            onChange={(option: OptionType | null) => setEquipo(option ? option.value : "")}
+          />
+        </div>
+        <div className="border-2 border-gray-500 p-2 rounded-md">
+          <label className="block mb-1 text-base font-semibold text-gray-800">Horómetro:</label>
+          <input
+            type="text"
+            value={horometro}
+            required
+            onChange={e => setHorometro(e.target.value)}
+            className="w-full p-2 text-base border-2 border-gray-500 rounded-md"
+            placeholder="Ingrese Horómetro del equipo"
           />
         </div>
         <div className="border-2 border-gray-500 p-2 rounded-md">
@@ -312,7 +318,6 @@ export default function InspeccionDeEquipo() {
           <input
             type="date"
             value={fecha}
-            readOnly
             onChange={e => setFecha(e.target.value)}
             className="w-full h-9 text-base border-2 border-gray-500 rounded-md px-2 py-1"
           />
@@ -322,7 +327,6 @@ export default function InspeccionDeEquipo() {
           <input
             type="time"
             value={hora}
-            readOnly
             onChange={e => setHora(e.target.value)}
             className="w-full h-9 text-base border-2 border-gray-500 rounded-md px-2 py-1"
           />
@@ -336,6 +340,7 @@ export default function InspeccionDeEquipo() {
               <input
                 type="time"
                 name="turnoInicio"
+                required
                 value={horaDe}
                 onChange={e => setHoraDe(e.target.value)}
                 className="w-full text-base border-2 border-gray-500 rounded-md px-2 py-1"
@@ -348,6 +353,7 @@ export default function InspeccionDeEquipo() {
               <input
                 type="time"
                 name="turnoFin"
+                required
                 value={horaA}
                 onChange={e => setHoraA(e.target.value)}
                 className="w-full text-base border-2 border-gray-500 rounded-md px-2 py-1"
@@ -362,15 +368,10 @@ export default function InspeccionDeEquipo() {
         <table className="min-w-full border-collapse">
           <thead>
             <tr>
-              <th scope="col" className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">
-                Equipo
-              </th>
-              <th scope="col" className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">
-                Fecha
-              </th>
-              <th scope="col" className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">
-                Hora
-              </th>
+              <th className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">Equipo</th>
+              <th className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">Horómetro</th>
+              <th className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">Fecha</th>
+              <th className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">Hora</th>
             </tr>
           </thead>
           <tbody>
@@ -380,18 +381,26 @@ export default function InspeccionDeEquipo() {
                   className="react-select-container text-base border-2 border-gray-500 rounded-md"
                   classNamePrefix="react-select"
                   options={equipoOptions}
+                  required
                   placeholder="Seleccione Equipo"
                   value={equipo ? { value: equipo, label: equipo } : null}
-                  onChange={(option: OptionType | null) =>
-                    setEquipo(option ? option.value : "")
-                  }
+                  onChange={(option: OptionType | null) => setEquipo(option ? option.value : "")}
+                />
+              </td>
+              <td className="px-4 py-3 border-2 border-gray-500">
+                <input
+                  type="text"
+                  value={horometro}
+                  required
+                  onChange={e => setHorometro(e.target.value)}
+                  className="w-full p-2 text-base border-2 border-gray-500 rounded-md"
+                  placeholder="Ingrese Horómetro del equipo"
                 />
               </td>
               <td className="px-4 py-3 border-2 border-gray-500">
                 <input
                   type="date"
                   value={fecha}
-                  readOnly
                   onChange={e => setFecha(e.target.value)}
                   className="w-full h-9 text-base border-2 border-gray-500 rounded-md px-2 py-1"
                 />
@@ -400,7 +409,6 @@ export default function InspeccionDeEquipo() {
                 <input
                   type="time"
                   value={hora}
-                  readOnly
                   onChange={e => setHora(e.target.value)}
                   className="w-full h-9 text-base border-2 border-gray-500 rounded-md px-2 py-1"
                 />
@@ -408,9 +416,7 @@ export default function InspeccionDeEquipo() {
             </tr>
             <tr>
               <td className="px-4 py-3 border-2 border-gray-500">
-                <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">
-                 Operador
-                </label>
+                <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">Operador</label>
                 <input
                   type="text"
                   value={operador}
@@ -423,24 +429,22 @@ export default function InspeccionDeEquipo() {
               <td className="px-4 py-3 border-2 border-gray-500" colSpan={3}>
                 <div className="flex flex-row space-x-4">
                   <div className="flex-1">
-                    <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">
-                      Turno de
-                    </label>
+                    <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">Turno de</label>
                     <input
                       type="time"
                       name="turnoInicio"
+                      required
                       value={horaDe}
                       onChange={e => setHoraDe(e.target.value)}
                       className="w-full text-base border-2 border-gray-500 rounded-md px-2 py-1"
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">
-                      a
-                    </label>
+                    <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">a</label>
                     <input
                       type="time"
                       name="turnoFin"
+                      required
                       value={horaA}
                       onChange={e => setHoraA(e.target.value)}
                       className="w-full text-base border-2 border-gray-500 rounded-md px-2 py-1"
@@ -453,8 +457,7 @@ export default function InspeccionDeEquipo() {
         </table>
       </div>
 
-      {/* Inspecciones */}
-      {/* Vista para dispositivos móviles */}
+      {/* Inspecciones - Vista móvil */}
       <div className="block md:hidden mb-6">
         {inspecciones.map((item, index) => (
           <div key={item.id} className="p-4 border-2 border-gray-500 rounded-md mb-4">
@@ -488,9 +491,7 @@ export default function InspeccionDeEquipo() {
               </div>
             </div>
             <div>
-              <label className="block text-gray-800 font-semibold text-base mb-1">
-                Observaciones:
-              </label>
+              <label className="block text-gray-800 font-semibold text-base mb-1">Observaciones:</label>
               <textarea
                 placeholder="Agregar observación..."
                 value={item.observaciones}
@@ -502,29 +503,21 @@ export default function InspeccionDeEquipo() {
         ))}
       </div>
 
-      {/* Vista para PC: Inspecciones en tabla */}
+      {/* Inspecciones - Vista para PC */}
       <div className="hidden md:block overflow-x-auto mb-6">
         <table className="min-w-full border-collapse">
           <thead>
             <tr>
-              <th scope="col" className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">
-                N°
-              </th>
-              <th scope="col" className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">
-                Parte Evaluada
-              </th>
-              <th scope="col" className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">
-                Cumple
-              </th>
-              <th scope="col" className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">
-                Observaciones
-              </th>
+              <th className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">N°</th>
+              <th className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">Parte Evaluada</th>
+              <th className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">Cumple</th>
+              <th className="px-4 py-3 border-2 border-gray-500 text-base font-bold text-gray-800">Observaciones</th>
             </tr>
           </thead>
           <tbody>
             {inspecciones.map((item, index) => (
               <tr key={item.id}>
-                <th scope="row" className="px-4 py-3 border-2 border-gray-500 text-base text-gray-700">
+                <th className="px-4 py-3 border-2 border-gray-500 text-base text-gray-700" scope="row">
                   {index + 1}
                 </th>
                 <td className="px-4 py-3 border-2 border-gray-500 text-base text-gray-700">

@@ -34,6 +34,7 @@ interface Equipo {
   userId: number | null;
   userName: string | null;
   equipo: string;
+  horometro: string;
   operador: string;
   fecha: string;
   hora: string;
@@ -478,6 +479,17 @@ export default function EquiposPage() {
                           <input
                             type="text"
                             value={viewData.equipo}
+                            readOnly
+                            className="w-full p-2 text-base border-2 border-gray-500 rounded-md"
+                          />
+                        </div>
+                        <div className="sm:flex-1">
+                          <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">
+                            Horómetro
+                          </label>
+                          <input
+                            type="text"
+                            value={viewData.horometro}
                             readOnly
                             className="w-full p-2 text-base border-2 border-gray-500 rounded-md"
                           />

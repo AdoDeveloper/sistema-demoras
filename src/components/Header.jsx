@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { signOut } from "next-auth/react";
-import { FiHome, FiChevronDown, FiLogOut, FiUser } from "react-icons/fi";
+import { FiHome, FiChevronDown, FiLogOut, FiUser, FiHelpCircle } from "react-icons/fi";
 
 export default function Header() {
   const router = useRouter();
@@ -11,7 +11,7 @@ export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef(null);
 
-  // Retrieve user data from localStorage
+  // Recuperar datos del usuario desde localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const cached = localStorage.getItem("userName");
@@ -21,7 +21,7 @@ export default function Header() {
     }
   }, []);
 
-  // Close menu when clicking outside
+  // Cerrar el menú al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -55,7 +55,7 @@ export default function Header() {
     signOut();
   }
 
-  // Get user initial for avatar
+  // Inicial para avatar
   const userInitial = cachedUser ? cachedUser.charAt(0).toUpperCase() : "U";
 
   return (
@@ -66,9 +66,7 @@ export default function Header() {
             <FiHome size={28} className="text-blue-600" />
           </button>
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-800">
-              Control de Tiempos
-            </h1>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-800">Control de Tiempos</h1>
             <p className="text-xs sm:text-sm text-gray-500">Panel de Control</p>
           </div>
         </div>
@@ -82,9 +80,7 @@ export default function Header() {
               <div className="w-8 h-8 rounded-full bg-gray-200/90 flex items-center justify-center text-gray-900 font-medium">
                 <FiUser size={20} className="text-gray-700" />
               </div>
-              <span className="uppercase hidden sm:inline text-gray-700">
-                {cachedUser || "Usuario"}
-              </span>
+              <span className="uppercase hidden sm:inline text-gray-700">{cachedUser || "Usuario"}</span>
               <FiChevronDown size={16} className="text-gray-700" />
             </button>
 
@@ -101,6 +97,14 @@ export default function Header() {
                 >
                   <FiUser className="mr-2" size={16} />
                   Mi Perfil
+                </a>
+                {/* Nueva opción de Soporte */}
+                <a
+                  href="/soporte"
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <FiHelpCircle className="mr-2" size={16} />
+                  Soporte
                 </a>
                 <div className="border-t border-gray-100 my-1"></div>
                 <button

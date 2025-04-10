@@ -21,14 +21,23 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "strictNullChecks": true
   },
   "include": [
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
-, "src/components/WeatherLoader.jsx", "src/components/Loader.jsx", "src/components/PDFBitacora.jsx", "src/components/SVGComponent.jsx" ,"src/components/Footer.jsx", "src/components/AnalysisLoader.jsx", "src/components/LoginForm.tsx"  ],
+    "**/*.tsx",
+    "src/components/WeatherLoader.jsx",
+    "src/components/Loader.jsx",
+    "src/components/PDFBitacora.jsx",
+    "src/components/SVGComponent.jsx",
+    "src/components/Footer.jsx",
+    "src/components/AnalysisLoader.jsx",
+    "src/components/LoginForm.tsx",
+    "src/app/soporte/page.jsx"
+  ],
   "exclude": [
     "node_modules"
   ]

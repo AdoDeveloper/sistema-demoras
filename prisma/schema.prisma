@@ -27,6 +27,10 @@ model User {
   sessions       Session[]
   roleId         Int       @map("role_id")
   role           Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tickets        Ticket[]
+  assignedTickets Ticket[] @relation("TicketAssignedAdmin")
+  mensajes        Mensaje[]  @relation("MessageSender")
+  receivedMessages Mensaje[] @relation("MessageReceiver")
 
   @@map("users")
 }
@@ -653,33 +657,70 @@ model Operacion {
 
 model Equipo {
   id              Int               @id @default(autoincrement()) @map("id")
-  userId        Int?             @map("user_id")
-  userName        String?          @map("user_name")
+  userId          Int?              @map("user_id")
+  userName        String?           @map("user_name")
   equipo          String            @map("equipo")          // Nombre o identificador del equipo
+  horometro       String            @map("horometro")      // Horómetro del equipo
   operador        String            @map("operador")        // Nombre del operador
   fecha           String            @map("fecha")           // Fecha de la inspección
   hora            String            @map("hora")            // Hora de inicio inspección
   horaDe          String            @map("hora_de")         // Hora de inicio
   horaA           String            @map("hora_a")          // Hora de finalización
   recomendaciones String?           @map("recomendaciones") @db.LongText // Recomendaciones (opcional)
-  user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inspecciones    Inspeccion[]     @relation("equipo_inspecciones")
+  user            User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inspecciones    Json?             @map("inspecciones")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
   @@map("equipos")
 }
 
-model Inspeccion {
-  id            Int         @id @default(autoincrement()) @map("id")
-  titulo        String      @map("titulo")        // Ej: "Inspección de llantas"
-  // Se utiliza un solo campo 'cumple': true indica que se cumple (1) y false que no se cumple (0)
-  cumple        Boolean     @default(false) @map("cumple")
-  observaciones String?     @map("observaciones") @db.LongText // Observaciones adicionales (opcional)
-  equipoId      Int         @map("equipo_id")
-  equipo        Equipo      @relation("equipo_inspecciones", fields: [equipoId], references: [id], onDelete: Cascade)
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+model Ticket {
+  id         Int       @id @default(autoincrement()) @map("id")
+  numero    String    @map("numero") // Número de ticket
+  fecha      String    @map("fecha")  // Fecha de creación del ticket
+  hora       String    @map("hora")   // Hora de creación del ticket
+  userName   String?   @map("user_name") // Nombre del usuario que crea el ticket (opcional)
+  userId     Int       @map("user_id")   // ID del usuario que crea el ticket
+  asunto     String    @map("asunto")    // Asunto del ticket
+  descripcion String   @map("descripcion") @db.LongText // Descripción del ticket
+  imagenUrl  String?   @map("imagen_url") // URL de la imagen subida a Cloudinary (opcional)
+  imagenPublicId  String?   @map("imagen_public_id") // ID público de la imagen en Cloudinary (opcional)
+  estado     String    @map("estado") @default("pendiente") // Valores sugeridos: "pendiente", "en_proceso", "completado", "detenido"
+  assignedTo Int?      @map("assigned_to")  // ID del admin que atiende el ticket
+  mensajes   Mensaje[]
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  
+  @@index([userId], map: "tickets_user_id_fkey")
+  @@index([assignedTo], map: "tickets_assigned_to_fkey")
+  @@map("tickets")
 
-  @@map("inspecciones")
+  // Relación con el usuario que creó el ticket
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relación opcional para obtener los datos del admin asignado
+  admin      User?     @relation("TicketAssignedAdmin", fields: [assignedTo], references: [id], onDelete: SetNull)
 }
+
+model Mensaje {
+  id             Int      @id @default(autoincrement()) @map("id")
+  ticketId       Int      @map("ticket_id")
+  senderId       Int      @map("sender_id")
+  receiverId     Int?     @map("receiver_id")         // Campo nuevo para el receptor del mensaje
+  text           String?  @map("text") @db.LongText
+  imageUrl       String?  @map("image_url")
+  imagenPublicId String?  @map("imagen_public_id")
+  delivered      Boolean  @default(false) @map("delivered") // Indica si se recibió en el cliente
+  read           Boolean  @default(false) @map("read")      // Indica si fue leído
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  
+  // Relación con el ticket
+  @@map("mensajes")
+  @@index([ticketId], map: "mensajes_ticket_id_fkey")
+  @@index([senderId], map: "mensajes_sender_id_fkey")
+  @@index([receiverId], map: "mensajes_receiver_id_fkey")  // Índice para el receptor
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender         User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver       User?    @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
+  }

@@ -18,15 +18,16 @@ function getFileName() {
 export async function GET(request) {
   try {
     // 1) Consultar todos los equipos junto con su historial de inspecciones.
+    // No se usa "include" porque inspecciones es un campo JSON dentro de Equipo.
     const equipos = await prisma.equipo.findMany({
-      orderBy: { fecha: "asc" },
-      include: { inspecciones: true },
+      orderBy: { fecha: "asc" }
     });
 
     // 2) Obtener todos los títulos únicos de inspección (para la hoja resumen).
     const uniqueInspectionTitles = new Set();
     equipos.forEach((e) => {
-      e.inspecciones.forEach((insp) => {
+      const insps = Array.isArray(e.inspecciones) ? e.inspecciones : [];
+      insps.forEach((insp) => {
         if (insp.titulo) uniqueInspectionTitles.add(insp.titulo);
       });
     });
@@ -44,6 +45,7 @@ export async function GET(request) {
     const fixedColumns = [
       { header: "ID", key: "id", width: 10 },
       { header: "Equipo", key: "equipo", width: 20 },
+      { header: "Horómetro", key: "horometro", width: 15 },
       { header: "Operador", key: "operador", width: 20 },
       { header: "Fecha", key: "fecha", width: 15 },
       { header: "Hora", key: "hora", width: 15 },
@@ -53,11 +55,11 @@ export async function GET(request) {
     ];
 
     // Columnas dinámicas por cada título de inspección:
-    // Una columna con el título de la inspección y otra para Observaciones.
+    // Se asigna una columna para el resultado y otra para las observaciones.
     const dynamicColumns = [];
     inspectionTitles.forEach((title, index) => {
       dynamicColumns.push({ header: title, key: `insp_${index}`, width: 15 });
-      dynamicColumns.push({ header: `Observaciones ${index+1}`, key: `obs_${index}`, width: 30 });
+      dynamicColumns.push({ header: `Observaciones ${index + 1}`, key: `obs_${index}`, width: 30 });
     });
 
     summarySheet.columns = fixedColumns.concat(dynamicColumns);
@@ -67,17 +69,19 @@ export async function GET(request) {
       const row = {
         id: e.id,
         equipo: e.equipo || "",
+        horometro: e.horometro || "",
         operador: e.operador || "",
-        fecha: (e.fecha || ""),
+        fecha: e.fecha || "",
         hora: e.hora || "",
         horaDe: e.horaDe || "",
         horaA: e.horaA || "",
         recomendaciones: e.recomendaciones || "",
       };
 
-      // Para cada título de inspección, buscar si existe ese registro.
+      // Para cada título de inspección, buscar si existe ese registro en el array JSON
       inspectionTitles.forEach((title, index) => {
-        const insp = e.inspecciones.find((i) => i.titulo === title);
+        const insps = Array.isArray(e.inspecciones) ? e.inspecciones : [];
+        const insp = insps.find((i) => i.titulo === title);
         if (insp) {
           row[`insp_${index}`] = insp.cumple === true ? "SI" : "NO";
           row[`obs_${index}`] = insp.observaciones || "";
@@ -134,13 +138,13 @@ export async function GET(request) {
     });
 
     for (const groupName in groups) {
-      // El nombre de la hoja se basa en el grupo (truncado a 31 caracteres si es necesario)
+      // Nombre de la hoja basado en el grupo (truncado a 31 caracteres si es necesario)
       let sheetName = groupName;
       if (sheetName.length > 31) {
         sheetName = sheetName.substring(0, 31);
       }
       const ws = workbook.addWorksheet(sheetName);
-      // Usaremos columnas A a D para el formato de bloque.
+      // Definir columnas fijas para formato de bloque.
       ws.columns = [
         { header: "", key: "A", width: 10 },
         { header: "", key: "B", width: 30 },
@@ -164,33 +168,23 @@ export async function GET(request) {
 
         // Encabezados de datos generales
         ws.getCell(`A${currentRow}`).value = "Equipo";
-        ws.getCell(`B${currentRow}`).value = "Fecha";
-        ws.getCell(`C${currentRow}`).value = "Operador";
-        ["A", "B", "C"].forEach((col) => {
+        ws.getCell(`B${currentRow}`).value = "Horómetro";
+        ws.getCell(`C${currentRow}`).value = "Fecha";
+        ws.getCell(`D${currentRow}`).value = "Operador";
+        ["A", "B", "C", "D"].forEach((col) => {
           const cell = ws.getCell(`${col}${currentRow}`);
           cell.font = { bold: true };
           cell.alignment = { horizontal: "center" };
-          // cell.border = {
-          //   top: { style: "thin" },
-          //   left: { style: "thin" },
-          //   bottom: { style: "thin" },
-          //   right: { style: "thin" },
-          // };
         });
         currentRow++;
 
         // Valores de datos generales
         ws.getCell(`A${currentRow}`).value = registro.equipo || "";
-        ws.getCell(`B${currentRow}`).value = (registro.fecha ? registro.fecha + " " : "") + (registro.hora || "");
-        ws.getCell(`C${currentRow}`).value = registro.operador || "";
-        ["A", "B", "C"].forEach((col) => {
+        ws.getCell(`B${currentRow}`).value = registro.horometro || "";
+        ws.getCell(`C${currentRow}`).value = (registro.fecha ? registro.fecha + " " : "") + (registro.hora || "");
+        ws.getCell(`D${currentRow}`).value = registro.operador || "";
+        ["A", "B", "C", "D"].forEach((col) => {
           const cell = ws.getCell(`${col}${currentRow}`);
-          // cell.border = {
-          //   top: { style: "thin" },
-          //   left: { style: "thin" },
-          //   bottom: { style: "thin" },
-          //   right: { style: "thin" },
-          // };
           cell.alignment = { horizontal: "center" };
         });
         currentRow++;
@@ -202,12 +196,6 @@ export async function GET(request) {
           const cell = ws.getCell(`${col}${currentRow}`);
           cell.font = { bold: true };
           cell.alignment = { horizontal: "center" };
-          // cell.border = {
-          //   top: { style: "thin" },
-          //   left: { style: "thin" },
-          //   bottom: { style: "thin" },
-          //   right: { style: "thin" },
-          // };
         });
         currentRow++;
 
@@ -216,12 +204,6 @@ export async function GET(request) {
         ws.getCell(`B${currentRow}`).value = registro.horaA || "";
         ["A", "B"].forEach((col) => {
           const cell = ws.getCell(`${col}${currentRow}`);
-          // cell.border = {
-          //   top: { style: "thin" },
-          //   left: { style: "thin" },
-          //   bottom: { style: "thin" },
-          //   right: { style: "thin" },
-          // };
           cell.alignment = { horizontal: "center" };
         });
         currentRow++;
@@ -253,12 +235,14 @@ export async function GET(request) {
             bottom: { style: "thin" },
             right: { style: "thin" },
           };
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "86899B" } }; // color celeste
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "86899B" } };
         });
         currentRow++;
 
         // Datos de cada inspección
-        registro.inspecciones.forEach((insp, idx) => {
+        // Se verifica que el campo inspecciones sea un arreglo.
+        const insps = Array.isArray(registro.inspecciones) ? registro.inspecciones : [];
+        insps.forEach((insp, idx) => {
           ws.getCell(`A${currentRow}`).value = idx + 1;
           ws.getCell(`B${currentRow}`).value = insp.titulo || "";
           ws.getCell(`C${currentRow}`).value = insp.cumple === true ? "SI" : "NO";

@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
   page: {
     fontSize: 10, // Aumentar el tamaño de la fuente
     fontFamily: "Helvetica",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#FFFFFF",
     color: "#000",
     paddingTop: 20, // Ajustar el espacio superior
     paddingBottom: 25, // Ajustar el espacio inferior
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
   },
   title: {
-    fontSize: 14, // Tamaño de la fuente más pequeño
+    fontSize: 10,
     fontWeight: "bold",
     color: "#000",
     textTransform: "uppercase",
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   },
   whiteBox1: {
     backgroundColor: "#fff",
-    marginTop: 50,
+    marginTop: 48,
     marginBottom: 0,
     padding: 10,
     borderRadius: 5,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   whiteBox: {
     backgroundColor: "#fff",
-    marginTop: 10,
+    marginTop: 2,
     marginBottom: 0,
     padding: 10,
     borderRadius: 5,
@@ -235,6 +235,7 @@ const styles = StyleSheet.create({
 const PDFEquipo = ({ formData }) => {
   const {
     equipo,
+    horometro,
     operador,
     fecha,
     hora,
@@ -256,8 +257,9 @@ const PDFEquipo = ({ formData }) => {
             <Image style={styles.logo} src="/logo.png" resizeMode="cover" />
           </View>
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>INSPECCIÓN DE ESTADO DE</Text>
-            <Text style={styles.title}>CARGADOR FRONTAL</Text>
+            <Text style={styles.title}>LISTADO DE ACTIVIDADES AL</Text>
+            <Text style={styles.title}>INICIO DE LAS OPERACIONES</Text>
+            <Text style={styles.title}>CON EQUIPO FRONTAL</Text>
           </View>
           <View style={styles.headerIdContainer}>
             <Text style={styles.headerId}>{formatId(id)}</Text>
@@ -277,6 +279,12 @@ const PDFEquipo = ({ formData }) => {
               <Text style={styles.columnLabel}>Equipo</Text>
               <View style={styles.inputBox}>
                 <Text>{equipo || "-"}</Text>
+              </View>
+            </View>
+            <View style={styles.column}>
+              <Text style={styles.columnLabel}>Horómetro</Text>
+              <View style={styles.inputBox}>
+                <Text>{horometro || "-"}</Text>
               </View>
             </View>
             <View style={styles.column}>
