@@ -37,7 +37,7 @@
     "src/components/AnalysisLoader.jsx",
     "src/components/LoginForm.tsx",
     "src/app/soporte/page.jsx"
-  ],
+, "src/app/proceso/consultar/equipo/page.jsx"  ],
   "exclude": [
     "node_modules"
   ]

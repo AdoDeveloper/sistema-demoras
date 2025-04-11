@@ -4,16 +4,23 @@ import { getToken } from "next-auth/jwt";
 
 // GET: Listar equipos con inspecciones (almacenadas en el campo JSON), con paginación
 export async function GET(request) {
+  // Obtener la sesión (token) del usuario autenticado
+  const session = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  if (!session) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "10", 10);
   const search = searchParams.get("search") || "";
-
-  // Asegurarse de que la página sea >= 1
   const currentPage = page < 1 ? 1 : page;
 
-  // Permitir filtrar por nombre del equipo, operador, fecha, etc.
-  const whereClause = search
+  // Crear filtro basado en el rol: si roleId es 1, no se filtra por userId; de lo contrario, se filtra
+  const roleFilter = session.roleId === 1 ? {} : { userId: parseInt(session.id, 10) };
+
+  // Filtro de búsqueda si se indica un término a buscar
+  const searchFilter = search
     ? {
         OR: [
           { equipo: { contains: search } },
@@ -27,6 +34,9 @@ export async function GET(request) {
       }
     : {};
 
+  // Combinar ambos filtros para generar la cláusula WHERE final
+  const whereClause = { ...roleFilter, ...searchFilter };
+
   try {
     const totalCount = await prisma.equipo.count({ where: whereClause });
     const skip = (currentPage - 1) * limit;
@@ -35,7 +45,6 @@ export async function GET(request) {
       where: whereClause,
       skip,
       take: limit,
-      // El campo inspecciones ya forma parte del modelo Equipo
       orderBy: { createdAt: "asc" },
     });
 

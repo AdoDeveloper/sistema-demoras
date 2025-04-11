@@ -21,8 +21,8 @@ export async function GET(request, { params }) {
   const roleId = token?.user?.roleId || token?.roleId;
 
   let ticket;
-  // Si el usuario es admin (roleId === 1) puede acceder a cualquier ticket
   if (Number(roleId) === 1) {
+    // Si el usuario es admin (roleId === 1) puede acceder a cualquier ticket
     ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       select: {
@@ -35,14 +35,13 @@ export async function GET(request, { params }) {
         descripcion: true,
         estado: true,
         assignedTo: true,
-        // Incluimos la información del usuario (sin la contraseña)
+        // Información del usuario que creó el ticket
         user: {
           select: {
             id: true,
             username: true,
             nombreCompleto: true,
             roleId: true,
-            // No se incluye "password"
           },
         },
         // Información del admin asignado (si existe)
@@ -53,6 +52,40 @@ export async function GET(request, { params }) {
             nombreCompleto: true,
             roleId: true,
           },
+        },
+        // Se incluye la relación con los mensajes del ticket
+        mensajes: {
+          select: {
+            id: true,
+            ticketId: true,
+            senderId: true,
+            receiverId: true,
+            text: true,
+            imageUrl: true,
+            imagenPublicId: true,
+            delivered: true,
+            read: true,
+            createdAt: true,
+            updatedAt: true,
+            // Opcionalmente se pueden incluir datos de sender y receiver
+            sender: {
+              select: {
+                id: true,
+                username: true,
+                nombreCompleto: true,
+                roleId: true,
+              },
+            },
+            receiver: {
+              select: {
+                id: true,
+                username: true,
+                nombreCompleto: true,
+                roleId: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
         },
       },
     });
@@ -88,6 +121,38 @@ export async function GET(request, { params }) {
             nombreCompleto: true,
             roleId: true,
           },
+        },
+        mensajes: {
+          select: {
+            id: true,
+            ticketId: true,
+            senderId: true,
+            receiverId: true,
+            text: true,
+            imageUrl: true,
+            imagenPublicId: true,
+            delivered: true,
+            read: true,
+            createdAt: true,
+            updatedAt: true,
+            sender: {
+              select: {
+                id: true,
+                username: true,
+                nombreCompleto: true,
+                roleId: true,
+              },
+            },
+            receiver: {
+              select: {
+                id: true,
+                username: true,
+                nombreCompleto: true,
+                roleId: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
         },
       },
     });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Fragment, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { FiArrowLeft, FiFileText, FiRefreshCw } from "react-icons/fi";
 import Swal from "sweetalert2";
 import PDFEquipo from "../../../../components/PDFEquipo";
@@ -8,9 +9,9 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FaEye, FaFilePdf } from "react-icons/fa";
 
 // Función debounce
-function debounce(func: Function, wait: number) {
-  let timeout: NodeJS.Timeout;
-  return (...args: any[]) => {
+function debounce(func, wait) {
+  let timeout;
+  return (...args) => {
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => {
       func(...args);
@@ -18,46 +19,8 @@ function debounce(func: Function, wait: number) {
   };
 }
 
-// Definición de interfaces para la data
-interface Inspeccion {
-  id: number;
-  titulo: string;
-  cumple: boolean;
-  observaciones?: string;
-  equipoId: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Equipo {
-  id: number;
-  userId: number | null;
-  userName: string | null;
-  equipo: string;
-  horometro: string;
-  operador: string;
-  fecha: string;
-  hora: string;
-  horaDe: string;
-  horaA: string;
-  recomendaciones?: string;
-  createdAt: string;
-  updatedAt: string;
-  inspecciones: Inspeccion[];
-}
-
 // Componente auxiliar que se encarga de descargar el PDF
-function DownloadPDF({
-  viewData,
-  pdfKey,
-  fileName,
-  onDownload,
-}: {
-  viewData: Equipo;
-  pdfKey: number;
-  fileName: string;
-  onDownload: () => void;
-}) {
+function DownloadPDF({ viewData, pdfKey, fileName, onDownload }) {
   const downloadTriggered = useRef(false);
 
   return (
@@ -95,17 +58,19 @@ function DownloadPDF({
 }
 
 export default function EquiposPage() {
-  // Estados para listado de equipos, paginación y búsqueda
-  const [equipos, setEquipos] = useState<Equipo[]>([]);
+  const { data: session } = useSession();
+  // Extraemos el roleId de la sesión (suponiendo que viene en session.user.roleId)
+  const roleId = session?.user?.roleId || null;
+
+  // Estados para el listado de equipos, paginación y búsqueda
+  const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
-  // "searchInput" guarda el valor inmediato del input,
-  // "search" se actualizará con debounce para disparar la consulta.
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-  const [expandedRows, setExpandedRows] = useState<number[]>([]);
+  const [expandedRows, setExpandedRows] = useState([]);
 
   // Estados para filtros de fecha (para consulta y exportación)
   const [fechaInicio, setFechaInicio] = useState("");
@@ -117,15 +82,13 @@ export default function EquiposPage() {
 
   // Estados para el modal de detalles y para la generación del PDF
   const [showViewModal, setShowViewModal] = useState(false);
-  const [viewData, setViewData] = useState<Equipo | null>(null);
-  // Estado para mostrar el componente de descarga
+  const [viewData, setViewData] = useState(null);
   const [renderPDFLink, setRenderPDFLink] = useState(false);
-  // Estado para forzar el re-montaje del componente DownloadPDF
   const [pdfKey, setPdfKey] = useState(0);
 
-  // Función debounced para actualizar el estado de búsqueda
+  // Función debounced para actualizar la búsqueda
   const debouncedSetSearch = useCallback(
-    debounce((value: string) => {
+    debounce((value) => {
       setSearch(value);
     }, 500),
     []
@@ -138,7 +101,7 @@ export default function EquiposPage() {
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
-      },
+      }
     });
     setRenderPDFLink(true);
     setPdfKey((prev) => prev + 1);
@@ -159,7 +122,7 @@ export default function EquiposPage() {
     }
   }
 
-  // Exportar Excel
+  // Función para exportar a Excel; este botón solo estará disponible para roleId igual a 1
   const handleExportarExcel = async () => {
     if (!fechaInicio || !fechaFinal) {
       Swal.fire("Información", "Debe seleccionar la fecha de Inicio y Final.", "warning");
@@ -169,7 +132,7 @@ export default function EquiposPage() {
     Swal.fire({
       title: "Generando Reporte",
       allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
+      didOpen: () => Swal.showLoading()
     });
     try {
       const response = await fetch(
@@ -190,18 +153,18 @@ export default function EquiposPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
       Swal.fire("Éxito", "Archivo generado correctamente.", "success");
-    } catch (error: any) {
+    } catch (error) {
       Swal.fire("Error", "Error exportando Excel: " + error.message, "error");
     } finally {
       setExportLoading(false);
     }
   };
-  
+
   const filteredEquipos = equipos.filter((b) => {
     const fechaEquipo = new Date(b.fecha);
     const inicio = fechaInicio ? new Date(fechaInicio) : null;
     const fin = fechaFinal ? new Date(fechaFinal) : null;
-  
+
     if (inicio && fin) {
       return fechaEquipo >= inicio && fechaEquipo <= fin;
     } else if (inicio) {
@@ -212,7 +175,7 @@ export default function EquiposPage() {
     return true;
   });
 
-  // Función para refrescar la lista de equipos y mostrar alerta al finalizar
+  // Función para refrescar la lista de equipos
   const handleRefresh = async () => {
     setRefreshLoading(true);
     await fetchEquipos();
@@ -224,8 +187,8 @@ export default function EquiposPage() {
     fetchEquipos();
   }, [search, page, limit]);
 
-  // Función para expandir/contraer la lista de inspecciones en la tabla principal
-  const toggleRow = (id: number) => {
+  // Función para expandir/contraer la lista de inspecciones en la tabla
+  const toggleRow = (id) => {
     if (expandedRows.includes(id)) {
       setExpandedRows(expandedRows.filter((rid) => rid !== id));
     } else {
@@ -233,11 +196,10 @@ export default function EquiposPage() {
     }
   };
 
-  // Paginación
   const totalPages = Math.ceil(totalCount / limit);
 
-  // Abre el modal de ver detalles con la data del equipo seleccionado
-  const handleViewDetails = (equipo: Equipo) => {
+  // Abre el modal con los detalles del equipo seleccionado
+  const handleViewDetails = (equipo) => {
     setViewData(equipo);
     setShowViewModal(true);
     setRenderPDFLink(false);
@@ -260,18 +222,21 @@ export default function EquiposPage() {
               <h1 className="text-xl font-bold">Historial de Equipos</h1>
             </div>
             <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
-              <button
-                onClick={handleExportarExcel}
-                title="Exportar Excel"
-                className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
-              >
-                {exportLoading ? (
-                  <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
-                ) : (
-                  <FiFileText size={20} />
-                )}
-                <span className="md:inline">Exportar Excel</span>
-              </button>
+              {/* El botón de exportar Excel se renderiza solo si roleId es 1 */}
+              {roleId === 1 && (
+                <button
+                  onClick={handleExportarExcel}
+                  title="Exportar Excel"
+                  className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
+                >
+                  {exportLoading ? (
+                    <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
+                  ) : (
+                    <FiFileText size={20} />
+                  )}
+                  <span className="md:inline">Exportar Excel</span>
+                </button>
+              )}
               <button
                 onClick={handleRefresh}
                 title="Refrescar"
@@ -286,7 +251,7 @@ export default function EquiposPage() {
               </button>
             </div>
           </div>
-          {/* Filtros de fecha */}
+          {/* Filtros de fecha y búsqueda */}
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex flex-col">
               <label className="text-sm">Fecha Inicio</label>
@@ -314,7 +279,6 @@ export default function EquiposPage() {
                 }}
               />
             </div>
-            {/* Campo de búsqueda en el header */}
             <div className="flex flex-col">
               <label className="text-sm">Buscar</label>
               <input
@@ -349,13 +313,13 @@ export default function EquiposPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="p-2 border text-center" colSpan={6}>
+                  <td className="p-2 border text-center" colSpan="6">
                     Cargando...
                   </td>
                 </tr>
               ) : equipos.length === 0 ? (
                 <tr>
-                  <td className="p-2 border text-center" colSpan={6}>
+                  <td className="p-2 border text-center" colSpan="6">
                     No hay registros
                   </td>
                 </tr>
@@ -363,10 +327,14 @@ export default function EquiposPage() {
                 filteredEquipos.map((eq) => (
                   <Fragment key={eq.id}>
                     <tr className="border-b text-center">
-                      <td className="p-2 border whitespace-nowrap">{eq.fecha} {eq.hora}</td>
+                      <td className="p-2 border whitespace-nowrap">
+                        {eq.fecha} {eq.hora}
+                      </td>
                       <td className="p-2 border whitespace-nowrap">{eq.equipo}</td>
                       <td className="p-2 border whitespace-nowrap">{eq.operador}</td>
-                      <td className="p-2 border whitespace-nowrap">{eq.horaDe} - {eq.horaA}</td>
+                      <td className="p-2 border whitespace-nowrap">
+                        {eq.horaDe} - {eq.horaA}
+                      </td>
                       <td className="p-2 border flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleViewDetails(eq)}
@@ -379,7 +347,7 @@ export default function EquiposPage() {
                     </tr>
                     {expandedRows.includes(eq.id) && (
                       <tr>
-                        <td colSpan={6} className="p-2 border bg-gray-50">
+                        <td colSpan="6" className="p-2 border bg-gray-50">
                           <strong>Inspecciones:</strong>
                           <ul className="list-disc pl-5">
                             {eq.inspecciones.map((insp) => (
@@ -399,7 +367,7 @@ export default function EquiposPage() {
           </table>
         </div>
 
-        {/* Paginación y opción de registros por página */}
+        {/* Paginación y selección de registros por página */}
         <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-2 sm:space-y-0">
           <div className="flex overflow-x-auto space-x-2 w-full sm:w-auto">
             <button
@@ -521,7 +489,7 @@ export default function EquiposPage() {
                     </td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 border-2 border-gray-500" colSpan={3}>
+                    <td className="px-4 py-3 border-2 border-gray-500" colSpan="3">
                       <div className="flex flex-col sm:flex-row sm:space-x-4">
                         <div className="flex-1">
                           <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">

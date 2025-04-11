@@ -18,6 +18,7 @@ import Swal from "sweetalert2";
 export default function ChatSoporte() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
   const [ticketId, setTicketId] = useState(null);
   const [ticketInfo, setTicketInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,22 +33,30 @@ export default function ChatSoporte() {
   const [refreshing, setRefreshing] = useState(false);
   const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  // Nueva variable para controlar si el usuario está interactuando con el select
+  // Para controlar si el select está siendo editado.
   const [isEditingStatus, setIsEditingStatus] = useState(false);
+  // Bandera para ejecutar scroll automático (primer render o al hacer refresh).
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
-  const typingAnimationTimeoutRef = useRef(null);
+  // Ref para tener siempre la última versión de los mensajes.
+  const messagesRef = useRef([]);
+
+  // Actualiza messagesRef cada vez que cambie messages.
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const currentUserId = session?.user?.id;
   const isSupport = session?.user?.roleId === 1;
 
-  // Función de easing para la animación del scroll
+  // Función de easing para animar el scroll (usada en smoothScroll).
   const easeInOutQuad = (t) =>
     t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
-  // Función para animar el scroll con duración personalizada
+  // Función para realizar un scroll suave hasta una posición deseada en un contenedor.
   const smoothScroll = (container, to, duration) => {
     const start = container.scrollTop;
     const change = to - start;
@@ -61,7 +70,7 @@ export default function ChatSoporte() {
     requestAnimationFrame(animateScroll);
   };
 
-  // Detectar si el dispositivo es móvil
+  // Detecta si el dispositivo es móvil.
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -69,21 +78,7 @@ export default function ChatSoporte() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Extraer ticketId de la URL y cargar datos del ticket y mensajes
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tId = urlParams.get("ticketId");
-    setTicketId(tId);
-    if (!tId) {
-      Swal.fire("Error", "No se proporcionó ticketId en la URL", "error");
-      setLoading(false);
-      return;
-    }
-    fetchTicketData(tId);
-    fetchMessages(tId);
-  }, []);
-
-  // Función para obtener la información del ticket
+  // Función unificada que obtiene los datos del ticket y sus mensajes desde /api/chat/[id].
   async function fetchTicketData(tId) {
     try {
       const res = await fetch(`/api/chat/${tId}`);
@@ -97,7 +92,9 @@ export default function ChatSoporte() {
       }
       const data = await res.json();
       setTicketInfo(data);
-      // Solo se actualiza el select si el usuario no está editando
+      // Actualizamos el array de mensajes a partir del ticket unificado.
+      setMessages(data.mensajes);
+      // Sincronizamos el estado del select si el usuario no está editando.
       if (!isEditingStatus) {
         setSelectedStatus(data.estado);
       }
@@ -109,35 +106,94 @@ export default function ChatSoporte() {
     }
   }
 
-  // Función para obtener mensajes desde /api/chat/messages/[ticketId]
-  async function fetchMessages(tId = ticketId) {
-    if (!tId) return;
-    try {
-      const res = await fetch(`/api/chat/messages/${tId}`);
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Error al obtener mensajes");
-      }
-      const data = await res.json();
-      setMessages(data.previousMessages);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
+  // Efecto para ejecutar scroll suave automáticamente cuando se activa la bandera.
+  useEffect(() => {
+    if (shouldAutoScroll && messagesContainerRef.current) {
+      smoothScroll(
+        messagesContainerRef.current,
+        messagesContainerRef.current.scrollHeight,
+        500
+      );
+      setShouldAutoScroll(false);
     }
-  }
+  }, [messages, shouldAutoScroll]);
 
-  // Función para marcar mensajes como entregados usando /api/chat/delivered
+  // Efecto para marcar mensajes como leídos si el usuario está cerca del final.
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
+    const container = messagesContainerRef.current;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom < 50) {
+      markMessagesAsRead();
+    }
+  }, [messages]);
+
+  // Efecto adicional para mostrar el indicador (flecha en círculo) cuando llega un nuevo mensaje
+  // y el usuario no está al final (más de 50px de diferencia).
+  useEffect(() => {
+    if (!shouldAutoScroll && messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distanceFromBottom > 50) {
+        setShowNewMessageIndicator(true);
+      } else {
+        setShowNewMessageIndicator(false);
+      }
+    }
+  }, [messages, shouldAutoScroll]);
+
+  // Extrae el ticketId de la URL y carga la información inicial.
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tId = urlParams.get("ticketId");
+    setTicketId(tId);
+    if (!tId) {
+      Swal.fire("Error", "No se proporcionó ticketId en la URL", "error");
+      setLoading(false);
+      return;
+    }
+    fetchTicketData(tId);
+  }, []);
+
+  // Polling: se actualizan los datos del ticket y se marcan mensajes entregados y leídos.
+  useEffect(() => {
+    if (!ticketId) return;
+    const interval = setInterval(() => {
+      fetchTicketData(ticketId);
+      markMessagesAsDelivered();
+      markMessagesAsRead();
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [ticketId, currentUserId, isEditingStatus]);
+
+  // Botón refresh: activa el flag de scroll automático y actualiza datos.
+  const handleRefreshMessages = async () => {
+    setRefreshing(true);
+    setShouldAutoScroll(true);
+    await fetchTicketData(ticketId);
+    markMessagesAsDelivered();
+    markMessagesAsRead();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  // Función para marcar los mensajes como entregados usando el ref.
   async function markMessagesAsDelivered(ids = null) {
     let msgsToMark;
     if (ids) {
       msgsToMark = ids;
     } else {
-      msgsToMark = messages
+      msgsToMark = messagesRef.current
         .filter((msg) => msg.senderId !== currentUserId && !msg.delivered)
         .map((msg) => msg.id);
     }
     if (msgsToMark.length > 0) {
       try {
-        await fetch("/api/chat/delivered", {
+        // Ejecuta la acción sin esperar para evitar bloquear la UI.
+        fetch("/api/chat/delivered", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ticketId, messageIds: msgsToMark }),
@@ -148,14 +204,15 @@ export default function ChatSoporte() {
     }
   }
 
-  // Función para marcar mensajes como leídos usando /api/chat/read
+  // Función para marcar los mensajes como leídos usando el ref.
   async function markMessagesAsRead() {
-    const msgsToMark = messages
+    const msgsToMark = messagesRef.current
       .filter((msg) => msg.senderId !== currentUserId && !msg.read)
       .map((msg) => msg.id);
     if (msgsToMark.length > 0) {
       try {
-        await fetch("/api/chat/read", {
+        // Ejecuta la acción sin esperar para evitar retrasos en la UI.
+        fetch("/api/chat/read", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ticketId, messageIds: msgsToMark }),
@@ -166,31 +223,7 @@ export default function ChatSoporte() {
     }
   }
 
-  // Polling cada 1.2 segundos para actualizar mensajes y datos del ticket
-  useEffect(() => {
-    if (!ticketId) return;
-    const interval = setInterval(() => {
-      fetchMessages();
-      markMessagesAsDelivered();
-      markMessagesAsRead();
-      fetchTicketData(ticketId);
-    }, 1200);
-    return () => clearInterval(interval);
-  }, [ticketId, messages, currentUserId, isEditingStatus]);
-
-  // Botón de Refresh manual con animación
-  const handleRefreshMessages = async () => {
-    setRefreshing(true);
-    await fetchMessages();
-    await markMessagesAsDelivered();
-    await markMessagesAsRead();
-    await fetchTicketData(ticketId);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
-
-  // Mensaje del sistema (para avisar cambios de estado)
+  // Función para agregar un mensaje del sistema.
   const addSystemMessage = (text) => {
     const message = {
       id: `${Date.now()}-estado`,
@@ -213,7 +246,7 @@ export default function ChatSoporte() {
     }, 5000);
   };
 
-  // Actualizar el estado del ticket (solo para soporte)
+  // Función para actualizar el estado del ticket (solo para soporte).
   const updateTicketStatus = async () => {
     if (!ticketId) return;
     if (selectedStatus === ticketInfo.estado) {
@@ -231,11 +264,12 @@ export default function ChatSoporte() {
         const err = await res.json();
         throw new Error(err.error || "Error al actualizar el estado del ticket");
       }
+      // Se obtiene el ticket actualizado.
       const updatedRes = await fetch(`/api/chat/${ticketId}`);
-      if (!updatedRes.ok) throw new Error("Error al obtener el ticket actualizado");
+      if (!updatedRes.ok)
+        throw new Error("Error al obtener el ticket actualizado");
       const updatedTicket = await updatedRes.json();
       setTicketInfo(updatedTicket);
-      // Al actualizar, se sincroniza el select con el estado actualizado
       setSelectedStatus(updatedTicket.estado);
       addSystemMessage(
         `El estado del ticket se ha actualizado a ${translateStatus(updatedTicket.estado)}.`
@@ -283,7 +317,7 @@ export default function ChatSoporte() {
     }
   };
 
-  // Comparación de senderId convirtiendo ambos a cadena
+  // Define la clase de cada burbuja de mensaje según el remitente.
   const getMessageBubbleClass = (msg) => {
     if (msg.isSystemMessage) return "bg-indigo-600 text-white fade-in";
     if (String(msg.senderId) === String(currentUserId))
@@ -295,36 +329,20 @@ export default function ChatSoporte() {
     setNewMessage(e.target.value);
   };
 
-  // Auto-scroll: se realiza scroll si el usuario está al fondo, de lo contrario se muestra un botón para bajar.
+  // Configura el evento de scroll para mostrar el indicador de mensajes nuevos.
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    const isUserAtBottom = (container) =>
-      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-    if (isUserAtBottom(container)) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      setShowNewMessageIndicator(false);
-    } else {
-      setShowNewMessageIndicator(true);
-    }
-  }, [messages]);
-
-  // Evento scroll del contenedor para ocultar el indicador si el usuario baja
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    const isUserAtBottom = (container) =>
-      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
     const handleScroll = () => {
-      if (isUserAtBottom(container)) {
-        setShowNewMessageIndicator(false);
-      }
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowNewMessageIndicator(distanceFromBottom > 50);
     };
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Función para enviar mensaje usando /api/chat/send y luego marcarlo como entregado
+  // Función para enviar mensaje.
   const handleSendMessage = async () => {
     if (isSending) return;
     if (!newMessage.trim() && !uploadImage) return;
@@ -355,16 +373,15 @@ export default function ChatSoporte() {
         throw new Error(err.error || "Error al enviar mensaje");
       }
       const sendData = await res.json();
-      // Actualización optimista: agregar el mensaje enviado de inmediato
+      // Actualización optimista: se agrega el mensaje enviado al estado.
       setMessages((prev) => [...prev, sendData.newMessage]);
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      // Marcar el mensaje enviado como entregado
-      await fetch("/api/chat/delivered", {
+      // Marcarlo como entregado sin esperar respuesta para mejorar el performance.
+      fetch("/api/chat/delivered", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticketId, messageIds: [sendData.newMessage.id] }),
       });
-      // Limpiar el input y la vista previa
+      // Limpiar input y vista previa.
       setNewMessage("");
       setUploadImage(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -449,13 +466,12 @@ export default function ChatSoporte() {
     );
   }
 
-  // Determinar el partner del chat (para mostrar quién es el otro usuario)
   const chatPartner = isSupport
     ? ticketInfo.user
     : ticketInfo.admin || { username: "Soporte" };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className="min-h-screen flex flex-col bg-gray-100 overflow-hidden">
       {/* Encabezado */}
       <header className="bg-[#003E9B] text-white p-3 md:p-4 flex items-center shadow-md">
         <button
@@ -470,7 +486,7 @@ export default function ChatSoporte() {
 
       {/* Información del Ticket */}
       <div className="max-w-6xl mx-auto w-full px-3 md:px-4 py-3 md:py-4">
-        <div className="bg-white shadow rounded-md p-3 md:p-4">
+        <div className="bg-white shadow rounded-md p-3 md:p-4 animate-fadeIn">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="flex items-center mb-2 md:mb-0">
               <h2 className="text-lg md:text-xl font-bold text-gray-900">
@@ -525,12 +541,13 @@ export default function ChatSoporte() {
           </div>
           {isSupport && (
             <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Actualizar Estado</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Actualizar Estado
+              </label>
               <div className="flex gap-2 mt-1">
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  // Se añaden onFocus y onBlur para controlar si el usuario está interactuando con el select.
                   onFocus={() => setIsEditingStatus(true)}
                   onBlur={() => setIsEditingStatus(false)}
                   className="block w-full border-gray-300 rounded-md shadow-sm text-gray-700"
@@ -578,9 +595,9 @@ export default function ChatSoporte() {
       </div>
 
       {/* Área de mensajes */}
-      <div className="max-w-6xl mx-auto w-full px-3 md:px-4 pb-3 md:pb-4">
-        <div className="bg-white shadow rounded-md flex flex-col" style={{ maxHeight: "70vh" }}>
-          {/* Botón de Refresh integrado en la parte superior del contenedor de mensajes */}
+      <div className="max-w-6xl mx-auto w-full px-3 md:px-4 pb-3 md:pb-4 flex-1">
+        <div className="bg-white shadow rounded-md flex flex-col h-[70vh]">
+          {/* Botón Refresh */}
           <div className="p-2 flex justify-end border-b border-gray-200">
             <button
               onClick={handleRefreshMessages}
@@ -683,7 +700,7 @@ export default function ChatSoporte() {
                                       {msg.read ? (
                                         <>
                                           <FiCheck size={isMobile ? 16 : 12} />
-                                          <FiCheck size={isMobile ? 16 : 12} className="ml-1" />
+                                          <FiCheck size={isMobile ? 16 : 12} className="-ml-1" />
                                         </>
                                       ) : msg.delivered ? (
                                         <FiCheck size={isMobile ? 16 : 12} />
@@ -709,11 +726,15 @@ export default function ChatSoporte() {
             )}
           </div>
 
-          {/* Botón indicador de nuevos mensajes (visible si el usuario no está al fondo) */}
+          {/* Botón indicador para saltar a los nuevos mensajes */}
           {showNewMessageIndicator && (
             <button
               onClick={() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                smoothScroll(
+                  messagesContainerRef.current,
+                  messagesContainerRef.current.scrollHeight,
+                  500
+                );
                 setShowNewMessageIndicator(false);
               }}
               className="fixed bottom-20 right-5 bg-blue-600 text-white p-2 rounded-full shadow-lg animate-bounce"
@@ -835,6 +856,34 @@ export default function ChatSoporte() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .fade-in {
+          animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        /* Animación suave para el contenedor de mensajes */
+        .animate-fadeIn {
+          animation: fadeInContainer 0.6s ease-in-out;
+        }
+        @keyframes fadeInContainer {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
