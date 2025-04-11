@@ -28,10 +28,13 @@ export async function POST(request) {
         );
       }
       try {
-        const uploadResponse = await cloudinary.uploader.upload(imageData, { folder: "chat" });
+        // Generar la carpeta de destino basada en el ticketId
+        const folderName = `chat/${ticketId}`;
+        const uploadResponse = await cloudinary.uploader.upload(imageData, { folder: folderName });
+        
         imageUrl = uploadResponse.secure_url;
         imagenPublicId = uploadResponse.public_id;
-        console.log("Imagen subida a Cloudinary:", imageUrl);
+        console.log(`Imagen subida a Cloudinary en la carpeta ${folderName}:`, imageUrl);
       } catch (error) {
         console.error("Error al subir imagen a Cloudinary:", error);
         return NextResponse.json(
@@ -56,6 +59,7 @@ export async function POST(request) {
         receiver: { select: { id: true, nombreCompleto: true, username: true, roleId: true } },
       },
     });
+    
     console.log(`Mensaje creado para ticket ${ticketId}: ${newMessage.id}`);
     return NextResponse.json({ newMessage });
   } catch (error) {
