@@ -236,6 +236,7 @@ export async function GET(request) {
 
     // Calcular standardization para cada grupo
     const standardizationGranel = computeStandardizationGranel(demorasTransformed);
+    const standardizationEnvasado = computeStandardizationMolino(envasadosTransformed);
     const standardizationMolino = computeStandardizationMolino(molinosTransformed);
     const standardizationActividad = computeStandardizationActividad(actividades);
 
@@ -261,7 +262,7 @@ export async function GET(request) {
       },
       standardization: {
         granel: standardizationGranel,
-        envasado: {}, // Puedes extender esta lógica para Envasado si es necesario.
+        envasado: standardizationEnvasado,
         molino: standardizationMolino,
         actividades: standardizationActividad,
       },

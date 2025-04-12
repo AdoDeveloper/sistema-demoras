@@ -62,9 +62,9 @@ function convertMinutesToHHMMSS(minutes: number): string {
   const hh = Math.floor(totalSeconds / 3600);
   const mm = Math.floor((totalSeconds % 3600) / 60);
   const ss = totalSeconds % 60;
-  return `${hh.toString().padStart(2, "0")}:${mm.toString().padStart(2, "0")}:${ss
+  return `${hh.toString().padStart(2, "0")}:${mm
     .toString()
-    .padStart(2, "0")}`;
+    .padStart(2, "0")}:${ss.toString().padStart(2, "0")}`;
 }
 
 function getTimeDistribution(data: any[]): Record<string, number> {
@@ -79,7 +79,8 @@ function getTimeDistribution(data: any[]): Record<string, number> {
   data.forEach((item) => {
     if (!item.tiempoTotal) return;
     const [hh, mm, ss] = item.tiempoTotal.split(":");
-    const totalMins = parseInt(hh) * 60 + parseInt(mm) + (parseInt(ss || "0") / 60);
+    const totalMins =
+      parseInt(hh) * 60 + parseInt(mm) + (parseInt(ss || "0") / 60);
     if (totalMins < 15) distribution["0-15"]++;
     else if (totalMins < 30) distribution["15-30"]++;
     else if (totalMins < 45) distribution["30-45"]++;
@@ -107,9 +108,17 @@ function getParosDistribution(envasadoData: any[]): Record<string, { totalMinute
 
 function computeStatsForType(records: any[]) {
   if (records.length === 0) {
-    return { totalProcesses: 0, avgTime: "00:00:00", avgMinutes: 0, delayedCount: 0, completedToday: 0 };
+    return {
+      totalProcesses: 0,
+      avgTime: "00:00:00",
+      avgMinutes: 0,
+      delayedCount: 0,
+      completedToday: 0,
+    };
   }
-  const times = records.map((proc) => parseTimeToMinutes(proc.tiempoTotal || "00:00:00"));
+  const times = records.map(
+    (proc) => parseTimeToMinutes(proc.tiempoTotal || "00:00:00")
+  );
   const totalMinutes = times.reduce((sum, m) => sum + m, 0);
   const avg = totalMinutes / records.length;
   const delayedCount = times.filter((time) => time > avg).length;
@@ -117,7 +126,13 @@ function computeStatsForType(records: any[]) {
   const completedToday = records.filter(
     (proc) => new Date(proc.createdAt).toLocaleDateString() === todayDate
   ).length;
-  return { totalProcesses: records.length, avgTime: convertMinutesToHHMMSS(avg), avgMinutes: avg, delayedCount, completedToday };
+  return {
+    totalProcesses: records.length,
+    avgTime: convertMinutesToHHMMSS(avg),
+    avgMinutes: avg,
+    delayedCount,
+    completedToday,
+  };
 }
 
 function computeStandardizationGranel(demoras: any[]) {
@@ -154,9 +169,14 @@ function computeAggregatesByMetodo(records: any[]): {
     groups[metodo].count++;
   });
 
-  const aggregates: Record<string, { count: number; avgTime: string; avgMinutes: number }> = {};
-  let highestMethod: { method: string; avgMinutes: number; count: number } | null = null;
-  let lowestMethod: { method: string; avgMinutes: number; count: number } | null = null;
+  const aggregates: Record<
+    string,
+    { count: number; avgTime: string; avgMinutes: number }
+  > = {};
+  let highestMethod: { method: string; avgMinutes: number; count: number } | null =
+    null;
+  let lowestMethod: { method: string; avgMinutes: number; count: number } | null =
+    null;
 
   Object.keys(groups).forEach((key) => {
     const group = groups[key];
@@ -173,7 +193,7 @@ function computeAggregatesByMetodo(records: any[]): {
       lowestMethod = { method: key, avgMinutes: avg, count: group.count };
     }
   });
-  
+
   return { aggregates, highestMethod, lowestMethod };
 }
 
@@ -217,10 +237,9 @@ function computeAggregatesByPuntoDespacho(records: any[]): Record<string, { coun
    NUEVO COMPONENTE: ParetoChart
    ========================= */
 // Este componente genera un gráfico de Pareto basado en los datos agregados.
-// Recibe un objeto de agregados y a partir de él genera el gráfico y calcula el porcentaje acumulado.
+// Se calcula el porcentaje acumulado a partir de la cantidad (count).
 import { ChartData, ChartOptions } from "chart.js";
 const ParetoChart = ({ aggregates }: { aggregates: Record<string, { count: number; avgTime: string }> }) => {
-  // Convertir el objeto en un arreglo y ordenar de mayor a menor según count.
   const dataArray = Object.entries(aggregates)
     .map(([category, data]) => ({ category, count: data.count }))
     .sort((a, b) => b.count - a.count);
@@ -278,7 +297,10 @@ const ParetoChart = ({ aggregates }: { aggregates: Record<string, { count: numbe
   return (
     <div className="bg-white p-4 rounded shadow-md mb-6">
       <div className="relative h-72 w-full">
-        <Bar data={barData as unknown as ChartData<"bar", (number | [number, number] | null)[], unknown>} options={barOptions} />
+        <Bar
+          data={barData as unknown as ChartData<"bar", (number | [number, number] | null)[], unknown>}
+          options={barOptions}
+        />
       </div>
     </div>
   );
@@ -357,7 +379,8 @@ type ButtonProps = {
   className?: string;
 };
 const Button = ({ children, onClick, variant = "outline", disabled = false, className = "" }: ButtonProps) => {
-  const base = "px-3 py-2 rounded-md font-medium focus:outline-none transition-colors";
+  const base =
+    "px-3 py-2 rounded-md font-medium focus:outline-none transition-colors";
   let variantClass = "";
   if (variant === "outline") {
     variantClass = "bg-white text-[#FF9B4D] hover:bg-gray-100";
@@ -369,7 +392,11 @@ const Button = ({ children, onClick, variant = "outline", disabled = false, clas
     variantClass = "bg-gray-200 hover:bg-gray-300";
   }
   return (
-    <button onClick={onClick} disabled={disabled} className={`${base} ${variantClass} ${className}`}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${base} ${variantClass} ${className}`}
+    >
       {children}
     </button>
   );
@@ -395,7 +422,15 @@ const TabsList = ({ children, className = "" }: { children: React.ReactNode; cla
 // Se amplía el tipo TabValue para incluir molino y actividades
 type TabValue = "granel" | "envasado" | "molino" | "actividades";
 // Se amplía el tipo de subpestañas para incluir Pareto
-type SubTabValue = "timeStats" | "distribution" | "efficiency" | "global" | "standards" | "aggregates" | "paros" | "pareto";
+type SubTabValue =
+  | "timeStats"
+  | "distribution"
+  | "efficiency"
+  | "global"
+  | "standards"
+  | "aggregates"
+  | "paros"
+  | "pareto";
 
 type TabsTriggerProps = {
   value: TabValue;
@@ -407,7 +442,16 @@ type TabsTriggerProps = {
   activeTextColor: string;
   inactiveTextColor: string;
 };
-const TabsTrigger = ({ value, activeTab, onClick, children, activeBg, inactiveBg, activeTextColor, inactiveTextColor }: TabsTriggerProps) => (
+const TabsTrigger = ({
+  value,
+  activeTab,
+  onClick,
+  children,
+  activeBg,
+  inactiveBg,
+  activeTextColor,
+  inactiveTextColor,
+}: TabsTriggerProps) => (
   <button
     onClick={() => onClick(value)}
     className={`px-4 py-2 rounded transition-colors ${
@@ -455,8 +499,10 @@ function TimeStandardsReport({ data, type }: { data: any[]; type: TabValue }) {
           const [hh, mm, ss] = d.tiempoTotal.split(":");
           return parseInt(hh) * 60 + parseInt(mm) + (parseInt(ss || "0") / 60);
         }),
-        backgroundColor: type === "granel" ? "rgba(255, 155, 77, 0.6)" : "rgba(59, 79, 228, 0.6)",
-        borderColor: type === "granel" ? "rgba(255, 155, 77, 1)" : "rgba(59, 79, 228, 1)",
+        backgroundColor:
+          type === "granel" ? "rgba(255, 155, 77, 0.6)" : "rgba(59, 79, 228, 0.6)",
+        borderColor:
+          type === "granel" ? "rgba(255, 155, 77, 1)" : "rgba(59, 79, 228, 1)",
         borderWidth: 1,
       },
     ],
@@ -489,7 +535,14 @@ function ProcessTimeDistribution({ data, type }: { data: any[]; type: TabValue }
     datasets: [
       {
         data: Object.values(distribution),
-        backgroundColor: ["#FF9B4D", "#FFCD56", "#4BC0C0", "#36A2EB", "#9966FF", "#FF6384"],
+        backgroundColor: [
+          "#FF9B4D",
+          "#FFCD56",
+          "#4BC0C0",
+          "#36A2EB",
+          "#9966FF",
+          "#FF6384",
+        ],
       },
     ],
   };
@@ -525,7 +578,8 @@ function ProcessEfficiencyMetrics({ data, type, targetTime }: { data: any[]; typ
         label: "Tiempo Proceso (min)",
         data: times,
         fill: false,
-        borderColor: type === "granel" ? "rgba(255, 155, 77, 1)" : "rgba(59, 79, 228, 1)",
+        borderColor:
+          type === "granel" ? "rgba(255, 155, 77, 1)" : "rgba(59, 79, 228, 1)",
         tension: 0.1,
       },
       {
@@ -612,8 +666,14 @@ function GlobalStatsChart({ stats }: { stats: { totalProcesses: number; delayedC
     datasets: [
       {
         data: [stats.totalProcesses - stats.delayedCount, stats.delayedCount],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
-        borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+        backgroundColor: [
+          "rgba(75, 192, 192, 0.6)",
+          "rgba(255, 99, 132, 0.6)",
+        ],
+        borderColor: [
+          "rgba(75, 192, 192, 1)",
+          "rgba(255, 99, 132, 1)",
+        ],
         borderWidth: 1,
       },
     ],
@@ -637,13 +697,19 @@ function GlobalStatsChart({ stats }: { stats: { totalProcesses: number; delayedC
 
 function StandardizationReport({ standardization }: { standardization: any }) {
   if (!standardization)
-    return <p className="text-gray-500">No hay datos de estandarización.</p>;
+    return (
+      <p className="text-gray-500">
+        No hay datos de estandarización.
+      </p>
+    );
   return (
     <div className="space-y-4 mb-6">
       {Object.entries(standardization).map(([group, avgTime]) => (
         <div key={group} className="bg-white p-4 rounded shadow-md">
           <h3 className="font-semibold mb-2">{group.toUpperCase()}</h3>
-          <p className="text-sm text-gray-700">Tiempo Promedio: {String(avgTime)}</p>
+          <p className="text-sm text-gray-700">
+            Tiempo Promedio: {String(avgTime)}
+          </p>
         </div>
       ))}
     </div>
@@ -652,14 +718,20 @@ function StandardizationReport({ standardization }: { standardization: any }) {
 
 function AggregatesReport({ aggregates }: { aggregates: Record<string, { count: number; avgTime: string }> }) {
   if (!aggregates)
-    return <p className="text-gray-500">No hay datos de agregados.</p>;
+    return (
+      <p className="text-gray-500">
+        No hay datos de agregados.
+      </p>
+    );
   return (
     <div className="space-y-4 mb-6">
       {Object.entries(aggregates).map(([metodo, data]) => (
         <div key={metodo} className="bg-white p-4 rounded shadow-md">
           <h3 className="font-semibold mb-2">Método: {metodo}</h3>
           <p className="text-sm text-gray-700">Cantidad: {data.count}</p>
-          <p className="text-sm text-gray-700">Tiempo Promedio: {data.avgTime}</p>
+          <p className="text-sm text-gray-700">
+            Tiempo Promedio: {data.avgTime}
+          </p>
         </div>
       ))}
     </div>
@@ -691,22 +763,51 @@ type ProcessData = {
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
-  // Se extiende el estado para incluir molino y actividades
-  const [data, setData] = useState<ProcessData>({ granel: [], envasado: [], molino: [], actividades: [] });
+  // Estado para los datos de los diferentes procesos.
+  const [data, setData] = useState<ProcessData>({
+    granel: [],
+    envasado: [],
+    molino: [],
+    actividades: [],
+  });
   const [stats, setStats] = useState({
-    granel: { avgTime: "00:00:00", avgMinutes: 0, totalProcesses: 0, delayedCount: 0, completedToday: 0 },
-    envasado: { avgTime: "00:00:00", avgMinutes: 0, totalProcesses: 0, delayedCount: 0, completedToday: 0 },
-    molino: { avgTime: "00:00:00", avgMinutes: 0, totalProcesses: 0, delayedCount: 0, completedToday: 0 },
-    actividades: { avgTime: "00:00:00", avgMinutes: 0, totalProcesses: 0, delayedCount: 0, completedToday: 0 },
+    granel: {
+      avgTime: "00:00:00",
+      avgMinutes: 0,
+      totalProcesses: 0,
+      delayedCount: 0,
+      completedToday: 0,
+    },
+    envasado: {
+      avgTime: "00:00:00",
+      avgMinutes: 0,
+      totalProcesses: 0,
+      delayedCount: 0,
+      completedToday: 0,
+    },
+    molino: {
+      avgTime: "00:00:00",
+      avgMinutes: 0,
+      totalProcesses: 0,
+      delayedCount: 0,
+      completedToday: 0,
+    },
+    actividades: {
+      avgTime: "00:00:00",
+      avgMinutes: 0,
+      totalProcesses: 0,
+      delayedCount: 0,
+      completedToday: 0,
+    },
   });
   const [standardization, setStandardization] = useState<any>(null);
   const [aggregates, setAggregates] = useState<any>(null);
-  // Ahora las pestañas principales incluyen granel, envasado, molino y actividades
+  // Pestañas principales: granel, envasado, molino y actividades.
   const [activeTab, setActiveTab] = useState<TabValue>("granel");
   const [subTab, setSubTab] = useState<SubTabValue>("timeStats");
   const [isLive, setIsLive] = useState<boolean>(false);
 
-  // Filtros avanzados: se usan solo para granel, envasado y molino (no para actividades)
+  // Filtros avanzados se usan solo para granel, envasado y molino (no para actividades).
   const [filters, setFilters] = useState<FilterCriteria>({
     condicion: { include: [], exclude: [] },
     puntoDespacho: { include: [], exclude: [] },
@@ -724,7 +825,12 @@ export default function Dashboard() {
         const envasadoStats = computeStatsForType(json.data.envasado);
         const molinoStats = computeStatsForType(json.data.molino);
         const actividadesStats = computeStatsForType(json.data.actividades);
-        setStats({ granel: granelStats, envasado: envasadoStats, molino: molinoStats, actividades: actividadesStats });
+        setStats({
+          granel: granelStats,
+          envasado: envasadoStats,
+          molino: molinoStats,
+          actividades: actividadesStats,
+        });
         setStandardization(json.standardization);
         setAggregates(json.aggregates);
         Swal.fire({
@@ -751,7 +857,7 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  // Seleccionar los datos según la pestaña activa
+  // Seleccionar datos según la pestaña activa.
   const currentData = data[activeTab];
 
   // Para granel, envasado y molino se usan filtros basados en primerProceso.
@@ -759,12 +865,24 @@ export default function Dashboard() {
   let uniquePuntoDespachos: string[] = [];
   let uniqueMetodos: string[] = [];
   if (activeTab !== "actividades") {
-    uniqueCondiciones = Array.from(new Set(currentData.map((item) => item.primerProceso?.condicion).filter(Boolean)));
-    uniquePuntoDespachos = Array.from(new Set(currentData.map((item) => item.primerProceso?.puntoDespacho).filter(Boolean)));
-    uniqueMetodos = Array.from(new Set(currentData.map((item) => item.primerProceso?.metodoCarga).filter(Boolean)));
+    uniqueCondiciones = Array.from(
+      new Set(
+        currentData.map((item) => item.primerProceso?.condicion).filter(Boolean)
+      )
+    );
+    uniquePuntoDespachos = Array.from(
+      new Set(
+        currentData.map((item) => item.primerProceso?.puntoDespacho).filter(Boolean)
+      )
+    );
+    uniqueMetodos = Array.from(
+      new Set(
+        currentData.map((item) => item.primerProceso?.metodoCarga).filter(Boolean)
+      )
+    );
   }
 
-  // Filtrado: para actividades no se filtra, para los demás se usan los filtros.
+  // Filtrado: para actividades no se filtra; para los demás, se aplican los filtros.
   const filteredData = currentData.filter((item) => {
     if (activeTab === "actividades") {
       return true;
@@ -772,12 +890,36 @@ export default function Dashboard() {
       const condicion = item.primerProceso?.condicion;
       const puntoDespacho = item.primerProceso?.puntoDespacho;
       const metodoCarga = item.primerProceso?.metodoCarga;
-      if (filters.condicion.include.length && !filters.condicion.include.includes(condicion)) return false;
-      if (filters.condicion.exclude.length && filters.condicion.exclude.includes(condicion)) return false;
-      if (filters.puntoDespacho.include.length && !filters.puntoDespacho.include.includes(puntoDespacho)) return false;
-      if (filters.puntoDespacho.exclude.length && filters.puntoDespacho.exclude.includes(puntoDespacho)) return false;
-      if (filters.metodoCarga.include.length && !filters.metodoCarga.include.includes(metodoCarga)) return false;
-      if (filters.metodoCarga.exclude.length && filters.metodoCarga.exclude.includes(metodoCarga)) return false;
+      if (
+        filters.condicion.include.length &&
+        !filters.condicion.include.includes(condicion)
+      )
+        return false;
+      if (
+        filters.condicion.exclude.length &&
+        filters.condicion.exclude.includes(condicion)
+      )
+        return false;
+      if (
+        filters.puntoDespacho.include.length &&
+        !filters.puntoDespacho.include.includes(puntoDespacho)
+      )
+        return false;
+      if (
+        filters.puntoDespacho.exclude.length &&
+        filters.puntoDespacho.exclude.includes(puntoDespacho)
+      )
+        return false;
+      if (
+        filters.metodoCarga.include.length &&
+        !filters.metodoCarga.include.includes(metodoCarga)
+      )
+        return false;
+      if (
+        filters.metodoCarga.exclude.length &&
+        filters.metodoCarga.exclude.includes(metodoCarga)
+      )
+        return false;
       return true;
     }
   });
@@ -812,7 +954,7 @@ export default function Dashboard() {
           <div className="flex items-center mb-4 md:mb-0">
             <button
               onClick={() => (window.location.href = "/")}
-              className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+              className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-transform duration-300 transform hover:scale-105"
               title="Volver"
             >
               <FiArrowLeft size={20} />
@@ -823,7 +965,7 @@ export default function Dashboard() {
             <button
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-sm transition-all duration-300 transform hover:scale-105"
+              className="flex items-center bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-sm transition-transform duration-300 transform hover:scale-105"
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Refrescar
@@ -843,10 +985,16 @@ export default function Dashboard() {
                 includeSelected={filters.condicion.include}
                 excludeSelected={filters.condicion.exclude}
                 onIncludeChange={(selected) =>
-                  setFilters((prev) => ({ ...prev, condicion: { ...prev.condicion, include: selected } }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    condicion: { ...prev.condicion, include: selected },
+                  }))
                 }
                 onExcludeChange={(selected) =>
-                  setFilters((prev) => ({ ...prev, condicion: { ...prev.condicion, exclude: selected } }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    condicion: { ...prev.condicion, exclude: selected },
+                  }))
                 }
               />
               <FilterFieldGroup
@@ -855,10 +1003,16 @@ export default function Dashboard() {
                 includeSelected={filters.puntoDespacho.include}
                 excludeSelected={filters.puntoDespacho.exclude}
                 onIncludeChange={(selected) =>
-                  setFilters((prev) => ({ ...prev, puntoDespacho: { ...prev.puntoDespacho, include: selected } }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    puntoDespacho: { ...prev.puntoDespacho, include: selected },
+                  }))
                 }
                 onExcludeChange={(selected) =>
-                  setFilters((prev) => ({ ...prev, puntoDespacho: { ...prev.puntoDespacho, exclude: selected } }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    puntoDespacho: { ...prev.puntoDespacho, exclude: selected },
+                  }))
                 }
               />
               <FilterFieldGroup
@@ -867,10 +1021,16 @@ export default function Dashboard() {
                 includeSelected={filters.metodoCarga.include}
                 excludeSelected={filters.metodoCarga.exclude}
                 onIncludeChange={(selected) =>
-                  setFilters((prev) => ({ ...prev, metodoCarga: { ...prev.metodoCarga, include: selected } }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    metodoCarga: { ...prev.metodoCarga, include: selected },
+                  }))
                 }
                 onExcludeChange={(selected) =>
-                  setFilters((prev) => ({ ...prev, metodoCarga: { ...prev.metodoCarga, exclude: selected } }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    metodoCarga: { ...prev.metodoCarga, exclude: selected },
+                  }))
                 }
               />
             </div>
@@ -928,87 +1088,133 @@ export default function Dashboard() {
         {/* Tarjetas de Estadísticas */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
           <AnimatePresence mode="sync">
-            <motion.div key={`stat-1-${activeTab}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+            <motion.div
+              key={`stat-1-${activeTab}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
               <Card>
-                <div className={`h-1 w-full ${
-                  activeTab === "granel"
-                    ? "bg-[#FF9B4D]"
-                    : activeTab === "envasado"
-                    ? "bg-[#3B4FE4]"
-                    : activeTab === "molino"
-                    ? "bg-green-600"
-                    : "bg-purple-600"
-                }`} />
+                <div
+                  className={`h-1 w-full ${
+                    activeTab === "granel"
+                      ? "bg-[#FF9B4D]"
+                      : activeTab === "envasado"
+                      ? "bg-[#3B4FE4]"
+                      : activeTab === "molino"
+                      ? "bg-green-600"
+                      : "bg-purple-600"
+                  }`}
+                />
                 <CardHeader>
                   <CardTitle>Tiempo Promedio</CardTitle>
                   <Clock className="h-4 w-4" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{filteredStats.avgTime}</div>
-                  <p className="text-xs text-gray-500">Basado en {filteredStats.totalProcesses} registros</p>
+                  <div className="text-2xl font-bold">
+                    {filteredStats.avgTime}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Basado en {filteredStats.totalProcesses} registros
+                  </p>
                 </CardContent>
               </Card>
             </motion.div>
 
-            <motion.div key={`stat-2-${activeTab}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3, delay: 0.1 }}>
+            <motion.div
+              key={`stat-2-${activeTab}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
               <Card>
-                <div className={`h-1 w-full ${
-                  activeTab === "granel"
-                    ? "bg-[#FF9B4D]"
-                    : activeTab === "envasado"
-                    ? "bg-[#3B4FE4]"
-                    : activeTab === "molino"
-                    ? "bg-green-600"
-                    : "bg-purple-600"
-                }`} />
+                <div
+                  className={`h-1 w-full ${
+                    activeTab === "granel"
+                      ? "bg-[#FF9B4D]"
+                      : activeTab === "envasado"
+                      ? "bg-[#3B4FE4]"
+                      : activeTab === "molino"
+                      ? "bg-green-600"
+                      : "bg-purple-600"
+                  }`}
+                />
                 <CardHeader>
                   <CardTitle>Procesos Retrasados</CardTitle>
                   <AlertTriangle className="h-4 w-4 text-amber-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{filteredStats.delayedCount}</div>
+                  <div className="text-2xl font-bold">
+                    {filteredStats.delayedCount}
+                  </div>
                   <p className="text-xs text-gray-500">
                     {filteredStats.totalProcesses > 0
-                      ? `${((filteredStats.delayedCount / filteredStats.totalProcesses) * 100).toFixed(1)}% del total`
+                      ? `${(
+                          (filteredStats.delayedCount /
+                            filteredStats.totalProcesses) *
+                          100
+                        ).toFixed(1)}% del total`
                       : "0%"}
                   </p>
                 </CardContent>
               </Card>
             </motion.div>
 
-            <motion.div key={`stat-3-${activeTab}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3, delay: 0.2 }}>
+            <motion.div
+              key={`stat-3-${activeTab}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
               <Card>
-                <div className={`h-1 w-full ${
-                  activeTab === "granel"
-                    ? "bg-[#FF9B4D]"
-                    : activeTab === "envasado"
-                    ? "bg-[#3B4FE4]"
-                    : activeTab === "molino"
-                    ? "bg-green-600"
-                    : "bg-purple-600"
-                }`} />
+                <div
+                  className={`h-1 w-full ${
+                    activeTab === "granel"
+                      ? "bg-[#FF9B4D]"
+                      : activeTab === "envasado"
+                      ? "bg-[#3B4FE4]"
+                      : activeTab === "molino"
+                      ? "bg-green-600"
+                      : "bg-purple-600"
+                  }`}
+                />
                 <CardHeader>
                   <CardTitle>Completados Hoy</CardTitle>
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{filteredStats.completedToday}</div>
-                  <p className="text-xs text-gray-500">Procesos finalizados hoy</p>
+                  <div className="text-2xl font-bold">
+                    {filteredStats.completedToday}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Procesos finalizados hoy
+                  </p>
                 </CardContent>
               </Card>
             </motion.div>
 
-            <motion.div key={`stat-4-${activeTab}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3, delay: 0.3 }}>
+            <motion.div
+              key={`stat-4-${activeTab}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
               <Card>
-                <div className={`h-1 w-full ${
-                  activeTab === "granel"
-                    ? "bg-[#FF9B4D]"
-                    : activeTab === "envasado"
-                    ? "bg-[#3B4FE4]"
-                    : activeTab === "molino"
-                    ? "bg-green-600"
-                    : "bg-purple-600"
-                }`} />
+                <div
+                  className={`h-1 w-full ${
+                    activeTab === "granel"
+                      ? "bg-[#FF9B4D]"
+                      : activeTab === "envasado"
+                      ? "bg-[#3B4FE4]"
+                      : activeTab === "molino"
+                      ? "bg-green-600"
+                      : "bg-purple-600"
+                  }`}
+                />
                 <CardHeader>
                   <CardTitle>Eficiencia</CardTitle>
                   <TrendingUp className="h-4 w-4" />
@@ -1016,10 +1222,16 @@ export default function Dashboard() {
                 <CardContent>
                   <div className="text-2xl font-bold">
                     {filteredStats.totalProcesses > 0
-                      ? `${(((filteredStats.totalProcesses - filteredStats.delayedCount) / filteredStats.totalProcesses) * 100).toFixed(1)}%`
+                      ? `${(
+                          ((filteredStats.totalProcesses - filteredStats.delayedCount) /
+                            filteredStats.totalProcesses) *
+                          100
+                        ).toFixed(1)}%`
                       : "0%"}
                   </div>
-                  <p className="text-xs text-gray-500">Procesos en tiempo esperado</p>
+                  <p className="text-xs text-gray-500">
+                    Procesos en tiempo esperado
+                  </p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -1028,74 +1240,166 @@ export default function Dashboard() {
 
         {/* Subpestañas para Gráficos y Reportes */}
         <SubTabsList>
-          <SubTabTrigger label="Estadísticas" value="timeStats" activeSubTab={subTab} onClick={setSubTab} />
-          <SubTabTrigger label="Distribución" value="distribution" activeSubTab={subTab} onClick={setSubTab} />
-          <SubTabTrigger label="Eficiencia" value="efficiency" activeSubTab={subTab} onClick={setSubTab} />
-          <SubTabTrigger label="Global" value="global" activeSubTab={subTab} onClick={setSubTab} />
-          {(activeTab === "granel" || activeTab === "molino") && (
-            <SubTabTrigger label="Estándares" value="standards" activeSubTab={subTab} onClick={setSubTab} />
+          <SubTabTrigger
+            label="Estadísticas"
+            value="timeStats"
+            activeSubTab={subTab}
+            onClick={setSubTab}
+          />
+          <SubTabTrigger
+            label="Distribución"
+            value="distribution"
+            activeSubTab={subTab}
+            onClick={setSubTab}
+          />
+          <SubTabTrigger
+            label="Eficiencia"
+            value="efficiency"
+            activeSubTab={subTab}
+            onClick={setSubTab}
+          />
+          <SubTabTrigger
+            label="Global"
+            value="global"
+            activeSubTab={subTab}
+            onClick={setSubTab}
+          />
+          {(activeTab === "granel" ||
+            activeTab === "envasado" ||
+            activeTab === "molino") && (
+            <SubTabTrigger
+              label="Estándares"
+              value="standards"
+              activeSubTab={subTab}
+              onClick={setSubTab}
+            />
           )}
-          <SubTabTrigger label="Agregados" value="aggregates" activeSubTab={subTab} onClick={setSubTab} />
+          <SubTabTrigger
+            label="Agregados"
+            value="aggregates"
+            activeSubTab={subTab}
+            onClick={setSubTab}
+          />
           {(activeTab === "envasado" || activeTab === "molino") && (
-            <SubTabTrigger label="Paros" value="paros" activeSubTab={subTab} onClick={setSubTab} />
+            <SubTabTrigger
+              label="Paros"
+              value="paros"
+              activeSubTab={subTab}
+              onClick={setSubTab}
+            />
           )}
-          <SubTabTrigger label="Pareto" value="pareto" activeSubTab={subTab} onClick={setSubTab} />
+          <SubTabTrigger
+            label="Pareto"
+            value="pareto"
+            activeSubTab={subTab}
+            onClick={setSubTab}
+          />
         </SubTabsList>
 
         {/* Contenido de las Subpestañas */}
         <div className="mb-6">
-          {subTab === "timeStats" && <TimeStandardsReport data={filteredData} type={activeTab} />}
-          {subTab === "distribution" && <ProcessTimeDistribution data={filteredData} type={activeTab} />}
-          {subTab === "efficiency" && <ProcessEfficiencyMetrics data={filteredData} type={activeTab} targetTime={filteredStats.avgMinutes || 0} />}
-          {subTab === "global" && <GlobalStatsChart stats={filteredStats} />}
-          {subTab === "standards" && (activeTab === "granel" || activeTab === "molino") && (
-            <StandardizationReport standardization={standardization ? standardization[activeTab] : null} />
+          {subTab === "timeStats" && (
+            <TimeStandardsReport data={filteredData} type={activeTab} />
           )}
-          {subTab === "aggregates" && <AggregatesReport aggregates={aggregates ? aggregates[activeTab] : {}} />}
+          {subTab === "distribution" && (
+            <ProcessTimeDistribution data={filteredData} type={activeTab} />
+          )}
+          {subTab === "efficiency" && (
+            <ProcessEfficiencyMetrics
+              data={filteredData}
+              type={activeTab}
+              targetTime={filteredStats.avgMinutes || 0}
+            />
+          )}
+          {subTab === "global" && <GlobalStatsChart stats={filteredStats} />}
+          {subTab === "standards" &&
+            (activeTab === "granel" ||
+              activeTab === "envasado" ||
+              activeTab === "molino") && (
+              <StandardizationReport
+                standardization={
+                  standardization ? standardization[activeTab] : null
+                }
+              />
+            )}
+          {subTab === "aggregates" && (
+            <AggregatesReport aggregates={aggregates ? aggregates[activeTab] : {}} />
+          )}
           {subTab === "paros" &&
-            (activeTab === "envasado" ? <ParosChart data={filteredData} /> : activeTab === "molino" && <ParosMolChart data={filteredData} />)}
+            (activeTab === "envasado"
+              ? <ParosChart data={filteredData} />
+              : activeTab === "molino" && <ParosMolChart data={filteredData} />)}
           {subTab === "pareto" && activeTab !== "actividades" && (
             <>
-            <div className="mb-4">
-              <h2 className="text-lg font-bold mb-2">Pareto por Método de Carga</h2>
-              {(() => {
-                // Se obtienen los agregados y la información del método con mayor y menor promedio
-                const { aggregates, highestMethod, lowestMethod } = computeAggregatesByMetodo(filteredData);
-                return (
-                  <>
-                    <ParetoChart aggregates={aggregates} />
-                    <p className="text-sm text-gray-600 mt-2">
-                      El método con mayor tiempo promedio es{" "}
-                      <span className="font-bold">{highestMethod ? highestMethod.method : "N/A"}</span> con un promedio de{" "}
-                      <span className="font-bold">{highestMethod ? convertMinutesToHHMMSS(highestMethod.avgMinutes) : "00:00:00"}</span> en{" "}
-                      <span className="font-bold">{highestMethod ? highestMethod.count : 0}</span> procesos. <br />
-                      El método con menor tiempo promedio es{" "}
-                      <span className="font-bold">{lowestMethod ? lowestMethod.method : "N/A"}</span> con un promedio de{" "}
-                      <span className="font-bold">{lowestMethod ? convertMinutesToHHMMSS(lowestMethod.avgMinutes) : "00:00:00"}</span> en{" "}
-                      <span className="font-bold">{lowestMethod ? lowestMethod.count : 0}</span> procesos.
-                    </p>
-                  </>
-                );
-              })()}
-            </div>
+              <div className="mb-4">
+                <h2 className="text-lg font-bold mb-2">
+                  Pareto por Método de Carga
+                </h2>
+                {(() => {
+                  const { aggregates, highestMethod, lowestMethod } =
+                    computeAggregatesByMetodo(filteredData);
+                  return (
+                    <>
+                      <ParetoChart aggregates={aggregates} />
+                      <p className="text-sm text-gray-600 mt-2">
+                        El método con mayor tiempo promedio es{" "}
+                        <span className="font-bold">
+                          {highestMethod ? highestMethod.method : "N/A"}
+                        </span>{" "}
+                        con un promedio de{" "}
+                        <span className="font-bold">
+                          {highestMethod
+                            ? convertMinutesToHHMMSS(highestMethod.avgMinutes)
+                            : "00:00:00"}
+                        </span>{" "}
+                        en <span className="font-bold">
+                          {highestMethod ? highestMethod.count : 0}
+                        </span>{" "}
+                        procesos.
+                        <br />
+                        El método con menor tiempo promedio es{" "}
+                        <span className="font-bold">
+                          {lowestMethod ? lowestMethod.method : "N/A"}
+                        </span>{" "}
+                        con un promedio de{" "}
+                        <span className="font-bold">
+                          {lowestMethod
+                            ? convertMinutesToHHMMSS(lowestMethod.avgMinutes)
+                            : "00:00:00"}
+                        </span>{" "}
+                        en <span className="font-bold">
+                          {lowestMethod ? lowestMethod.count : 0}
+                        </span>{" "}
+                        procesos.
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
               <div className="mb-4">
                 <h2 className="text-lg font-bold mb-2">Pareto por Condición</h2>
                 <ParetoChart aggregates={computeAggregatesByCondicion(filteredData)} />
                 <p className="text-sm text-gray-600">
-                  Se analizan las condiciones de los procesos para determinar cuáles impactan más en los tiempos.
+                  Se analizan las condiciones de los procesos para determinar
+                  cuáles impactan más en los tiempos.
                 </p>
               </div>
               <div className="mb-4">
-                <h2 className="text-lg font-bold mb-2">Pareto por Punto de Despacho</h2>
+                <h2 className="text-lg font-bold mb-2">
+                  Pareto por Punto de Despacho
+                </h2>
                 <ParetoChart aggregates={computeAggregatesByPuntoDespacho(filteredData)} />
                 <p className="text-sm text-gray-600">
-                  El análisis muestra cómo varían los tiempos en función del punto de despacho.
+                  El análisis muestra cómo varían los tiempos en función del punto
+                  de despacho.
                 </p>
               </div>
             </>
           )}
           {subTab === "pareto" && activeTab === "actividades" && (
-            <p className="text-sm text-gray-600">El análisis de Pareto no está disponible para actividades.</p>
+            <p className="text-sm text-gray-600">
+              El análisis de Pareto no está disponible para actividades.
+            </p>
           )}
         </div>
       </div>
@@ -1115,7 +1419,12 @@ interface FilterCheckboxGroupProps {
   onChange: (selected: string[]) => void;
 }
 
-const FilterCheckboxGroup: React.FC<FilterCheckboxGroupProps> = ({ title, options, selected, onChange }) => {
+const FilterCheckboxGroup: React.FC<FilterCheckboxGroupProps> = ({
+  title,
+  options,
+  selected,
+  onChange,
+}) => {
   const allSelected = selected.length === options.length;
   return (
     <div>
