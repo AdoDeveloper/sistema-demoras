@@ -139,7 +139,7 @@ export default function Proceso() {
             </button>
           )}
 
-          {(roleId === 1 || roleId === 4) && (
+          {(roleId === 1 || roleId === 4 || roleId === 5) && (
             <button
               onClick={() =>
                 handleProcessConfirm("/proceso/iniciar/equipo", "Inspección de Equipo")

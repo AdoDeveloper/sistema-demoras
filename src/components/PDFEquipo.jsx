@@ -16,35 +16,35 @@ const formatId = (id) => {
 // Estilos ajustados para garantizar que todo cabe en una sola página
 const styles = StyleSheet.create({
   page: {
-    fontSize: 10, // Aumentar el tamaño de la fuente
+    fontSize: 10,
     fontFamily: "Helvetica",
     backgroundColor: "#FFFFFF",
     color: "#000",
-    paddingTop: 20, // Ajustar el espacio superior
-    paddingBottom: 25, // Ajustar el espacio inferior
+    paddingTop: 20,
+    paddingBottom: 25,
     paddingHorizontal: 10,
-    maxHeight: "100%", // Asegura que el contenido no se desborde
-    overflow: "hidden", // Evita que el contenido se salga de la página
+    maxHeight: "100%",
+    overflow: "hidden",
   },
   headerContainer: {
-    backgroundColor: "#FFF", // Fondo blanco
+    backgroundColor: "#FFF",
     paddingTop: 15,
     paddingHorizontal: 15,
     paddingBottom: 15,
-    flexDirection: "row", // Divide el header en tres partes horizontales
-    justifyContent: "space-between", // Ajusta la separación entre elementos
+    flexDirection: "row",
+    justifyContent: "space-between",
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
   },
   logo: {
-    width: '100%', // La imagen ocupa todo el ancho
-    height: '100%', // La imagen ocupa todo el alto
-    objectFit: "cover", // La imagen cubre el recuadro sin distorsionar
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
   },
   titleContainer: {
-    flex: 4, // Ocupa la mayor parte del espacio
+    flex: 4,
     justifyContent: "center",
     alignItems: "center",
     paddingLeft: 15,
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   headerIdContainer: {
-    flex: 1, // Espacio pequeño para el ID
+    flex: 1,
     justifyContent: "center",
     alignItems: "flex-end",
     paddingRight: 10,
@@ -65,12 +65,12 @@ const styles = StyleSheet.create({
   headerId: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "#FF0000", // Color rojo para el ID
+    color: "#FF0000",
     textAlign: "right",
   },
   footerContainer: {
     position: "absolute",
-    bottom: 0, // Colocarlo al final de la página
+    bottom: 0,
     left: 0,
     right: 0,
     height: 20,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     breakInside: "avoid",
   },
   sectionHeader: {
-    fontSize: 11, // Tamaño de fuente de la sección
+    fontSize: 11,
     fontWeight: "bold",
     textTransform: "uppercase",
     marginBottom: 8,
@@ -107,8 +107,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
-    marginBottom: 5,
-    flexWrap: "wrap",
+    marginBottom: 10,
   },
   column: {
     flex: 1,
@@ -130,6 +129,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexWrap: "wrap",
   },
+  // Los estilos de la tabla y otros elementos se mantienen sin cambios...
   tableContainer: {
     marginTop: 5,
     borderWidth: 1,
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     width: 170,
     fontSize: 10,
     padding: 5,
-    textAlign: "justify", // Justifica el texto
+    textAlign: "justify",
     borderRightWidth: 0,
     borderColor: "#eee",
   },
@@ -239,11 +239,13 @@ const PDFEquipo = ({ formData }) => {
     operador,
     fecha,
     hora,
+    horaFin,
+    tiempoTotal,
     horaDe,
     horaA,
     recomendaciones,
     inspecciones,
-    id, // Asumimos que el ID está en formData
+    id, // Se asume que el ID está en formData
   } = formData;
 
   const fechaHoraGenerada = getFechaHoraGenerada();
@@ -271,9 +273,10 @@ const PDFEquipo = ({ formData }) => {
           <Text style={styles.footerText}>Generado: {fechaHoraGenerada}</Text>
         </View>
 
-        {/* Contenido: Datos del Equipo */}
+        {/* Contenido: Datos del Equipo - Diseño Ajustado */}
         <View style={styles.whiteBox1}>
           <Text style={styles.sectionHeader}>Información del Equipo</Text>
+          {/* Primera fila: Equipo, Horómetro y Fecha */}
           <View style={styles.row}>
             <View style={styles.column}>
               <Text style={styles.columnLabel}>Equipo</Text>
@@ -294,20 +297,36 @@ const PDFEquipo = ({ formData }) => {
               </View>
             </View>
           </View>
+          {/* Segunda fila: Termina Inspección, Tiempo Total y Operador */}
           <View style={styles.row}>
+            <View style={styles.column}>
+              <Text style={styles.columnLabel}>Termina Inspección</Text>
+              <View style={styles.inputBox}>
+                <Text>{horaFin || "-"}</Text>
+              </View>
+            </View>
+            <View style={styles.column}>
+              <Text style={styles.columnLabel}>Tiempo Total</Text>
+              <View style={styles.inputBox}>
+                <Text>{tiempoTotal || "-"}</Text>
+              </View>
+            </View>
             <View style={styles.column}>
               <Text style={styles.columnLabel}>Operador</Text>
               <View style={styles.inputBox}>
                 <Text>{operador || "-"}</Text>
               </View>
             </View>
+          </View>
+          {/* Tercera fila: Inicio Turno y Fin Turno */}
+          <View style={styles.row}>
             <View style={styles.column}>
               <Text style={styles.columnLabel}>Inicio Turno</Text>
               <View style={styles.inputBox}>
                 <Text>{horaDe || "-"}</Text>
               </View>
             </View>
-            <View style={styles.column}>
+            <View style={[styles.column, { marginRight: 0 }]}>
               <Text style={styles.columnLabel}>Fin Turno</Text>
               <View style={styles.inputBox}>
                 <Text>{horaA || "-"}</Text>

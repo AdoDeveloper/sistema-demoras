@@ -33,6 +33,9 @@ export default function LoginForm() {
       if(session.user.roleId === 4){
       localStorage.setItem("userNameAll", session.user.nombreCompleto);
       }
+      if(session.user.roleId === 5){
+        localStorage.setItem("userNameAll", session.user.nombreCompleto);
+        }
     }
   }, [session]);
 

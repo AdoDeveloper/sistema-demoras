@@ -49,6 +49,8 @@ export async function GET(request) {
       { header: "Operador", key: "operador", width: 20 },
       { header: "Fecha", key: "fecha", width: 15 },
       { header: "Hora", key: "hora", width: 15 },
+      { header: "Hora Fin", key: "horaFin", width: 15 },
+      { header: "Tiempo Total", key: "tiempoTotal", width: 15 },
       { header: "Inicia Turno", key: "horaDe", width: 15 },
       { header: "Termina Turno", key: "horaA", width: 15 },
       { header: "Recomendaciones", key: "recomendaciones", width: 30 },
@@ -73,6 +75,8 @@ export async function GET(request) {
         operador: e.operador || "",
         fecha: e.fecha || "",
         hora: e.hora || "",
+        horaFin: e.horaFin || "",
+        tiempoTotal: e.tiempoTotal || "",
         horaDe: e.horaDe || "",
         horaA: e.horaA || "",
         recomendaciones: e.recomendaciones || "",
@@ -111,7 +115,7 @@ export async function GET(request) {
       };
     });
 
-    // Opcional: agregar bordes a todas las celdas de datos
+    // Agregar bordes y alineaciones a las celdas de datos
     summarySheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber !== 1) {
         row.eachCell((cell) => {
@@ -143,18 +147,18 @@ export async function GET(request) {
       if (sheetName.length > 31) {
         sheetName = sheetName.substring(0, 31);
       }
+      // Se define la hoja individual con 4 columnas (A a D)
       const ws = workbook.addWorksheet(sheetName);
-      // Definir columnas fijas para formato de bloque.
       ws.columns = [
         { header: "", key: "A", width: 10 },
         { header: "", key: "B", width: 30 },
         { header: "", key: "C", width: 15 },
         { header: "", key: "D", width: 40 },
       ];
-
+    
       let currentRow = 1;
       const registros = groups[groupName];
-
+    
       registros.forEach((registro) => {
         // --- Bloque: Datos Generales del Equipo ---
         // Título del bloque
@@ -165,8 +169,8 @@ export async function GET(request) {
         titleCell.alignment = { horizontal: "center", vertical: "middle" };
         titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "CC4A0B" } };
         currentRow++;
-
-        // Encabezados de datos generales
+    
+        // Encabezados de datos generales (Equipo, Horómetro, Fecha, Operador)
         ws.getCell(`A${currentRow}`).value = "Equipo";
         ws.getCell(`B${currentRow}`).value = "Horómetro";
         ws.getCell(`C${currentRow}`).value = "Fecha";
@@ -177,7 +181,7 @@ export async function GET(request) {
           cell.alignment = { horizontal: "center" };
         });
         currentRow++;
-
+    
         // Valores de datos generales
         ws.getCell(`A${currentRow}`).value = registro.equipo || "";
         ws.getCell(`B${currentRow}`).value = registro.horometro || "";
@@ -188,29 +192,33 @@ export async function GET(request) {
           cell.alignment = { horizontal: "center" };
         });
         currentRow++;
-
-        // Encabezados para Turno
-        ws.getCell(`A${currentRow}`).value = "Inicia Turno";
-        ws.getCell(`B${currentRow}`).value = "Termina Turno";
-        ["A", "B"].forEach((col) => {
+    
+        // --- Recuadro para Hora Fin, Tiempo Total y Turno sin fusionar celdas ---
+        ws.getCell(`A${currentRow}`).value = "Hora Fin";
+        ws.getCell(`B${currentRow}`).value = "Tiempo Total";
+        ws.getCell(`C${currentRow}`).value = "Inicia Turno";
+        ws.getCell(`D${currentRow}`).value = "Termina Turno";
+        ["A", "B", "C", "D"].forEach((col) => {
           const cell = ws.getCell(`${col}${currentRow}`);
           cell.font = { bold: true };
           cell.alignment = { horizontal: "center" };
         });
         currentRow++;
-
-        // Valores para Turno
-        ws.getCell(`A${currentRow}`).value = registro.horaDe || "";
-        ws.getCell(`B${currentRow}`).value = registro.horaA || "";
-        ["A", "B"].forEach((col) => {
+    
+        // Valores correspondientes
+        ws.getCell(`A${currentRow}`).value = registro.horaFin || "";
+        ws.getCell(`B${currentRow}`).value = registro.tiempoTotal || "";
+        ws.getCell(`C${currentRow}`).value = registro.horaDe || "";
+        ws.getCell(`D${currentRow}`).value = registro.horaA || "";
+        ["A", "B", "C", "D"].forEach((col) => {
           const cell = ws.getCell(`${col}${currentRow}`);
           cell.alignment = { horizontal: "center" };
         });
         currentRow++;
 
-        // Espacio adicional
+        // Espacio adicional (línea en blanco)
         currentRow++;
-
+    
         // --- Sección: Historial de Inspecciones ---
         ws.mergeCells(`A${currentRow}:D${currentRow}`);
         const inspTitleCell = ws.getCell(`A${currentRow}`);
@@ -219,7 +227,7 @@ export async function GET(request) {
         inspTitleCell.alignment = { horizontal: "center" };
         inspTitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "3838B0" } };
         currentRow++;
-
+    
         // Encabezados de la tabla de inspecciones
         ws.getCell(`A${currentRow}`).value = "N°";
         ws.getCell(`B${currentRow}`).value = "Parte Evaluada";
@@ -238,9 +246,8 @@ export async function GET(request) {
           cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "86899B" } };
         });
         currentRow++;
-
+    
         // Datos de cada inspección
-        // Se verifica que el campo inspecciones sea un arreglo.
         const insps = Array.isArray(registro.inspecciones) ? registro.inspecciones : [];
         insps.forEach((insp, idx) => {
           ws.getCell(`A${currentRow}`).value = idx + 1;
@@ -263,10 +270,10 @@ export async function GET(request) {
           });
           currentRow++;
         });
-
+    
         // Espacio antes de Recomendaciones
         currentRow++;
-
+    
         // --- Sección: Recomendaciones ---
         ws.mergeCells(`A${currentRow}:D${currentRow}`);
         const recTitleCell = ws.getCell(`A${currentRow}`);
@@ -274,7 +281,7 @@ export async function GET(request) {
         recTitleCell.font = { bold: true };
         recTitleCell.alignment = { horizontal: "left" };
         currentRow++;
-
+    
         ws.mergeCells(`A${currentRow}:D${currentRow}`);
         ws.getCell(`A${currentRow}`).value = registro.recomendaciones || "";
         ws.getCell(`A${currentRow}`).alignment = { wrapText: true, horizontal: "left" };

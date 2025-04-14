@@ -110,7 +110,7 @@ export default function Dashboard() {
         <section className="bg-white p-4 rounded-xl shadow space-y-4">
           <h2 className="text-xl font-bold text-gray-800">Acciones rápidas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {(roleId === 1 || roleId === 2 || roleId === 3 || roleId === 4) && (
+            {(roleId === 1 || roleId === 2 || roleId === 3 || roleId === 4 || roleId === 5) && (
               <>
                 <ActionButton
                   onClick={() => router.push("/proceso/iniciar")}
@@ -160,7 +160,7 @@ export default function Dashboard() {
                 />
               </>
             )}
-            {(roleId === 1 || roleId === 4) && (
+            {(roleId === 1 || roleId === 4 || roleId === 5) && (
               <ActionButton
                 onClick={() => router.push("/proceso/consultar/equipo")}
                 icon={MdFrontLoader}

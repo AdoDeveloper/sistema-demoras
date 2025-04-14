@@ -160,6 +160,8 @@ export default function UserRoleManagement() {
     if (r.includes("administrador")) return "bg-blue-200 text-blue-800 font-bold";
     if (r.includes("asistente operativo")) return "bg-green-200 text-green-800 font-bold";
     if (r.includes("muellero")) return "bg-orange-200 text-orange-800 font-bold";
+    if (r.includes("operador")) return "bg-purple-200 text-purple-800 font-bold";
+    if (r.includes("supervisor")) return "bg-red-200 text-red-800 font-bold";
     return "bg-pink-200 text-pink-800";
   };
 

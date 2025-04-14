@@ -664,6 +664,8 @@ model Equipo {
   operador        String            @map("operador")        // Nombre del operador
   fecha           String            @map("fecha")           // Fecha de la inspección
   hora            String            @map("hora")            // Hora de inicio inspección
+  horaFin         String            @map("hora_fin")        // Hora de finalización
+  tiempoTotal     String            @map("tiempo_total")    // Tiempo total de la actividad
   horaDe          String            @map("hora_de")         // Hora de inicio
   horaA           String            @map("hora_a")          // Hora de finalización
   recomendaciones String?           @map("recomendaciones") @db.LongText // Recomendaciones (opcional)

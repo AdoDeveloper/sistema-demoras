@@ -17,7 +17,7 @@ export async function GET(request) {
   const currentPage = page < 1 ? 1 : page;
 
   // Crear filtro basado en el rol: si roleId es 1, no se filtra por userId; de lo contrario, se filtra
-  const roleFilter = session.roleId === 1 ? {} : { userId: parseInt(session.id, 10) };
+  const roleFilter = session.roleId === 1 || session.roleId === 5 ? {} : { userId: parseInt(session.id, 10) };
 
   // Filtro de búsqueda si se indica un término a buscar
   const searchFilter = search
@@ -68,7 +68,7 @@ export async function POST(request) {
     console.log(">>> [API Debug] BODY RECIBIDO:", body);
 
     // Se espera que el body tenga: equipo, operador, fecha, hora, horaDe, horaA, recomendaciones y un array de inspecciones
-    const { equipo, horometro, operador, fecha, hora, horaDe, horaA, recomendaciones, inspecciones } = body;
+    const { equipo, horometro, operador, fecha, hora, horaFin, tiempoTotal, horaDe, horaA, recomendaciones, inspecciones } = body;
     if (!equipo || !operador || !fecha || !hora) {
       return NextResponse.json({ error: "Faltan datos obligatorios" }, { status: 400 });
     }
@@ -83,6 +83,8 @@ export async function POST(request) {
         operador,        // Nombre del operador
         fecha,           // Fecha de la inspección
         hora,            // Hora de inicio de la inspección
+        horaFin,
+        tiempoTotal,
         horaDe,          // Hora de inicio
         horaA,           // Hora de finalización
         recomendaciones, // Recomendaciones (opcional)

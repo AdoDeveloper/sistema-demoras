@@ -8,13 +8,11 @@ import { FaSave } from "react-icons/fa";
 // Importar react-select de forma dinámica para evitar problemas de SSR/hidratación
 const Select = dynamic(() => import("react-select"), { ssr: false });
 
-// Definición del tipo de opción para react-select
 interface OptionType {
   value: string;
   label: string;
 }
 
-// Opciones de equipo para react-select
 const equipoOptions: OptionType[] = [
   { value: "CAT 1", label: "CAT 1" },
   { value: "CAT 2", label: "CAT 2" },
@@ -27,7 +25,6 @@ const equipoOptions: OptionType[] = [
   { value: "544 H", label: "544 H" },
 ];
 
-// Definición del tipo para cada ítem de inspección usando el campo "cumple"
 interface InspeccionItem {
   id: number;
   titulo: string;
@@ -35,7 +32,6 @@ interface InspeccionItem {
   observaciones: string;
 }
 
-// Lista de inspecciones inicial (cumple inicia en null, es decir, sin selección)
 const inspeccionInicial: InspeccionItem[] = [
   { id: 1, titulo: "Revisar si hay fuga de aceite en el equipo.", cumple: null, observaciones: "" },
   { id: 2, titulo: "Revisar si hay fuga de combustible.", cumple: null, observaciones: "" },
@@ -73,27 +69,27 @@ const inspeccionInicial: InspeccionItem[] = [
 
 export default function InspeccionDeEquipo() {
   const router = useRouter();
+
   // Estados para campos principales
   const [equipo, setEquipo] = useState<string>("");
   const [horometro, setHorometro] = useState<string>("");
   const [operador, setOperador] = useState<string>("");
   const [fecha, setFecha] = useState<string>("");
-  const [hora, setHora] = useState<string>("");
-  const [horaDe, setHoraDe] = useState<string>("");
-  const [horaA, setHoraA] = useState<string>("");
+  const [hora, setHora] = useState<string>("");       // Se usará formato HH:MM:SS
+  const [horaDe, setHoraDe] = useState<string>("");   // Se mantiene HH:MM
+  const [horaA, setHoraA] = useState<string>("");       // Se mantiene HH:MM
   const [recomendaciones, setRecomendaciones] = useState<string>("");
-
-  // Estado para la lista de inspecciones
   const [inspecciones, setInspecciones] = useState<InspeccionItem[]>(inspeccionInicial);
 
-  // Precargar datos desde localStorage al montar el componente
+  // Pre-cargar datos y configurar fecha/hora inicial (incluyendo segundos)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const today = new Date().toISOString().split("T")[0];
       const currentTime = new Date();
       const hours = currentTime.getHours().toString().padStart(2, '0');
       const minutes = currentTime.getMinutes().toString().padStart(2, '0');
-      const hourToday = `${hours}:${minutes}`;
+      const seconds = currentTime.getSeconds().toString().padStart(2, '0');
+      const hourToday = `${hours}:${minutes}:${seconds}`;
       const userName = localStorage.getItem("userNameAll") || "";
       const storedData = localStorage.getItem("inspeccionData");
       if (storedData) {
@@ -115,19 +111,9 @@ export default function InspeccionDeEquipo() {
     }
   }, []);
 
-  // Guardar en localStorage cada vez que cambien los datos
+  // Guardar los datos en localStorage
   useEffect(() => {
-    const data = {
-      equipo,
-      horometro,
-      operador,
-      fecha,
-      hora,
-      horaDe,
-      horaA,
-      recomendaciones,
-      inspecciones,
-    };
+    const data = { equipo, horometro, operador, fecha, hora, horaDe, horaA, recomendaciones, inspecciones };
     localStorage.setItem("inspeccionData", JSON.stringify(data));
   }, [equipo, horometro, operador, fecha, hora, horaDe, horaA, recomendaciones, inspecciones]);
 
@@ -141,7 +127,6 @@ export default function InspeccionDeEquipo() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  // Función para alternar el valor de "cumple"
   const handleCumpleChange = (id: number, value: boolean) => {
     setInspecciones(prev =>
       prev.map(item =>
@@ -150,38 +135,43 @@ export default function InspeccionDeEquipo() {
     );
   };
 
-  // Maneja el cambio en el campo "observaciones"
   const handleObservacionesChange = (id: number, value: string) => {
     setInspecciones(prev =>
       prev.map(item => (item.id === id ? { ...item, observaciones: value } : item))
     );
   };
 
-  // Botón "Guardar": enviar data a /api/equipos
+  // Función para calcular la diferencia entre dos tiempos en formato "HH:MM:SS"
+  function calcularTiempoTotal(horaInicio: string, horaFin: string) {
+    // Función auxiliar para parsear el tiempo a segundos
+    const parseTime = (timeStr: string) => {
+      const parts = timeStr.split(':').map(Number);
+      const h = parts[0] || 0;
+      const m = parts[1] || 0;
+      const s = parts[2] || 0;
+      return h * 3600 + m * 60 + s;
+    };
+    const inicio = parseTime(horaInicio);
+    const fin = parseTime(horaFin);
+    let diffSeconds = fin - inicio;
+    if (diffSeconds < 0) diffSeconds += 24 * 3600;
+    const horas = Math.floor(diffSeconds / 3600);
+    const minutos = Math.floor((diffSeconds % 3600) / 60);
+    const segundos = diffSeconds % 60;
+    return `${horas.toString().padStart(2,'0')}:${minutos.toString().padStart(2,'0')}:${segundos.toString().padStart(2,'0')}`;
+  }
+
   const handleGuardar = async () => {
-    // Validar campos principales
     if (!equipo || !operador || !fecha || !hora || !horaDe || !horaA) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Por favor, complete todos los campos principales.",
-      });
+      Swal.fire({ icon: "error", title: "Error", text: "Por favor, complete todos los campos principales." });
       return;
     }
-
-    // Validar que todas las inspecciones tengan un valor en "cumple"
     const inspeccionesIncompletas = inspecciones.filter(item => item.cumple === null);
     if (inspeccionesIncompletas.length > 0) {
       const mensajes = inspeccionesIncompletas.map(item => `[${item.titulo}]`);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: `Complete las siguientes inspecciones:\n${mensajes.join("\n")}`,
-      });
+      Swal.fire({ icon: "error", title: "Error", text: `Complete las siguientes inspecciones:\n${mensajes.join("\n")}` });
       return;
     }
-
-    // Confirmación de envío irreversible
     const confirmResult = await Swal.fire({
       title: "Confirmar guardado",
       text: "Los datos se enviarán y la acción no se puede revertir. ¿Desea continuar?",
@@ -192,39 +182,29 @@ export default function InspeccionDeEquipo() {
       confirmButtonText: "Sí, enviar",
       cancelButtonText: "Cancelar",
     });
-
     if (!confirmResult.isConfirmed) return;
 
-    Swal.fire({
-      title: "Procesando solicitud...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
+    Swal.fire({ title: "Procesando solicitud...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    const currentTime = new Date();
+    const hoursNow = currentTime.getHours().toString().padStart(2, '0');
+    const minutesNow = currentTime.getMinutes().toString().padStart(2, '0');
+    const secondsNow = currentTime.getSeconds().toString().padStart(2, '0');
+    const horaFin = `${hoursNow}:${minutesNow}:${secondsNow}`;
 
-    // Preparar payload: se envían todos los campos y el arreglo completo de inspecciones
+    const tiempoTotal = calcularTiempoTotal(hora, horaFin);
+
     const payload = {
-      equipo,
-      horometro,
-      operador,
-      fecha,
-      hora,
-      horaDe,
-      horaA,
-      recomendaciones,
+      equipo, horometro, operador, fecha, hora, horaFin, tiempoTotal, horaDe, horaA, recomendaciones,
       inspecciones: inspecciones.map(item => ({
-        id: item.id,
-        titulo: item.titulo,
-        cumple: item.cumple, // Puede ser true o false (ya se validó)
-        observaciones: item.observaciones,
+        id: item.id, titulo: item.titulo, cumple: item.cumple, observaciones: item.observaciones,
       })),
     };
 
     try {
       const res = await fetch("/api/equipos", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       Swal.close();
@@ -235,23 +215,14 @@ export default function InspeccionDeEquipo() {
         });
       } else {
         const errorData = await res.json();
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: errorData.error || "No se pudo guardar la inspección.",
-        });
+        Swal.fire({ icon: "error", title: "Error", text: errorData.error || "No se pudo guardar la inspección." });
       }
     } catch (error) {
       Swal.close();
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo guardar la inspección.",
-      });
+      Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la inspección." });
     }
   };
 
-  // Botón "Cancelar": confirmar y borrar datos almacenados
   const handleCancelar = () => {
     Swal.fire({
       title: "¿Estás seguro?",
@@ -272,12 +243,9 @@ export default function InspeccionDeEquipo() {
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6 bg-white">
-      {/* Título */}
-      <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-6 text-center">
-        Inspección de Equipo
-      </h1>
-
-      {/* Formulario de datos principales: Vista móvil */}
+      <h1 className="text-2xl md:text-3xl font-bold text-blue-800 mb-6 text-center">Inspección de Equipo</h1>
+      
+      {/* Formulario para móvil */}
       <div className="md:hidden flex flex-col space-y-4 mb-6">
         <div className="border-2 border-gray-500 p-2 rounded-md">
           <label className="block mb-1 text-base font-semibold text-gray-800">Equipo:</label>
@@ -324,8 +292,10 @@ export default function InspeccionDeEquipo() {
         </div>
         <div className="border-2 border-gray-500 p-2 rounded-md">
           <label className="block mb-1 text-base font-semibold text-gray-800">Hora:</label>
+          {/* Agregado step="1" para incluir segundos */}
           <input
             type="time"
+            step="1"
             value={hora}
             onChange={e => setHora(e.target.value)}
             className="w-full h-9 text-base border-2 border-gray-500 rounded-md px-2 py-1"
@@ -334,9 +304,7 @@ export default function InspeccionDeEquipo() {
         <div className="border-2 border-gray-500 p-2 rounded-md">
           <div className="flex flex-col space-y-4">
             <div>
-              <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">
-                Turno de
-              </label>
+              <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">Turno de</label>
               <input
                 type="time"
                 name="turnoInicio"
@@ -347,9 +315,7 @@ export default function InspeccionDeEquipo() {
               />
             </div>
             <div>
-              <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">
-                a
-              </label>
+              <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">a</label>
               <input
                 type="time"
                 name="turnoFin"
@@ -362,8 +328,8 @@ export default function InspeccionDeEquipo() {
           </div>
         </div>
       </div>
-
-      {/* Vista para PC: Formulario de datos principales en tabla */}
+      
+      {/* Vista para PC */}
       <div className="hidden md:block mb-6">
         <table className="min-w-full border-collapse">
           <thead>
@@ -406,8 +372,10 @@ export default function InspeccionDeEquipo() {
                 />
               </td>
               <td className="px-4 py-3 border-2 border-gray-500">
+                {/* Agregado step="1" para incluir segundos */}
                 <input
                   type="time"
+                  step="1"
                   value={hora}
                   onChange={e => setHora(e.target.value)}
                   className="w-full h-9 text-base border-2 border-gray-500 rounded-md px-2 py-1"
@@ -456,8 +424,8 @@ export default function InspeccionDeEquipo() {
           </tbody>
         </table>
       </div>
-
-      {/* Inspecciones - Vista móvil */}
+      
+      {/* Inspecciones para móvil */}
       <div className="block md:hidden mb-6">
         {inspecciones.map((item, index) => (
           <div key={item.id} className="p-4 border-2 border-gray-500 rounded-md mb-4">
@@ -502,8 +470,8 @@ export default function InspeccionDeEquipo() {
           </div>
         ))}
       </div>
-
-      {/* Inspecciones - Vista para PC */}
+      
+      {/* Inspecciones para PC */}
       <div className="hidden md:block overflow-x-auto mb-6">
         <table className="min-w-full border-collapse">
           <thead>
@@ -517,12 +485,8 @@ export default function InspeccionDeEquipo() {
           <tbody>
             {inspecciones.map((item, index) => (
               <tr key={item.id}>
-                <th className="px-4 py-3 border-2 border-gray-500 text-base text-gray-700" scope="row">
-                  {index + 1}
-                </th>
-                <td className="px-4 py-3 border-2 border-gray-500 text-base text-gray-700">
-                  {item.titulo}
-                </td>
+                <th className="px-4 py-3 border-2 border-gray-500 text-base text-gray-700">{index + 1}</th>
+                <td className="px-4 py-3 border-2 border-gray-500 text-base text-gray-700">{item.titulo}</td>
                 <td className="px-4 py-3 border-2 border-gray-500 text-base text-gray-700">
                   <div className="flex justify-center items-center space-x-4">
                     <label className="flex items-center space-x-1">
@@ -572,7 +536,7 @@ export default function InspeccionDeEquipo() {
         />
       </div>
 
-      {/* Botones de acción */}
+      {/* Botones */}
       <div className="mt-6 flex justify-between">
         <button
           onClick={handleCancelar}
