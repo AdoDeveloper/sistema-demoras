@@ -224,7 +224,7 @@ export default function EquiposPage() {
             </div>
             <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
               {/* El botón de exportar Excel se renderiza solo si roleId es 1 */}
-              {roleId === 1 || roleId === 5 && (
+              {(roleId === 1 || roleId === 5) && (
                 <button
                   onClick={handleExportarExcel}
                   title="Exportar Excel"
@@ -305,7 +305,7 @@ export default function EquiposPage() {
             <thead className="bg-gray-300">
               <tr>
                 <th className="p-2 border whitespace-nowrap">Fecha</th>
-                {roleId === 1 || roleId === 5 && (
+                {(roleId === 1 || roleId === 5) && (
                   <>
                     <th className="p-2 border whitespace-nowrap">Hora Fin</th>
                     <th className="p-2 border whitespace-nowrap">Tiempo Total</th>
@@ -337,7 +337,7 @@ export default function EquiposPage() {
                       <td className="p-2 border whitespace-nowrap">
                         {eq.fecha} {eq.hora}
                       </td>
-                      {roleId === 1 || roleId === 5 && (
+                      {(roleId === 1 || roleId === 5) && (
                         <>
                         <td className="p-2 border whitespace-nowrap">{eq.horaFin}</td>
                         <td className="p-2 border whitespace-nowrap">{eq.tiempoTotal}</td>
@@ -486,7 +486,7 @@ export default function EquiposPage() {
                             className="w-full p-2 text-base border-2 border-gray-500 rounded-md"
                           />
                         </div>
-                        {roleId === 1 || roleId === 5 && (
+                        {(roleId === 1 || roleId === 5) && (
                           <div className="sm:flex-1">
                             <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">
                               Hora Fin
@@ -505,7 +505,7 @@ export default function EquiposPage() {
                   <tr>
                     <td className="px-4 py-3 border-2 border-gray-500" colSpan="3">
                       <div className="flex flex-col sm:flex-row sm:space-x-4">
-                        {roleId === 1 || roleId === 5 && (
+                      {(roleId === 1 || roleId === 5) && (
                           <div className="flex-1">
                             <label className="block text-base font-semibold text-gray-800 mb-1 uppercase">
                               Tiempo Total
@@ -684,7 +684,7 @@ export default function EquiposPage() {
               />
             </div>
             <div className="mt-4 flex justify-end gap-4">
-            {roleId === 1 || roleId === 5 && (
+            {(roleId === 1 || roleId === 5) && (
               <button
                 onClick={handleGenerarPDF}
                 className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"

@@ -262,7 +262,7 @@ export default function InspeccionDeEquipo() {
         <div className="border-2 border-gray-500 p-2 rounded-md">
           <label className="block mb-1 text-base font-semibold text-gray-800">Horómetro:</label>
           <input
-            type="text"
+            type="number"
             value={horometro}
             required
             onChange={e => setHorometro(e.target.value)}
@@ -357,7 +357,7 @@ export default function InspeccionDeEquipo() {
               </td>
               <td className="px-4 py-3 border-2 border-gray-500">
                 <input
-                  type="text"
+                  type="number"
                   value={horometro}
                   required
                   onChange={e => setHorometro(e.target.value)}
