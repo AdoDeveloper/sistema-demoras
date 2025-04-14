@@ -286,6 +286,7 @@ export default function InspeccionDeEquipo() {
           <input
             type="date"
             value={fecha}
+            readOnly
             onChange={e => setFecha(e.target.value)}
             className="w-full h-9 text-base border-2 border-gray-500 rounded-md px-2 py-1"
           />
@@ -297,6 +298,7 @@ export default function InspeccionDeEquipo() {
             type="time"
             step="1"
             value={hora}
+            readOnly
             onChange={e => setHora(e.target.value)}
             className="w-full h-9 text-base border-2 border-gray-500 rounded-md px-2 py-1"
           />
