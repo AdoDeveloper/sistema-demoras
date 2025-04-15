@@ -423,92 +423,97 @@ export default function UserRoleManagement() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Encabezado principal con azul oscuro */}
-      <header className="bg-blue-800 text-white p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+  <header className="bg-[#003E9B] text-white shadow-lg md:sticky md:top-0 z-50">
+      <div className="mx-auto px-4 py-4">
+        <div className="flex flex-row justify-between">
+          <div className="flex items-center">
+            <button
+              onClick={() => (window.location.href = "/")}
+              className="bg-white hover:bg-gray-200 text-blue-600 p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
+              title="Volver"
+            >
+              <FiArrowLeft size={20} />
+            </button>
+            <h1 className="text-xl font-bold">Usuarios</h1>
+          </div>
           <button
-            onClick={() => (window.location.href = "/")}
-            className="bg-blue-900 hover:bg-blue-950 text-white p-2 rounded-full transition-all duration-300 transform hover:scale-105"
-            title="Volver"
+            onClick={refreshData}
+            className="flex items-center bg-blue-900 hover:bg-blue-950 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
+            title="Actualizar"
           >
-            <FiArrowLeft size={20} />
+            <FiRefreshCw className="mr-2 animate-spin-slow" size={20} />
+            Actualizar
           </button>
-          <h1 className="text-xl font-bold">Gestión de Usuarios</h1>
         </div>
-        <button
-          onClick={refreshData}
-          className="flex items-center bg-blue-900 hover:bg-blue-950 text-white px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
-          title="Actualizar"
-        >
-          <FiRefreshCw className="mr-2 animate-spin-slow" size={20} />
-          Actualizar
-        </button>
-      </header>
+      </div>
+  </header>
 
       <div className="max-w-7xl mx-auto px-2 sm:px-6 py-6">
         <main className="space-y-8 bg-white p-4 border-b border-gray-300">
-          {/* Barra de Tabs y Buscador */}
-          <div>
-            <nav className="flex items-center space-x-6 mb-4">
+        {/* Barra de Tabs y Buscador */}
+        <div>
+          <nav className="flex items-center space-x-6 mb-4">
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`flex items-center space-x-1 pb-1 border-b-2 transition-all duration-300 ${
+                activeTab === "users"
+                  ? "text-blue-600 border-blue-600"
+                  : "text-gray-500 border-transparent hover:text-blue-600 hover:border-blue-600"
+              }`}
+            >
+              <FiUsers size={18} />
+              <span>Usuarios</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("roles")}
+              className={`flex items-center space-x-1 pb-1 border-b-2 transition-all duration-300 ${
+                activeTab === "roles"
+                  ? "text-blue-600 border-blue-600"
+                  : "text-gray-500 border-transparent hover:text-blue-600 hover:border-blue-600"
+              }`}
+            >
+              <FiTag size={18} />
+              <span>Roles</span>
+            </button>
+          </nav>
+          {activeTab === "users" && (
+            <div className="flex flex-col sm:flex-row items-stretch gap-2">
+              <input
+                type="text"
+                placeholder="Buscar usuarios..."
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                className="w-full sm:max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
               <button
-                onClick={() => setActiveTab("users")}
-                className={`flex items-center space-x-1 pb-1 border-b-2 transition-all duration-300 ${
-                  activeTab === "users"
-                    ? "text-blue-600 border-blue-600"
-                    : "text-gray-500 border-transparent hover:text-blue-600 hover:border-blue-600"
-                }`}
+                onClick={openCreateUserModal}
+                className="w-full sm:w-auto flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-md transition"
               >
-                <FiUsers size={18} />
-                <span>Usuarios</span>
+                <FaPlus className="mr-2" />
+                Agregar
               </button>
+            </div>
+          )}
+          {activeTab === "roles" && (
+            <div className="flex flex-col sm:flex-row items-stretch gap-2">
+              <input
+                type="text"
+                placeholder="Buscar roles..."
+                value={roleSearchQuery}
+                onChange={(e) => setRoleSearchQuery(e.target.value)}
+                className="w-full sm:max-w-xs border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
               <button
-                onClick={() => setActiveTab("roles")}
-                className={`flex items-center space-x-1 pb-1 border-b-2 transition-all duration-300 ${
-                  activeTab === "roles"
-                    ? "text-blue-600 border-blue-600"
-                    : "text-gray-500 border-transparent hover:text-blue-600 hover:border-blue-600"
-                }`}
+                onClick={openCreateRoleModal}
+                className="w-full sm:w-auto flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-md transition"
               >
-                <FiTag size={18} />
-                <span>Roles</span>
+                <FaPlus className="mr-2" />
+                Agregar
               </button>
-            </nav>
-            {activeTab === "users" && (
-              <div className="flex items-center space-x-4">
-                <input
-                  type="text"
-                  placeholder="Buscar usuarios..."
-                  value={userSearchQuery}
-                  onChange={(e) => setUserSearchQuery(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <button
-                  onClick={openCreateUserModal}
-                  className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-md transition"
-                >
-                  <FaPlus className="mr-2" />
-                  Agregar
-                </button>
-              </div>
-            )}
-            {activeTab === "roles" && (
-              <div className="flex items-center space-x-4">
-                <input
-                  type="text"
-                  placeholder="Buscar roles..."
-                  value={roleSearchQuery}
-                  onChange={(e) => setRoleSearchQuery(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <button
-                  onClick={openCreateRoleModal}
-                  className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-md transition"
-                >
-                  <FaPlus className="mr-2" />
-                  Agregar
-                </button>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+
           {/* Renderizar tabla según la pestaña activa */}
           {activeTab === "users" ? (
             <section>
@@ -652,7 +657,7 @@ export default function UserRoleManagement() {
                   <input
                     type="text"
                     name="codigo"
-                    placeholder="Código"
+                    placeholder="Código Empleado"
                     className="border p-2 rounded"
                     value={createUserForm.codigo}
                     onChange={handleCreateUserChange}
@@ -740,7 +745,7 @@ export default function UserRoleManagement() {
                   <input
                     type="text"
                     name="codigo"
-                    placeholder="Código"
+                    placeholder="Código Empleado"
                     className="border p-2 rounded"
                     value={editUserForm.codigo}
                     onChange={handleEditUserChange}

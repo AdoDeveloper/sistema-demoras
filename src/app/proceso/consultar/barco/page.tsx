@@ -4,7 +4,7 @@ import { useState, useEffect, FormEvent, useCallback } from "react";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import { FaEye, FaEdit } from "react-icons/fa";
-import { FiArrowLeft, FiTrash2 } from "react-icons/fi";
+import { FiArrowLeft, FiTrash2, FiRefreshCw } from "react-icons/fi";
 
 // Función debounce
 function debounce(func: Function, wait: number) {
@@ -63,6 +63,7 @@ export default function BarcosPage() {
   const [limit, setLimit] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshLoading, setRefreshLoading] = useState(false);
 
   // Estados para modales
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -124,22 +125,26 @@ export default function BarcosPage() {
     fetchBarcos();
   }, [search, page, limit]);
 
-  // Función para ver detalles completos del barco
-  async function handleView(id: number) {
-    try {
-      const res = await fetch(`/api/barcos/${id}`);
-      if (!res.ok) throw new Error("Barco no encontrado");
-      const data = await res.json();
-      setViewData(data);
-      setShowViewModal(true);
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
+  // Función para refrescar la lista
+  async function handleRefresh() {
+    setRefreshLoading(true);
+    await fetchBarcos();
+    setRefreshLoading(false);
+    Swal.fire("Refrescado", "Datos actualizados", "success");
+  }
+
+  // Función para ver detalles completos del barco (usa datos de la lista)
+  function handleView(id: number) {
+    const barcoFound = barcos.find((b) => b.id === id);
+    if (!barcoFound) {
+      return Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo cargar los detalles del barco",
+        text: "Barco no encontrado",
       });
     }
+    setViewData(barcoFound);
+    setShowViewModal(true);
   }
 
   // Abre el modal de creación y resetea los campos
@@ -369,16 +374,30 @@ export default function BarcosPage() {
     <div className="min-h-screen bg-gray-100">
       <header className="bg-[#003E9B] text-white shadow-lg md:sticky md:top-0 z-50">
         <div className="mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-row justify-between">
+            <div className="flex items-center">
               <button
                 onClick={() => (window.location.href = "/")}
-                className="bg-white hover:bg-gray-200 text-blue-600 p-2 rounded-full transition-all duration-300 transform hover:scale-105"
+                className="bg-white hover:bg-gray-200 text-blue-600 p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
                 title="Volver"
               >
                 <FiArrowLeft size={20} />
               </button>
               <h1 className="text-xl font-bold">Registros Barco</h1>
+            </div>
+            <div className="flex items-center">
+              <button
+                onClick={handleRefresh}
+                title="Refrescar"
+                className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded flex items-center gap-1 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
+              >
+                {refreshLoading ? (
+                  <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4"></span>
+                ) : (
+                  <FiRefreshCw size={20} />
+                )}
+                <span className="md:inline">Refrescar</span>
+              </button>
             </div>
           </div>
         </div>
