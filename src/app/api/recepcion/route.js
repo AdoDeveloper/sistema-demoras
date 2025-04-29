@@ -29,9 +29,9 @@ export async function GET(request) {
         }
       : {};
 
-    // Si no es admin (roleId !== 1), sólo propios
+    // Si no es admin (roleId !== 1) o auditor, sólo propios
     const ownerFilter =
-      session.roleId === 1
+      session.roleId === 1 || session.roleId === 7
         ? {}
         : { userId: Number(session.id) };
 

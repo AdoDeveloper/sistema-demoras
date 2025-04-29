@@ -194,7 +194,7 @@ export default function RecepcionPage() {
             <h1 className="text-xl font-bold">Recepciones & Traslados</h1>
           </div>
           <div className="flex gap-3 mt-3 md:mt-0">
-            {(roleId === 1) && (
+            {(roleId === 1 || roleId === 7) && (
               <button
                 onClick={handleExportarExcel}
                 className="bg-green-700 hover:bg-green-800 px-3 py-2 rounded flex items-center gap-1"
@@ -465,7 +465,7 @@ export default function RecepcionPage() {
             </div>
 
             <div className="flex justify-end gap-3">
-              {(roleId === 1) && (
+              {(roleId === 1 || roleId === 7) && (
                 <button
                   onClick={handleGenerarPDF}
                   className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
