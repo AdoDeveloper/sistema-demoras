@@ -50,6 +50,7 @@ const authOptions = {
           username:       user.username,
           roleId:         user.roleId,
           roleName:       user.role.name,
+          codigo:         user.codigo,
           nombreCompleto: user.nombreCompleto,
         };
       },
@@ -76,6 +77,7 @@ const authOptions = {
         token.username       = user.username;
         token.roleId         = user.roleId;
         token.roleName       = user.roleName;
+        token.codigo         = user.codigo;
         token.nombreCompleto = user.nombreCompleto;
         console.log(`✅ [JWT] Token inicial para ${user.username}`);
       }
@@ -87,6 +89,7 @@ const authOptions = {
         username:       token.username,
         roleId:         token.roleId,
         roleName:       token.roleName,
+        codigo:         token.codigo,
         nombreCompleto: token.nombreCompleto,
       };
       console.log(

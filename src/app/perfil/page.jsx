@@ -1,140 +1,175 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { FaFilePdf } from "react-icons/fa";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { FaFilePdf, FaSignOutAlt } from "react-icons/fa";
 import { FiArrowLeft, FiLoader } from "react-icons/fi";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export default function Profile() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  // Estados generales
+  // Estado general
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
 
-  // Estados para Demoras (Granel)
+  // Datos de API (solo para roles 1 y 2)
+  const [apiUser, setApiUser] = useState(null);
   const [globalStats, setGlobalStats] = useState(null);
   const [globalStatsEnv, setGlobalStatsEnv] = useState(null);
   const [dailyStats, setDailyStats] = useState([]);
-  const [records, setRecords] = useState([]);
-  // Estados de paginación para Demoras (Granel)
-  const [demorasPage, setDemorasPage] = useState(1);
-  const [demorasTotalPages, setDemorasTotalPages] = useState(1);
-
-  // Estados para Envasados
   const [envDailyStats, setEnvDailyStats] = useState([]);
-  const [envRecords, setEnvRecords] = useState([]);
-  // Estados de paginación para Envasados
-  const [envasadosPage, setEnvasadosPage] = useState(1);
-  const [envasadosTotalPages, setEnvasadosTotalPages] = useState(1);
 
-  // Estado para pestañas: "demoras" (Granel) o "envasados"
+  // Paginación unificada
+  const [pagination, setPagination] = useState({
+    demoras: { page: 1, totalPages: 1 },
+    envasados: { page: 1, totalPages: 1 }
+  });
+
+  // Opciones de cantidad de registros por página
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
+  const recordsPerPageOptions = [5, 10, 15, 20, 25, 50];
+
+  // Pestaña activa: "demoras" o "envasados"
   const [activeTab, setActiveTab] = useState("demoras");
 
-  // Estados para usuario y role (se obtienen de la sesión)
-  const [cachedUser, setCachedUser] = useState(null);
-  const [roleId, setRoleId] = useState(null);
+  // Filtros de fecha
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  // Estado para PDF
+  // Estado PDF
   const [isGenerating, setIsGenerating] = useState(false);
-  const limit = 10;
 
-  // Función para obtener los datos desde la API
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const url = `/api/user/profile?demorasPage=${demorasPage}&envasadosPage=${envasadosPage}&limit=${limit}&startDate=${encodeURIComponent(
-        startDate
-      )}&endDate=${encodeURIComponent(endDate)}`;
-      const res = await fetch(url);
-      const data = await res.json();
+  // Extraer roleId y datos de perfil desde session
+  const roleId = session?.user?.roleId;
+  const sessionName = session?.user?.nombreCompleto ?? "";
+  const sessionRoleName = session?.user?.roleName ?? "";
+  const sessionCode = session?.user?.codigo ?? "";
 
-      // Datos de Demoras (Granel)
-      setGlobalStats(data.granel.stats);
-      setGlobalStatsEnv(data.envasado.stats);
-      setDailyStats(data.granel.dailyStats || []);
-      setRecords(data.granel.registros || []);
-      setDemorasPage(data.granel.pagination.page);
-      setDemorasTotalPages(data.granel.pagination.totalPages);
+  // Determinar si debe cargar datos de estadísticas
+  const canViewData = roleId === 1 || roleId === 2;
 
-      // Datos de Envasados
-      if (data.envasado) {
+  // Fetch de API: solo cuando canViewData = true
+  useEffect(() => {
+    if (!canViewData) {
+      setLoading(false);
+      return;
+    }
+    
+    const controller = new AbortController();
+
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const url =
+          `/api/user/profile?demorasPage=${pagination.demoras.page}` +
+          `&envasadosPage=${pagination.envasados.page}` +
+          `&limit=${recordsPerPage}` +
+          `&startDate=${encodeURIComponent(startDate)}` +
+          `&endDate=${encodeURIComponent(endDate)}`;
+
+        const res = await fetch(url, { signal: controller.signal });
+        const data = await res.json();
+
+        // Perfil
+        setApiUser(data.user);
+
+        // Granel
+        setGlobalStats(data.granel.stats);
+        setDailyStats(data.granel.dailyStats || []);
+        
+        // Envasado
+        setGlobalStatsEnv(data.envasado.stats);
         setEnvDailyStats(data.envasado.dailyStats || []);
-        setEnvRecords(data.envasado.registros || []);
-        setEnvasadosPage(data.envasado.pagination.page);
-        setEnvasadosTotalPages(data.envasado.pagination.totalPages);
+
+        // Actualizar paginación
+        setPagination(prev => ({
+          demoras: {
+            ...prev.demoras,
+            totalPages: data.granel.pagination.totalPages || 1
+          },
+          envasados: {
+            ...prev.envasados,
+            totalPages: data.envasado.pagination.totalPages || 1
+          }
+        }));
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error(err);
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "No se pudieron obtener los datos.",
+          });
+        }
+      } finally {
+        setLoading(false);
       }
-
-      setUserData(data.user);
-    } catch (error) {
-      console.error("Error fetching data", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudieron obtener los datos.",
-      });
     }
-    setLoading(false);
-  };
 
-  // Llamar a fetchData al inicio y cuando cambien filtros o paginación
-  useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demorasPage, envasadosPage, startDate, endDate]);
+    return () => controller.abort();
+  }, [
+    pagination.demoras.page, 
+    pagination.envasados.page, 
+    startDate, 
+    endDate, 
+    activeTab, 
+    canViewData,
+    recordsPerPage
+  ]);
 
-  // Obtener usuario y roleId de la sesión de NextAuth (de forma segura)
-  useEffect(() => {
-    if (session?.user) {
-      setCachedUser(session.user);
-      setRoleId(session.user.roleId);
-    }
-  }, [session]);
-
-  // Funciones de paginación según la pestaña activa
-  const handlePrevPage = () => {
-    if (activeTab === "demoras" && demorasPage > 1) {
-      setDemorasPage((prev) => prev - 1);
-    } else if (activeTab === "envasados" && envasadosPage > 1) {
-      setEnvasadosPage((prev) => prev - 1);
-    }
-  };
-  const handleNextPage = () => {
-    if (activeTab === "demoras" && demorasPage < demorasTotalPages) {
-      setDemorasPage((prev) => prev + 1);
-    } else if (activeTab === "envasados" && envasadosPage < envasadosTotalPages) {
-      setEnvasadosPage((prev) => prev + 1);
-    }
-  };
-
-  // Función para filtrar por fechas y reiniciar paginación
+  // Handlers de paginación y filtro
   const handleFilter = (e) => {
     e.preventDefault();
-    setDemorasPage(1);
-    setEnvasadosPage(1);
-    fetchData();
+    // Reiniciar ambas páginas al filtrar
+    setPagination({
+      demoras: { ...pagination.demoras, page: 1 },
+      envasados: { ...pagination.envasados, page: 1 }
+    });
   };
 
-  // Cálculos para envasados a partir de envDailyStats
-  const envTotalCabaleo = envDailyStats.reduce(
-    (acc, stat) => acc + (parseInt(stat.cabaleo) || 0),
-    0
-  );
-  const envTotalCargaMaxima = envDailyStats.reduce(
-    (acc, stat) => acc + (parseInt(stat.cargaMaxima) || 0),
-    0
-  );
+  const handlePrevPage = () => {
+    setPagination(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        page: Math.max(prev[activeTab].page - 1, 1)
+      }
+    }));
+  };
 
-  // Función delay para PDF
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const handleNextPage = () => {
+    setPagination(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        page: Math.min(prev[activeTab].page + 1, prev[activeTab].totalPages)
+      }
+    }));
+  };
 
-  // Función para generar reporte PDF según la pestaña activa
+  // Cambiar de pestaña
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
+  // Cambiar cantidad de registros por página
+  const handleRecordsPerPageChange = (e) => {
+    const newValue = parseInt(e.target.value);
+    setRecordsPerPage(newValue);
+    // Reiniciar a la primera página cuando cambia la cantidad de registros
+    setPagination({
+      demoras: { ...pagination.demoras, page: 1 },
+      envasados: { ...pagination.envasados, page: 1 }
+    });
+  };
+
+  // Util para espera
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
   const handleDownloadPDF = async () => {
     if (isGenerating) return;
     setIsGenerating(true);
@@ -206,21 +241,21 @@ export default function Profile() {
 
       // Información del usuario
       const userInfoY = startY;
-      pagePDF.drawText(`${userData?.nombreCompleto || "N/A"}`, {
+      pagePDF.drawText(`${apiUser?.nombreCompleto || "N/A"}`, {
         x: margin,
         y: userInfoY,
         size: 11,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-      pagePDF.drawText(`Código: ${userData?.codigo || "N/A"}`, {
+      pagePDF.drawText(`Código: ${apiUser?.codigo || "N/A"}`, {
         x: margin,
         y: userInfoY - 20,
         size: 11,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-      pagePDF.drawText(`${userData?.role?.name || "N/A"}`, {
+      pagePDF.drawText(`${apiUser?.role?.name || "N/A"}`, {
         x: margin,
         y: userInfoY - 40,
         size: 11,
@@ -241,7 +276,7 @@ export default function Profile() {
         dailyStatsData = envDailyStats;
       }
 
-      if (userData?.role?.id === 1) {
+      if (apiUser?.role?.id === 1) {
         pagePDF.drawText(`Total Registros: ${totalRegistros}`, {
           x: margin,
           y: userInfoY - 60,
@@ -349,8 +384,8 @@ export default function Profile() {
         startTableY -= rowHeight;
         const rowData = [
           stat.fecha,
-          userData?.codigo || "-",
-          userData?.nombreCompleto || "-",
+          apiUser?.codigo || "-",
+          apiUser?.nombreCompleto || "-",
           stat.total?.toString() || "0",
           stat.cargaMaxima?.toString() || "0",
           stat.cabaleo?.toString() || "0",
@@ -419,7 +454,7 @@ export default function Profile() {
       const urlBlob = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = urlBlob;
-      a.download = `${reportType}-${userData?.codigo || "user"}-${new Date().toLocaleDateString()}.pdf`;
+      a.download = `${reportType}-${apiUser?.codigo || "user"}-${new Date().toLocaleDateString()}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -445,93 +480,89 @@ export default function Profile() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 relative">
-      {/* Loader global */}
-      {loading && !userData && (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
-          <FiLoader className="animate-spin mr-2" size={40} />
-          <span className="text-xl text-gray-600">Cargando...</span>
-        </div>
-      )}
+  // Mientras carga sesión
+  if (status === "loading") {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+        <FiLoader className="animate-spin" size={40} />
+        <span className="ml-2 text-xl">Cargando Perfil...</span>
+      </div>
+    );
+  }
 
-      {/* Encabezado con flecha para volver */}
-      <div className="flex items-center py-4 px-3">
+  // Datos para mostrar en perfil (API o session)
+  const displayName = canViewData && apiUser ? apiUser.nombreCompleto : sessionName;
+  const displayRole = canViewData && apiUser ? apiUser.role.name : sessionRoleName;
+  const displayCode = canViewData && apiUser ? apiUser.codigo : sessionCode;
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <div className="flex items-center justify-between py-4 px-3 bg-white shadow">
+        <div className="flex items-center">
+          <button
+            onClick={() => router.push("/")}
+            className="bg-blue-600 text-white p-2 rounded-full mr-3"
+          >
+            <FiArrowLeft size={20} />
+          </button>
+          <h1 className="text-xl font-bold">Perfil de Usuario</h1>
+        </div>
         <button
-          onClick={() => (window.location.href = "/")}
-          className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
-          title="Volver"
+          onClick={() => signOut(localStorage.clear())}
+          className="bg-red-600 hover:bg-red-800 p-2 rounded-md font-medium
+          text-white transform hover:scale-105 active:scale-95 transition-transform
+          flex items-center gap-1 justify-center"
         >
-          <FiArrowLeft size={20} />
+          <FaSignOutAlt /> Cerrar sesión
         </button>
-        <h1 className="text-xl font-bold">Perfil de Usuario</h1>
       </div>
 
-      <main className="container mx-auto px-4 sm:px-4 lg:px-4 py-1">
+      <main className="container mx-auto px-4 py-6">
         {/* Tarjeta de perfil */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8 flex flex-col items-center">
+        <div className="bg-white shadow rounded-lg p-6 mb-8 text-center">
           <img
             src="/user.webp"
             alt="Avatar"
-            className="w-32 h-32 rounded-full mb-4"
+            className="w-32 h-32 rounded-full mx-auto mb-4"
           />
-          {userData ? (
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-800">
-                {userData.nombreCompleto}
-              </h2>
-              <p className="text-gray-600 mt-2">
-                {userData.role?.name || "N/A"}
-              </p>
-              <p className="text-gray-600">
-                Código: {userData.codigo || "N/A"}
-              </p>
-            </div>
-          ) : (
-            <p className="text-gray-500 flex items-center justify-center gap-2">
-              <FiLoader className="animate-spin" /> Cargando perfil...
-            </p>
-          )}
+          <h2 className="text-2xl font-bold">{displayName}</h2>
+          <p className="text-gray-600 mt-1">{displayRole}</p>
+          <p className="text-gray-600">Código: {displayCode}</p>
         </div>
 
-        {/* Mostrar filtros y contenido solo si roleId !== 3 */}
-        {roleId === 1 || roleId === 2 && (
+        {/* Si role 1 o 2, mostrar filtros y estadísticas */}
+        {canViewData && (
           <>
-            {/* Filtro por fechas */}
-            <section className="bg-white rounded-lg shadow p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                Filtrar por Fecha
-              </h2>
+            {/* Filtros de fecha */}
+            <section className="bg-white shadow rounded-lg p-6 mb-8">
+              <h2 className="text-lg font-semibold mb-4">Filtrar por Fecha</h2>
               <form
                 onSubmit={handleFilter}
                 className="grid grid-cols-1 md:grid-cols-3 gap-4"
               >
                 <div>
-                  <label className="block text-gray-700 font-medium">
-                    Fecha Inicio
-                  </label>
+                  <label className="block font-medium">Fecha Inicio</label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 w-full border rounded-md shadow-sm focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-700 font-medium">
-                    Fecha Final
-                  </label>
+                  <label className="block font-medium">Fecha Final</label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 w-full border rounded-md shadow-sm focus:ring-blue-500"
                   />
                 </div>
                 <div className="flex items-end">
                   <button
                     type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md"
                   >
                     Filtrar
                   </button>
@@ -539,254 +570,247 @@ export default function Profile() {
               </form>
             </section>
 
-            {/* Pestañas para Demoras (Granel) y Envasados */}
+            {/* Pestañas */}
             <div className="mb-6">
-              <div className="flex border-b">
+              <div className="flex border-b bg-white shadow p-2 rounded-t-lg">
                 <button
-                  className={`py-2 px-4 focus:outline-none ${
+                  onClick={() => handleTabChange("demoras")}
+                  className={`py-2 px-4 ${
                     activeTab === "demoras"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600"
                   }`}
-                  onClick={() => setActiveTab("demoras")}
                 >
                   Granel
                 </button>
                 <button
-                  className={`py-2 px-4 focus:outline-none ${
+                  onClick={() => handleTabChange("envasados")}
+                  className={`py-2 px-4 ${
                     activeTab === "envasados"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600"
                   }`}
-                  onClick={() => setActiveTab("envasados")}
                 >
                   Envasado
                 </button>
               </div>
             </div>
 
-            {/* Contenido de la pestaña de Demoras (Granel) */}
-            {activeTab === "demoras" && (
-              <>
-                {/* Estadísticas Globales para Demoras */}
-                <section className="mb-8">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                    Estadísticas Globales
-                  </h2>
-                  {loading ? (
-                    <div className="flex justify-center items-center h-32">
-                      <FiLoader className="animate-spin mr-2" size={24} />
-                      <span className="text-gray-500">Cargando...</span>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <p className="text-sm text-gray-500">Total Registros</p>
-                        <p className="mt-2 text-2xl font-bold text-gray-800">
-                          {globalStats?.total || 0}
-                        </p>
-                      </div>
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <p className="text-sm text-gray-500">Total Realizados</p>
-                        <p className="mt-2 text-2xl font-bold text-gray-800">
-                          {globalStats?.totalRegistros || 0}
-                        </p>
-                      </div>
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <p className="text-sm text-gray-500">Cabaleo</p>
-                        <p className="mt-2 text-2xl font-bold text-gray-800">
-                          {globalStats?.totalCabaleo || 0}
-                        </p>
-                      </div>
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <p className="text-sm text-gray-500">Carga Máxima</p>
-                        <p className="mt-2 text-2xl font-bold text-gray-800">
-                          {globalStats?.totalCargaMaxima || 0}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </section>
+            {/* Estadísticas Globales y PDF */}
+            <section className="flex-col md:flex-row bg-white shadow rounded-b-lg p-6 mb-8 flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Estadísticas Globales</h2>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center">
+                  <label htmlFor="recordsPerPage" className="mr-2 text-sm font-medium text-gray-700">
+                    Mostrar:
+                  </label>
+                  <select
+                    id="recordsPerPage"
+                    value={recordsPerPage}
+                    onChange={handleRecordsPerPageChange}
+                    className="border rounded-md px-2 py-1 text-sm"
+                  >
+                    {recordsPerPageOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={loading}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md disabled:opacity-50"
+                >
+                  <FaFilePdf size={16} /> Descargar PDF
+                </button>
+              </div>
+            </section>
 
-                {/* Estadísticas Diarias y opción para PDF en Demoras */}
-                {dailyStats?.length > 0 && userData && (
-                  <section className="mb-8">
-                    <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-                      <h2 className="text-lg font-semibold text-gray-800">
-                        Estadísticas Diarias
-                      </h2>
-                      <button
-                        onClick={handleDownloadPDF}
-                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition mt-4 sm:mt-0"
-                      >
-                        <FaFilePdf size={16} /> Descargar PDF
-                      </button>
+            {/* Granel vs Envasado */}
+            {activeTab === "demoras" && (
+              <section className="mb-8">
+                {loading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <FiLoader className="animate-spin mr-2" size={24} />
+                    <span className="text-gray-500">Cargando...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                    <div className="p-6 bg-white shadow rounded-lg">
+                      <p>Total Registros</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {globalStats?.total ?? 0}
+                      </p>
                     </div>
-                    <div className="bg-white shadow rounded-lg overflow-x-auto">
+                    <div className="p-6 bg-white shadow rounded-lg">
+                      <p>Total Realizados</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {globalStats?.totalRegistros ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-6 bg-white shadow rounded-lg">
+                      <p>Cabaleo</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {globalStats?.totalCabaleo ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-6 bg-white shadow rounded-lg">
+                      <p>Carga Máxima</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {globalStats?.totalCargaMaxima ?? 0}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tabla diaria */}
+                {dailyStats.length > 0 && (
+                  <section>
+                    <h2 className="text-lg font-semibold mb-4">
+                      Estadísticas Diarias
+                    </h2>
+                    <div className="overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Fecha
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Código
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Nombre
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Total
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Carga Máxima
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Cabaleo
-                            </th>
+                            {["Fecha", "Código", "Nombre", "Total", "Carga Máxima", "Cabaleo"].map((h) => (
+                              <th
+                                key={h}
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
+                                {h}
+                              </th>
+                            ))}
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {dailyStats.map((stat, idx) => (
-                            <tr key={idx} className="hover:bg-gray-100">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {stat.fecha}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {userData.codigo || "-"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {userData.nombreCompleto || "-"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                                {stat.total}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                                {stat.cargaMaxima}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                                {stat.cabaleo}
-                              </td>
+                          {dailyStats.map((s, i) => (
+                            <tr key={i} className="hover:bg-gray-100">
+                              <td className="px-6 py-4 whitespace-nowrap">{s.fecha}</td>
+                              <td className="px-6 py-4 whitespace-nowrap">{displayCode}</td>
+                              <td className="px-6 py-4 whitespace-nowrap">{displayName}</td>
+                              <td className="px-6 py-4 text-center">{s.total}</td>
+                              <td className="px-6 py-4 text-center">{s.cargaMaxima}</td>
+                              <td className="px-6 py-4 text-center">{s.cabaleo}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
+                    <div className="flex justify-between items-center mt-4">
+                      <button
+                        onClick={handlePrevPage}
+                        disabled={pagination.demoras.page === 1}
+                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                      >
+                        Anterior
+                      </button>
+                      <span>
+                        Página {pagination.demoras.page} de {pagination.demoras.totalPages}
+                      </span>
+                      <button
+                        onClick={handleNextPage}
+                        disabled={pagination.demoras.page === pagination.demoras.totalPages}
+                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
                   </section>
                 )}
-              </>
+              </section>
             )}
 
-            {/* Contenido de la pestaña de Envasados */}
             {activeTab === "envasados" && (
-              <>
-                {/* Estadísticas Globales para Envasados */}
-                <section className="mb-8">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                    Estadísticas Globales
-                  </h2>
-                  {loading ? (
-                    <div className="flex justify-center items-center h-32">
-                      <FiLoader className="animate-spin mr-2" size={24} />
-                      <span className="text-gray-500">Cargando...</span>
+              <section className="mb-8">
+                {loading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <FiLoader className="animate-spin mr-2" size={24} />
+                    <span className="text-gray-500">Cargando...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                    <div className="p-6 bg-gray-50 rounded-lg">
+                      <p>Total Registros</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {globalStatsEnv?.total ?? 0}
+                      </p>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <p className="text-sm text-gray-500">Total Registros</p>
-                        <p className="mt-2 text-2xl font-bold text-gray-800">
-                          {globalStatsEnv?.total}
-                        </p>
-                      </div>
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <p className="text-sm text-gray-500">Total Realizados</p>
-                        <p className="mt-2 text-2xl font-bold text-gray-800">
-                          {globalStatsEnv?.totalRegistros}
-                        </p>
-                      </div>
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <p className="text-sm text-gray-500">Cabaleo</p>
-                        <p className="mt-2 text-2xl font-bold text-gray-800">
-                          {globalStatsEnv?.totalCabaleo}
-                        </p>
-                      </div>
-                      <div className="bg-white p-6 rounded-lg shadow-md">
-                        <p className="text-sm text-gray-500">Carga Máxima</p>
-                        <p className="mt-2 text-2xl font-bold text-gray-800">
-                          {globalStatsEnv?.totalCargaMaxima}
-                        </p>
-                      </div>
+                    <div className="p-6 bg-gray-50 rounded-lg">
+                      <p>Total Realizados</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {globalStatsEnv?.totalRegistros ?? 0}
+                      </p>
                     </div>
-                  )}
-                </section>
+                    <div className="p-6 bg-gray-50 rounded-lg">
+                      <p>Cabaleo</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {globalStatsEnv?.totalCabaleo ?? 0}
+                      </p>
+                    </div>
+                    <div className="p-6 bg-gray-50 rounded-lg">
+                      <p>Carga Máxima</p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {globalStatsEnv?.totalCargaMaxima ?? 0}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-                {/* Estadísticas Diarias y opción para PDF en Envasados */}
-                {envDailyStats?.length > 0 && userData && (
-                  <section className="mb-8">
-                    <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-                      <h2 className="text-lg font-semibold text-gray-800">
-                        Estadísticas Diarias
-                      </h2>
-                      <button
-                        onClick={handleDownloadPDF}
-                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition mt-4 sm:mt-0"
-                      >
-                        <FaFilePdf size={16} /> Descargar PDF
-                      </button>
-                    </div>
-                    <div className="bg-white shadow rounded-lg overflow-x-auto">
+                {envDailyStats.length > 0 && (
+                  <section>
+                    <h2 className="text-lg font-semibold mb-4">
+                      Estadísticas Diarias
+                    </h2>
+                    <div className="overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Fecha
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Código
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Nombre
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Total
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Carga Máxima
-                            </th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Cabaleo
-                            </th>
+                            {["Fecha", "Código", "Nombre", "Total", "Carga Máxima", "Cabaleo"].map((h) => (
+                              <th
+                                key={h}
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
+                                {h}
+                              </th>
+                            ))}
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {envDailyStats.map((stat, idx) => (
-                            <tr key={idx} className="hover:bg-gray-100">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {stat.fecha}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {userData.codigo || "-"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {userData.nombreCompleto || "-"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                                {stat.total}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                                {stat.cargaMaxima}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
-                                {stat.cabaleo}
-                              </td>
+                          {envDailyStats.map((s, i) => (
+                            <tr key={i} className="hover:bg-gray-100">
+                              <td className="px-6 py-4 whitespace-nowrap">{s.fecha}</td>
+                              <td className="px-6 py-4 whitespace-nowrap">{displayCode}</td>
+                              <td className="px-6 py-4 whitespace-nowrap">{displayName}</td>
+                              <td className="px-6 py-4 text-center">{s.total}</td>
+                              <td className="px-6 py-4 text-center">{s.cargaMaxima}</td>
+                              <td className="px-6 py-4 text-center">{s.cabaleo}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
+                    <div className="flex justify-between items-center mt-4">
+                      <button
+                        onClick={handlePrevPage}
+                        disabled={pagination.envasados.page === 1}
+                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                      >
+                        Anterior
+                      </button>
+                      <span>
+                        Página {pagination.envasados.page} de {pagination.envasados.totalPages}
+                      </span>
+                      <button
+                        onClick={handleNextPage}
+                        disabled={pagination.envasados.page === pagination.envasados.totalPages}
+                        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
                   </section>
                 )}
-              </>
+              </section>
             )}
           </>
         )}
