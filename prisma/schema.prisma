@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -25,6 +26,7 @@ model User {
   actividades    Actividad[]
   equipos        Equipo[]
   sessions       Session[]
+  recepcionTraslado    RecepcionTraslado[]
   roleId         Int       @map("role_id")
   role           Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
   tickets        Ticket[]
@@ -42,7 +44,6 @@ model Role {
 
   @@map("roles")
 }
-
 model Session {
   id           String   @id @default(uuid()) @map("id")
   sessionToken String   @unique @map("session_token")
@@ -726,3 +727,66 @@ model Mensaje {
   sender         User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   receiver       User?    @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
   }
+
+model Producto {
+  id           Int      @id @default(autoincrement()) @map("id")
+  nombre       String   @map("nombre")
+  descripcion  String?  @map("descripcion") @db.LongText
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  @@map("productos")
+}
+
+model BarcoRecepcion {
+  id             Int      @id @default(autoincrement()) @map("id")
+  vaporBarco     String?  @map("vapor_barco")
+  productos      Json?    @map("productos")
+  puntosDescarga Json?    @map("puntos_descarga")
+  transportes    Json?    @map("transportes")        // [{"id": 9, "nombre": "SANTIMONI"}, {"id": 10, "nombre": "SERVITRANS"}, …]
+  observaciones  String?  @map("observaciones") @db.LongText
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  recepcionTraslados      RecepcionTraslado[]
+  
+  @@map("barco_recepcion")
+}
+
+model RecepcionTraslado {
+  id             Int      @id @default(autoincrement()) @map("id")
+  barcoId        Int      @map("barco_id")
+  userId         Int             @map("user_id")
+  userName       String?          @map("user_name")
+  fecha          String   @map("fecha")
+  hora           String   @map("hora_recepcion")
+  producto       String   @map("producto")
+  nombreBarco    String   @map("nombre_barco")
+  chequero      String   @map("chequero")
+  turnoInicio     String?     @map("turno_inicio")
+  turnoFin        String?     @map("turno_fin")
+  puntoCarga     String?  @map("punto_carga")
+  puntoDescarga  String?  @map("punto_descarga")
+  bitacoras     Json?    @map("bitacoras")
+  /// Bitácora de eventos: arreglo de objetos o strings según formato acordado.
+  /// Ejemplo: [{"placa": "C-99204", "ticket": "54332", "horaFinal": "15:22:42", "motorista": "Luis Alonso Estrada", "horaInicio": "15:01:40", "transporte": "SANTIMONI", "tiempoTotal": "00:21:02", "observaciones": ""}, …]
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([userId], map: "recepcion_user_id_fkey")
+  @@index([barcoId], map: "recepcion_barco_id_fkey")
+
+  barcoRecepcion          BarcoRecepcion    @relation(fields: [barcoId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("recepcion_traslado")
+}
+
+model EmpresaTransporte {
+  id             Int       @id @default(autoincrement()) @map("id")
+  nombre         String    @map("nombre")
+  motoristas     Json?     @map("motoristas")       // [{"placa": "C-61570", "nombre": "Ramiro Humberto Gomez Claros"}, …]
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("empresas_transporte")
+}

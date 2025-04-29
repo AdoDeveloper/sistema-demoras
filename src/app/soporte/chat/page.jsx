@@ -164,7 +164,7 @@ export default function ChatSoporte() {
       fetchTicketData(ticketId);
       markMessagesAsDelivered();
       markMessagesAsRead();
-    }, 1200);
+    }, 10000);
     return () => clearInterval(interval);
   }, [ticketId, currentUserId, isEditingStatus]);
 

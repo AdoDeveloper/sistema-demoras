@@ -1,3 +1,4 @@
+"use client";
 import Footer from "../../components/Footer";
 import LoginForm from "../../components/LoginForm";
 

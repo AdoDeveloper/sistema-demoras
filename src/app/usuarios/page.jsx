@@ -158,11 +158,13 @@ export default function UserRoleManagement() {
     if (!roleName) return "bg-yellow-200 text-yellow-800";
     const r = roleName.toLowerCase();
     if (r.includes("administrador")) return "bg-blue-200 text-blue-800 font-bold";
-    if (r.includes("asistente operativo")) return "bg-green-200 text-green-800 font-bold";
+    if (r.includes("asistente")) return "bg-green-200 text-green-800 font-bold";
     if (r.includes("muellero")) return "bg-orange-200 text-orange-800 font-bold";
-    if (r.includes("operador")) return "bg-purple-200 text-purple-800 font-bold";
+    if (r.includes("operador")) return "bg-cyan-200 text-cyan-800 font-bold";
     if (r.includes("supervisor")) return "bg-red-200 text-red-800 font-bold";
-    return "bg-pink-200 text-pink-800";
+    if (r.includes("chequero")) return "bg-indigo-200 text-indigo-800 font-bold";
+    if (r.includes("auditor")) return "bg-amber-200 text-amber-800 font-bold";
+    return "bg-gray-200 text-gray-800";
   };
 
   // Abrir modal para crear usuario
@@ -434,7 +436,7 @@ export default function UserRoleManagement() {
             >
               <FiArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-bold">Usuarios</h1>
+            <h1 className="text-xl font-bold">Usuarios & Roles</h1>
           </div>
           <button
             onClick={refreshData}
@@ -542,7 +544,7 @@ export default function UserRoleManagement() {
                           <td className="px-4 py-2 text-gray-700 whitespace-nowrap">{user.email}</td>
                           <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeClass(
+                              className={`px-2 py-1 rounded-md text-sm font-medium ${getRoleBadgeClass(
                                 user.role?.name
                               )}`}
                             >

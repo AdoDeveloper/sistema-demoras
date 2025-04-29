@@ -1,48 +1,96 @@
-// [...]/components/LoginForm.jsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import Loader from "./Loader"; // Ajusta la ruta según la ubicación de tu Loader.jsx
+import Swal from "sweetalert2";
+import dynamic from "next/dynamic";
+
+// Loader dinámico para no romper el SSR
+const Loader = dynamic(() => import("./Loader"), { ssr: false });
 
 export default function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const [error, setError]     = useState("");
+  const [locked, setLocked]   = useState(false);
+  const [timer, setTimer]     = useState(30);
+  const lockIntervalRef       = useRef(null);
 
-  // Redirigir si ya hay una sesión activa
+  const { data: session, status } = useSession({ required: false });
+  const router                   = useRouter();
+  const params                   = useSearchParams();
+
+  // 1️⃣ Si ya está autenticado, guardamos datos y vamos a /
   useEffect(() => {
     if (status === "authenticated") {
-      router.push("/");
-    }
-  }, [status, router]);
-
-  // Guardar en localStorage el id y username del usuario cuando se inicie sesión
-  useEffect(() => {
-    if (session?.user) {
+      localStorage.clear();
       localStorage.setItem("userId", session.user.id);
       localStorage.setItem("userName", session.user.username);
       localStorage.setItem("roleId", session.user.roleId);
-      if(session.user.roleId === 3){
-      localStorage.setItem("userNameAll", session.user.nombreCompleto);
-      }
-      if(session.user.roleId === 4){
-      localStorage.setItem("userNameAll", session.user.nombreCompleto);
-      }
-      if(session.user.roleId === 5){
-        localStorage.setItem("userNameAll", session.user.nombreCompleto);
-        }
+      localStorage.setItem("userNameAll", session.user.nombreCompleto || "");
+      router.replace("/");
     }
-  }, [session]);
+  }, [status, session, router]);
+
+  // 2️⃣ Si vinimos por falta de sesión (SessionRequired), mostramos toast
+  useEffect(() => {
+    if (params.get("authorize") === "SessionRequired") {
+      Swal.fire({
+        icon: "warning",
+        title: "Sesión expirada, por favor inicie sesión nuevamente",
+        toast: true,
+        position: "top-end",
+        timer: 3000,
+        showConfirmButton: false,
+      });
+    }
+  }, [params]);
+
+  // 3️⃣ Al montar, comprobar si hay bloqueo en curso
+  useEffect(() => {
+    const attempts = parseInt(localStorage.getItem("loginAttempts") || "0", 10);
+    const lockStart = parseInt(localStorage.getItem("loginLockoutStart") || "0", 10);
+
+    if (lockStart) {
+      const elapsed = Math.floor((Date.now() - lockStart) / 1000);
+      if (elapsed < 30) {
+        setLocked(true);
+        setTimer(30 - elapsed);
+      } else {
+        localStorage.removeItem("loginLockoutStart");
+        localStorage.removeItem("loginAttempts");
+      }
+    }
+  }, []);
+
+  // 4️⃣ Contador regresivo durante el bloqueo
+  useEffect(() => {
+    if (locked) {
+      lockIntervalRef.current = setInterval(() => {
+        setTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(lockIntervalRef.current);
+            localStorage.removeItem("loginLockoutStart");
+            localStorage.removeItem("loginAttempts");
+            setLocked(false);
+            return 30;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (lockIntervalRef.current) clearInterval(lockIntervalRef.current);
+    };
+  }, [locked]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    if (locked) return;
 
+    setError("");
     const result = await signIn("credentials", {
       redirect: false,
       username,
@@ -50,14 +98,46 @@ export default function LoginForm() {
     });
 
     if (result?.error) {
-      // Capturamos el error devuelto por authorize
-      setError(result.error);
-    } else {
-      router.push("/");
+      // Registramos intento fallido
+      const prev = parseInt(localStorage.getItem("loginAttempts") || "0", 10) + 1;
+      localStorage.setItem("loginAttempts", String(prev));
+
+      if (prev >= 3) {
+        // Iniciar bloqueo de 30 s
+        const now = Date.now();
+        localStorage.setItem("loginLockoutStart", String(now));
+        setLocked(true);
+        setTimer(30);
+
+        // Swal con barra de progreso y contador
+        let toastInterval;
+        Swal.fire({
+          icon: "error",
+          title: "Demasiados intentos fallidos",
+          html: 'Reintentar en <b>30</b> segundos.',
+          toast: true,
+          position: "top-end",
+          timer: 30000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          didOpen: (toast) => {
+            const b = toast.querySelector("b");
+            toastInterval = setInterval(() => {
+              const remaining = Math.ceil(Swal.getTimerLeft() / 1000);
+              if (b) b.textContent = String(remaining);
+            }, 100);
+          },
+          willClose: () => {
+            clearInterval(toastInterval);
+          }
+        });
+      } else {
+        setError(result.error);
+      }
     }
   };
 
-  // Mientras se verifica la sesión, mostramos el Loader a pantalla completa
+  // Loader mientras NextAuth carga el estado
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
@@ -76,7 +156,7 @@ export default function LoginForm() {
             alt="Almapac Logo"
             width={250}
             height={120}
-            style={{ width: "100%", height: "auto" }} // Ensures the height scales automatically
+            style={{ width: "100%", height: "auto" }}
             className="object-contain"
             priority
           />
@@ -87,8 +167,8 @@ export default function LoginForm() {
           Control de Tiempos
         </h2>
 
-        {/* Mensaje de error */}
-        {error && (
+        {/* Error */}
+        {error && !locked && (
           <p className="text-red-600 text-sm text-center bg-red-100 p-2 rounded-md mb-4">
             {error}
           </p>
@@ -96,33 +176,34 @@ export default function LoginForm() {
 
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <input
-              type="text"
-              placeholder="Nombre de usuario"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              placeholder="Contraseña"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Botón de inicio de sesión */}
+          <input
+            type="text"
+            placeholder="Nombre de usuario"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            disabled={locked}
+          />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={locked}
+          />
           <button
             type="submit"
-            className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg shadow-md transform active:translate-y-1 active:shadow-sm transition-all hover:bg-orange-600"
+            className={`w-full font-bold py-3 rounded-lg shadow-md transform active:translate-y-1 active:shadow-sm transition-all
+              ${locked
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-orange-500 hover:bg-orange-600 text-white"
+              }`}
+            disabled={locked}
           >
-            Iniciar Sesión
+            {locked ? `Intentar de nuevo en ${timer}s` : "Iniciar Sesión"}
           </button>
         </form>
       </div>

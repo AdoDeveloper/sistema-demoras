@@ -34,24 +34,8 @@ export default function Header() {
 
   function logOut() {
     sessionStorage.removeItem("user");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("roleId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userNameAll");
-    localStorage.removeItem("demorasProcess");
-    localStorage.removeItem("editDemora");
-    localStorage.removeItem("demoraId");
-    localStorage.removeItem("envasadoProcess");
-    localStorage.removeItem("editEnvasado");
-    localStorage.removeItem("envasadoId");
-    localStorage.removeItem("bitacoraData");
-    localStorage.removeItem("activitiesProcess");
-    localStorage.removeItem("activityFormCache");
-    localStorage.removeItem("molidoProcess");
-    localStorage.removeItem("nextauth.message");
-    localStorage.removeItem("tabsList");
-    localStorage.removeItem("turnoInicio");
-    localStorage.removeItem("turnoFin");
+    // limpiamos todo el localStorage
+    localStorage.clear();
     signOut();
   }
 

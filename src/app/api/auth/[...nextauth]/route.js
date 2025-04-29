@@ -1,3 +1,5 @@
+// src/app/api/auth/[...nextauth]/route.js
+
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
@@ -6,85 +8,121 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const handler = NextAuth({
+export const authOptions = {
   adapter: PrismaAdapter(prisma),
+
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text", placeholder: "Ingrese su username" },
-        password: { label: "Password", type: "password", placeholder: "Ingrese su contraseña" },
+        username: { label: "Usuario", type: "text" },
+        password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
-        // Validar que se hayan proporcionado username y password
+        console.log(`🔑 [authorize] Intento login: ${credentials?.username}`);
         if (!credentials?.username || !credentials?.password) {
+          console.log(`❌ [authorize] Faltan credenciales`);
           throw new Error("Faltan credenciales");
         }
 
-        // Siempre obtener el usuario desde la base de datos para tener la información actualizada
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
           include: { role: true },
         });
-        if (!user) {
+
+        if (!user || user.eliminado) {
+          console.log(`❌ [authorize] Usuario no existe o eliminado`);
           throw new Error("Credenciales incorrectas");
         }
-        // Si el usuario está eliminado (eliminado === true), se retorna error de credenciales incorrectas
-        if (user.eliminado) {
-          throw new Error("Credenciales incorrectas");
-        }
-        // Si el usuario no está activo (activo === false), se retorna error de inactividad
         if (!user.activo) {
-          throw new Error("El usuario está inactivo. Por favor, comuníquese con el administrador.");
+          console.log(`🚫 [authorize] Usuario inactivo`);
+          throw new Error("Usuario inactivo. Comuníquese con el administrador");
         }
-        // Comparar la contraseña proporcionada con la almacenada (hasheada)
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) {
+
+        const valid = await bcrypt.compare(credentials.password, user.password);
+        if (!valid) {
+          console.log(`❌ [authorize] Contraseña inválida`);
           throw new Error("Credenciales incorrectas");
         }
-        // Retornar la información del usuario
+
+        console.log(`✅ [authorize] Login OK: ${user.username}`);
         return {
-          id: user.id,
-          username: user.username,
-          roleId: user.roleId,
-          roleName: user.role.name,
+          id:             user.id,
+          username:       user.username,
+          roleId:         user.roleId,
+          roleName:       user.role.name,
           nombreCompleto: user.nombreCompleto,
         };
       },
     }),
   ],
+
   pages: {
     signIn: "/login",
   },
+
   session: {
     strategy: "jwt",
+    maxAge: 12 * 60 * 60,     // 12 horas
+    // updateAge por defecto es 24h, así que la cookie/token se renovará cada 24h
   },
+
+  jwt: {
+    maxAge: 12 * 60 * 60,     // igual que session.maxAge
+  },
+
   callbacks: {
-    async session({ session, token }) {
-      if (token) {
-        session.user = {
-          id: token.id,
-          username: token.username,
-          roleId: token.roleId,
-          roleName: token.roleName,
-          nombreCompleto: token.nombreCompleto,
-        };
+    async jwt({ token, user }) {
+      // En el primer login inyectamos los datos de usuario
+      if (user) {
+        token.id            = user.id;
+        token.username      = user.username;
+        token.roleId        = user.roleId;
+        token.roleName      = user.roleName;
+        token.nombreCompleto= user.nombreCompleto;
+        console.log(
+          `✅ [JWT] Token inicial para ${user.username}`
+        );
       }
+      // En llamadas posteriores NextAuth reutilizará este mismo token
+      return token;
+    },
+
+    async session({ session, token }) {
+      // Volcamos la info del token a session.user
+      session.user = {
+        id:             token.id,
+        username:       token.username,
+        roleId:         token.roleId,
+        roleName:       token.roleName,
+        nombreCompleto: token.nombreCompleto,
+      };
+      console.log(
+        `🕒 [session] Enviando session para ${token.username}; ` +
+        `expires in ${session.expires}`
+      );
       return session;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.username = user.username;
-        token.roleId = user.roleId;
-        token.roleName = user.roleName;
-        token.nombreCompleto = user.nombreCompleto || null;
-      }
-      return token;
-    }
   },
-  secret: process.env.NEXTAUTH_SECRET,
-});
 
-export const GET = handler;
-export const POST = handler;
+  events: {
+    async signIn({ user, isNewUser }) {
+      console.log(
+        `🎉 [event signIn] id=${user.id}, username=${user.username}, isNewUser=${isNewUser}`
+      );
+    },
+    async signOut({ token }) {
+      console.log(
+        `🔒 [event signOut] id=${token?.id}, username=${token?.username}`
+      );
+    },
+    async error({ error, method }) {
+      console.log(`⚠️ [event error] método=${method}`, error);
+    },
+  },
+
+  secret: process.env.NEXTAUTH_SECRET,
+};
+
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST, handler as OPTIONS };
