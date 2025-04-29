@@ -1,5 +1,3 @@
-// src/app/api/auth/[...nextauth]/route.js
-
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
@@ -8,7 +6,8 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-export const authOptions = {
+// Configuración de NextAuth sin exportar authOptions directamente en la ruta
+const authOptions = {
   adapter: PrismaAdapter(prisma),
 
   providers: [
@@ -63,33 +62,26 @@ export const authOptions = {
 
   session: {
     strategy: "jwt",
-    maxAge: 12 * 60 * 60,     // 12 horas
-    // updateAge por defecto es 24h, así que la cookie/token se renovará cada 24h
+    maxAge: 12 * 60 * 60, // 12 horas
   },
 
   jwt: {
-    maxAge: 12 * 60 * 60,     // igual que session.maxAge
+    maxAge: 12 * 60 * 60, // igual que session.maxAge
   },
 
   callbacks: {
     async jwt({ token, user }) {
-      // En el primer login inyectamos los datos de usuario
       if (user) {
-        token.id            = user.id;
-        token.username      = user.username;
-        token.roleId        = user.roleId;
-        token.roleName      = user.roleName;
-        token.nombreCompleto= user.nombreCompleto;
-        console.log(
-          `✅ [JWT] Token inicial para ${user.username}`
-        );
+        token.id             = user.id;
+        token.username       = user.username;
+        token.roleId         = user.roleId;
+        token.roleName       = user.roleName;
+        token.nombreCompleto = user.nombreCompleto;
+        console.log(`✅ [JWT] Token inicial para ${user.username}`);
       }
-      // En llamadas posteriores NextAuth reutilizará este mismo token
       return token;
     },
-
     async session({ session, token }) {
-      // Volcamos la info del token a session.user
       session.user = {
         id:             token.id,
         username:       token.username,
@@ -98,8 +90,7 @@ export const authOptions = {
         nombreCompleto: token.nombreCompleto,
       };
       console.log(
-        `🕒 [session] Enviando session para ${token.username}; ` +
-        `expires in ${session.expires}`
+        `🕒 [session] Enviando session para ${token.username}; expires in ${session.expires}`
       );
       return session;
     },
