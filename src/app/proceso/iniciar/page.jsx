@@ -33,8 +33,8 @@ const PROCESOS = [
   },
   { key: "barco", name: "Barco", path: "/proceso/iniciar/barco", icon: IoBoatSharp, bgColor: "bg-indigo-700", hoverColor: "hover:bg-indigo-800", roles: [1, 3], },
   { key: "equipo", name: "Inspección de Equipo", path: "/proceso/iniciar/equipo", icon: MdFrontLoader, bgColor: "bg-red-700", hoverColor: "hover:bg-red-800", roles: [1, 4, 5], },
-  { key: "recepcion", name: "Recepción/Traslado", path: "/proceso/iniciar/recepcion", icon: PiBarnFill, bgColor: "bg-cyan-700", hoverColor: "hover:bg-cyan-800", roles: [1, 6], },
-  { key: "back", name: "Regresar", onClick: (router) => router.push("/"), icon: FiArrowLeft, bgColor: "bg-gray-500", hoverColor: "hover:bg-gray-600", roles: [1,2,3,4,5,6], },
+  { key: "recepcion", name: "Recepción/Traslado", path: "/proceso/iniciar/recepcion", icon: PiBarnFill, bgColor: "bg-cyan-700", hoverColor: "hover:bg-cyan-800", roles: [1, 6, 7], },
+  { key: "back", name: "Regresar", onClick: (router) => router.push("/"), icon: FiArrowLeft, bgColor: "bg-gray-500", hoverColor: "hover:bg-gray-600", roles: [1,2,3,4,5,6,7], },
 ];
 
 // 2) Componente genérico de botón de proceso
