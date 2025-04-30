@@ -124,7 +124,6 @@ export default function BarcoProductoManagement() {
   const [editProductoForm, setEditProductoForm] = useState({ id: null, nombre: "", descripcion: "" });
 
   // --- EFECTOS Y FETCH ---
-  // Debounce para búsqueda de barcos y productos
   useEffect(() => {
     const h = setTimeout(() => {
       setBarcoSearchQuery(barcoInput);
@@ -132,12 +131,12 @@ export default function BarcoProductoManagement() {
     }, 500);
     return () => clearTimeout(h);
   }, [barcoInput]);
+
   useEffect(() => {
     const h = setTimeout(() => setProductoSearchQuery(productoInput), 500);
     return () => clearTimeout(h);
   }, [productoInput]);
 
-  // Fetch barcos
   const fetchBarcos = async () => {
     setLoadingBarcos(true);
     try {
@@ -155,7 +154,6 @@ export default function BarcoProductoManagement() {
     setLoadingBarcos(false);
   };
 
-  // Fetch productos
   const fetchProductos = async () => {
     setLoadingProductos(true);
     try {
@@ -168,7 +166,6 @@ export default function BarcoProductoManagement() {
     setLoadingProductos(false);
   };
 
-  // Fetch transportes existentes y opciones para Select
   const fetchExistingTransportes = async () => {
     setLoadingExistingTrans(true);
     try {
@@ -182,25 +179,28 @@ export default function BarcoProductoManagement() {
     setLoadingExistingTrans(false);
   };
 
-    useEffect(() => {
-      setTransportesOptions(
-        existingTransportes.map(t => ({ value: t.id, label: t.nombre }))
-      );
-    }, [existingTransportes]);
+  useEffect(() => {
+    setTransportesOptions(
+      existingTransportes.map((t) => ({ value: t.id, label: t.nombre }))
+    );
+  }, [existingTransportes]);
 
-  // Refrescar todo
   const refreshData = async () => {
     try {
       await Promise.all([fetchBarcos(), fetchProductos(), fetchExistingTransportes()]);
       Swal.close();
-      Swal.fire("Refrescado", "Datos actualizados", "success");
+      Swal.fire({
+        title: "Refrescado",
+        text: "Datos actualizados",
+        icon: "success",
+        confirmButtonColor: "#007BFF",
+      });
     } catch (err) {
       Swal.close();
       Swal.fire("Error", "No se pudieron actualizar los datos", "error");
     }
   };
 
-  // Al montar y al cambiar página/búsqueda
   useEffect(() => {
     fetchBarcos();
     fetchProductos();
@@ -214,73 +214,68 @@ export default function BarcoProductoManagement() {
     })();
   }, []);
 
-  // --- FILTRADO Y OPCIONES PARA SELECT ---
   const filteredBarcos = barcos;
   const filteredProductos = productos.filter((p) =>
     p.nombre.toLowerCase().includes(productoSearchQuery.toLowerCase())
   );
   const productoOptions = productos.map((p) => ({ value: p.nombre, label: p.nombre }));
 
-// --- UPLOAD / PROCESAMIENTO EXCEL ---
-const handleFileChange = (e) => {
-  const file = e.target.files?.[0];
-  if (file) processFile(file);
-};
-const handleDrop = useCallback((e) => {
-  e.preventDefault();
-  const file = e.dataTransfer.files?.[0];
-  if (file) processFile(file);
-}, []);
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  }, []);
 
-const processFile = async (file) => {
-  if (!file.name.endsWith(".xlsx")) {
-    return Swal.fire("Error", "Solo Excel permitido", "error");
-  }
-  const form = new FormData();
-  form.append("file", file);
+  const processFile = async (file) => {
+    if (!file.name.endsWith(".xlsx")) {
+      return Swal.fire("Error", "Solo Excel permitido", "error");
+    }
+    const form = new FormData();
+    form.append("file", file);
 
-  Swal.fire({
-    title: "Procesando archivo...",
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading(),
-  });
-
-  try {
-    const res = await fetch("/api/transportes", {
-      method: "POST",
-      body: form,
+    Swal.fire({
+      title: "Procesando archivo...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
     });
-    const data = await res.json();
 
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/transportes", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        Swal.close();
+        setIsTransportUploadModalOpen(false);
+        setTransportSheets([]);
+        return Swal.fire("Error", data.error || "Error al procesar archivo, intente de nuevo", "error");
+      }
+
+      const { sheets } = data;
       Swal.close();
-      // cierras modal y limpias filas antes de mostrar el error
+      setIsTransportUploadModalOpen(true);
+      setTransportSheets(
+        sheets.map((s) => ({
+          uid: crypto.randomUUID(),
+          sheetName: s.sheetName,
+          empresa: s.sheetName,
+          rows: s.rows.map((r) => ({ uid: crypto.randomUUID(), ...r })),
+        }))
+      );
+    } catch {
+      Swal.close();
       setIsTransportUploadModalOpen(false);
       setTransportSheets([]);
-      return Swal.fire("Error", data.error || "Error al procesar archivo, intente de nuevo", "error");
+      Swal.fire("Error", "Error al procesar archivo, intente de nuevo", "error");
     }
+  };
 
-    // si todo OK, procesas las hojas
-    const { sheets } = data;
-    Swal.close();
-    setIsTransportUploadModalOpen(true);
-    setTransportSheets(
-      sheets.map((s) => ({
-        uid: crypto.randomUUID(),
-        sheetName: s.sheetName,
-        empresa: s.sheetName,
-        rows: s.rows.map((r) => ({ uid: crypto.randomUUID(), ...r })),
-      }))
-    );
-  } catch (err) {
-    Swal.close();
-    setIsTransportUploadModalOpen(false);
-    setTransportSheets([]);
-    Swal.fire("Error", "Error al procesar archivo, intente de nuevo", "error");
-  }
-};
-
-  // --- OPERACIONES EN EL MODAL DE UPLOAD ---
   const updateEmpresa = (uid, name) =>
     setTransportSheets((ts) => ts.map((s) => (s.uid === uid ? { ...s, empresa: name } : s)));
   const updateRow = (sUid, rUid, f, v) =>
@@ -301,67 +296,68 @@ const processFile = async (file) => {
     setTransportSheets((ts) =>
       ts.map((s) => (s.uid !== sUid ? s : { ...s, rows: s.rows.filter((r) => r.uid !== rUid) }))
     );
-    const removeSheet = (uid) => {
-      setTransportSheets((ts) => {
-        const newSheets = ts.filter((s) => s.uid !== uid);
-        if (newSheets.length === 0) {
-          setIsTransportUploadModalOpen(false);
-        }
-        return newSheets;
-      });
-    };
-
- // --- GUARDAR NUEVOS TRANSPORTES (Excel) ---
-const handleSaveTransportes = async () => {
-  const totalRows = transportSheets.reduce((sum, s) => sum + s.rows.length, 0);
-  if (totalRows === 0) {
-    return Swal.fire("Error", "No hay filas, por favor carga de nuevo el archivo", "error");
-  }
-
-  // Lo nuevo: Mostrar "Procesando solicitud..."
-  Swal.fire({
-    title: "Procesando solicitud...",
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
-
-  try {
-    const payload = transportSheets.map(({ empresa, rows }) => ({
-      nombre: empresa,
-      motoristas: rows.map(({ nombre, placa }) => ({ nombre, placa })),
-    }));
-
-    const res = await fetch("/api/recepcion/transportes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+  const removeSheet = (uid) => {
+    setTransportSheets((ts) => {
+      const newSheets = ts.filter((s) => s.uid !== uid);
+      if (newSheets.length === 0) {
+        setIsTransportUploadModalOpen(false);
+      }
+      return newSheets;
     });
+  };
 
-    if (!res.ok) {
-      const err = await res.json();
-      Swal.close();
-      return Swal.fire("Error", err.error || "Error al guardar transportes", "error");
+  const handleSaveTransportes = async () => {
+    const totalRows = transportSheets.reduce((sum, s) => sum + s.rows.length, 0);
+    if (totalRows === 0) {
+      return Swal.fire("Error", "No hay filas, por favor carga de nuevo el archivo", "error");
     }
 
-    Swal.close();  // cerrar loader
-    Swal.fire("¡Éxito!", "Transportes registrados", "success");
+    Swal.fire({
+      title: "Procesando solicitud...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
 
-    setTransportSheets([]);
-    setIsTransportUploadModalOpen(false);
-    fetchExistingTransportes();
-  } catch {
-    Swal.close();
-    Swal.fire("Error", "No se pudo guardar transportes", "error");
-  }
-};
+    try {
+      const payload = transportSheets.map(({ empresa, rows }) => ({
+        nombre: empresa,
+        motoristas: rows.map(({ nombre, placa }) => ({ nombre, placa })),
+      }));
 
-  // --- VER DETALLE TRANSPORTE (solo lectura) ---
+      const res = await fetch("/api/recepcion/transportes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        Swal.close();
+        return Swal.fire("Error", err.error || "Error al guardar transportes", "error");
+      }
+
+      Swal.close();
+      Swal.fire({
+        title: "¡Éxito!",
+        text: "Transportes registrados",
+        icon: "success",
+        confirmButtonColor: "#007BFF",
+      });
+
+      setTransportSheets([]);
+      setIsTransportUploadModalOpen(false);
+      fetchExistingTransportes();
+    } catch {
+      Swal.close();
+      Swal.fire("Error", "No se pudo guardar transportes", "error");
+    }
+  };
+
   const openTransportViewModal = (t) => {
     setSelectedTransportView(t);
     setIsTransportViewModalOpen(true);
   };
 
-  // --- EDITAR TRANSPORTE ---
   const openTransportEditModal = (t) => {
     setEditTransportForm({
       id: t.id,
@@ -409,7 +405,12 @@ const handleSaveTransportes = async () => {
       }
 
       Swal.close();
-      Swal.fire("¡Actualizado!", "Transporte modificado", "success");
+      Swal.fire({
+        title: "¡Actualizado!",
+        text: "Transporte modificado",
+        icon: "success",
+        confirmButtonColor: "#007BFF",
+      });
       setIsTransportEditModalOpen(false);
       fetchExistingTransportes();
     } catch {
@@ -417,20 +418,26 @@ const handleSaveTransportes = async () => {
     }
   };
 
-  // --- ELIMINAR TRANSPORTE ---
   const handleDeleteTransport = (id) => {
     Swal.fire({
       title: "Confirmar eliminación",
       text: "Se eliminará este transporte",
       icon: "warning",
       showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
       confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "No, cancelar",
     }).then(async (r) => {
       if (!r.isConfirmed) return;
       try {
         const res = await fetch(`/api/recepcion/transportes/${id}`, { method: "DELETE" });
         if (!res.ok) throw new Error();
-        Swal.fire("¡Eliminado!", "", "success");
+        Swal.fire({
+          title: "¡Eliminado!",
+          icon: "success",
+          confirmButtonColor: "#007BFF",
+        });
         fetchExistingTransportes();
       } catch {
         Swal.fire("Error", "No se pudo eliminar", "error");
@@ -438,7 +445,6 @@ const handleSaveTransportes = async () => {
     });
   };
 
-  // --- CRUD BARCOS ---
   const openCreateBarcoModal = () => {
     setCreateBarcoForm({
       vaporBarco: "",
@@ -452,13 +458,24 @@ const handleSaveTransportes = async () => {
   const handleCreateBarcoChange = (e) =>
     setCreateBarcoForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   const handleCreateBarcoProductosChange = (opts) =>
-    setCreateBarcoForm((prev) => ({ ...prev, productos: opts.map((o) => o.value) }));
+    setCreateBarcoForm((prev) => ({ ...prev, productos: (opts || []).map((o) => o.value) }));
   const handleCreateBarcoPuntosChange = (opts) =>
-    setCreateBarcoForm((prev) => ({ ...prev, puntosDescarga: opts.map((o) => o.value) }));
+    setCreateBarcoForm((prev) => ({ ...prev, puntosDescarga: (opts || []).map((o) => o.value) }));
   const handleCreateBarcoTransportesChange = (opts) =>
     setCreateBarcoForm((prev) => ({
       ...prev,
-      transportes: opts.map((o) => ({ id: o.value, nombre: o.label })),
+      transportes: (opts || []).map((o) => ({ id: o.value, nombre: o.label })),
+    }));
+
+  // NUEVOS HANDLERS PARA EL EDIT MODAL:
+  const handleEditBarcoProductosChange = (opts) =>
+    setEditBarcoForm((prev) => ({ ...prev, productos: (opts || []).map((o) => o.value) }));
+  const handleEditBarcoPuntosChange = (opts) =>
+    setEditBarcoForm((prev) => ({ ...prev, puntosDescarga: (opts || []).map((o) => o.value) }));
+  const handleEditBarcoTransportesChange = (opts) =>
+    setEditBarcoForm((prev) => ({
+      ...prev,
+      transportes: (opts || []).map((o) => ({ id: o.value, nombre: o.label })),
     }));
 
   const handleCreateBarcoSubmit = async (e) => {
@@ -473,7 +490,12 @@ const handleSaveTransportes = async () => {
       if (!res.ok) throw new Error();
       await refreshData();
       setIsCreateBarcoModalOpen(false);
-      Swal.fire("¡Éxito!", "Barco creado", "success");
+      Swal.fire({
+        title: "¡Éxito!",
+        text: "Barco creado",
+        icon: "success",
+        confirmButtonColor: "#007BFF",
+      });
     } catch {
       Swal.fire("Error", "No se pudo crear el barco", "error");
     }
@@ -491,9 +513,6 @@ const handleSaveTransportes = async () => {
     setIsEditBarcoModalOpen(true);
   };
   const handleEditBarcoChange = handleCreateBarcoChange;
-  const handleEditBarcoProductosChange = handleCreateBarcoProductosChange;
-  const handleEditBarcoPuntosChange = handleCreateBarcoPuntosChange;
-  const handleEditBarcoTransportesChange = handleCreateBarcoTransportesChange;
 
   const handleEditBarcoSubmit = async (e) => {
     e.preventDefault();
@@ -508,7 +527,12 @@ const handleSaveTransportes = async () => {
       if (!res.ok) throw new Error();
       await refreshData();
       setIsEditBarcoModalOpen(false);
-      Swal.fire("¡Éxito!", "Barco actualizado", "success");
+      Swal.fire({
+        title: "¡Éxito!",
+        text: "Barco actualizado",
+        icon: "success",
+        confirmButtonColor: "#007BFF",
+      });
     } catch {
       Swal.fire("Error", "No se pudo actualizar el barco", "error");
     }
@@ -520,24 +544,33 @@ const handleSaveTransportes = async () => {
       text: "No se puede revertir",
       icon: "warning",
       showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
       confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "No, cancelar",
     }).then(async (r) => {
       if (!r.isConfirmed) return;
       try {
         const w = await fetch(`/api/recepcion/barcos/${id}`, { method: "DELETE" });
         if (!w.ok) throw new Error();
         await refreshData();
-        Swal.fire("¡Eliminado!", "", "success");
+        Swal.fire({
+          title: "¡Eliminado!",
+          icon: "success",
+          confirmButtonColor: "#007BFF",
+        });
       } catch {
         Swal.fire("Error", "No se pudo eliminar", "error");
       }
     });
   };
 
-  // --- CRUD PRODUCTOS ---
   const openCreateProductoModal = () => setIsCreateProductoModalOpen(true);
   const handleCreateProductoChange = (e) =>
     setCreateProductoForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+  const handleEditProductoChange = (e) =>
+    setEditProductoForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+
   const handleCreateProductoSubmit = async (e) => {
     e.preventDefault();
     Swal.fire({ title: "Procesando...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -550,7 +583,12 @@ const handleSaveTransportes = async () => {
       if (!res.ok) throw new Error();
       await refreshData();
       setIsCreateProductoModalOpen(false);
-      Swal.fire("¡Éxito!", "Producto creado", "success");
+      Swal.fire({
+        title: "¡Éxito!",
+        text: "Producto creado",
+        icon: "success",
+        confirmButtonColor: "#007BFF",
+      });
     } catch {
       Swal.fire("Error", "No se pudo crear el producto", "error");
     }
@@ -573,7 +611,12 @@ const handleSaveTransportes = async () => {
       if (!res.ok) throw new Error();
       await refreshData();
       setIsEditProductoModalOpen(false);
-      Swal.fire("¡Éxito!", "Producto actualizado", "success");
+      Swal.fire({
+        title: "¡Éxito!",
+        text: "Producto actualizado",
+        icon: "success",
+        confirmButtonColor: "#007BFF",
+      });
     } catch {
       Swal.fire("Error", "No se pudo actualizar el producto", "error");
     }
@@ -585,21 +628,27 @@ const handleSaveTransportes = async () => {
       text: "No se puede revertir",
       icon: "warning",
       showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
       confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "No, cancelar",
     }).then(async (r) => {
       if (!r.isConfirmed) return;
       try {
         const w = await fetch(`/api/recepcion/productos/${id}`, { method: "DELETE" });
         if (!w.ok) throw new Error();
         await refreshData();
-        Swal.fire("¡Eliminado!", "", "success");
+        Swal.fire({
+          title: "¡Eliminado!",
+          icon: "success",
+          confirmButtonColor: "#007BFF",
+        });
       } catch {
         Swal.fire("Error", "No se pudo eliminar el producto", "error");
       }
     });
   };
 
-  // --- PAGINACIÓN BARCOS ---
   const totalPages = Math.ceil(barcoTotalCount / barcoLimit);
   const handlePrevPage = () => barcoPage > 1 && setBarcoPage(barcoPage - 1);
   const handleNextPage = () => barcoPage < totalPages && setBarcoPage(barcoPage + 1);
@@ -608,7 +657,6 @@ const handleSaveTransportes = async () => {
     setBarcoPage(1);
   };
 
-  // --- RENDERIZADO LUEGO DEL CARGA ---
   if (!allLoaded) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
@@ -632,20 +680,23 @@ const handleSaveTransportes = async () => {
               >
                 <FiArrowLeft size={20} />
               </button>
-            <h1 className="text-xl font-bold">Barcos Recepción</h1>
+              <h1 className="text-xl font-bold">Barcos Recepción</h1>
+            </div>
+            <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
+              <button
+                onClick={() => router.push("/proceso/consultar/recepción")}
+                className="bg-orange-600 hover:bg-orange-700 px-3 py-2 rounded flex items-center"
+              >
+                <PiBarnFill className="mr-1" /> Registros
+              </button>
+              <button
+                onClick={refreshData}
+                className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded flex items-center"
+              >
+                <FiRefreshCw className="mr-2 animate-spin-slow" /> Actualizar
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
-            <button
-              onClick={() => router.push("/proceso/consultar/recepcion")}
-              className="bg-orange-600 hover:bg-orange-700 px-3 py-2 rounded flex items-center"
-            >
-              <PiBarnFill className="mr-1" /> Registros
-            </button>
-            <button onClick={refreshData} className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded flex items-center">
-              <FiRefreshCw className="mr-2 animate-spin-slow" /> Actualizar
-            </button>
-          </div>
-         </div>
         </div>
       </header>
 
@@ -679,80 +730,84 @@ const handleSaveTransportes = async () => {
           </button>
         </nav>
 
-      {/* ========== TRANSPORTES ========== */}
-      {activeTab === "transportes" && (
-        <section className="bg-white p-6 rounded-lg shadow space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between">
-            <h2 className="text-lg font-semibold mb-4 md:mb-0">Transportes</h2>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
-              {/* Botón Descargar Formato */}
-              <a
-                href="https://res.cloudinary.com/dw7txgvbh/raw/upload/v1745432798/resources/Formato.xlsx"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition"
-              >
-                <FaFileExcel className="mr-1" /> Descargar Formato
-              </a>
-              {/* Botón Agregar Transportes */}
-              <button
-                onClick={() => setIsTransportUploadModalOpen(true)}
-                className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-              >
-                <FaPlus className="mr-1" /> Agregar Transportes
-              </button>
+        {/* ========== TRANSPORTES ========== */}
+        {activeTab === "transportes" && (
+          <section className="bg-white p-6 rounded-lg shadow space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between">
+              <h2 className="text-lg font-semibold mb-4 md:mb-0">Transportes</h2>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                {/* Botón Descargar Formato */}
+                <a
+                  href="https://res.cloudinary.com/dw7txgvbh/raw/upload/v1745432798/resources/Formato.xlsx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition"
+                >
+                  <FaFileExcel className="mr-1" /> Descargar Formato
+                </a>
+                {/* Botón Agregar Transportes */}
+                <button
+                  onClick={() => setIsTransportUploadModalOpen(true)}
+                  className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                >
+                  <FaPlus className="mr-1" /> Agregar Transportes
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full table-auto bg-white rounded-lg shadow">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-2 text-left">Empresa</th>
-                  <th className="px-4 py-2 text-center">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingExistingTrans ? (
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto bg-white rounded-lg shadow">
+                <thead className="bg-gray-100">
                   <tr>
-                    <td colSpan={2} className="text-center py-4">Cargando...</td>
+                    <th className="px-4 py-2 text-left">Empresa</th>
+                    <th className="px-4 py-2 text-center">Acciones</th>
                   </tr>
-                ) : existingTransportes.length === 0 ? (
-                  <tr>
-                    <td colSpan={2} className="text-center py-4 text-gray-500">No hay registros.</td>
-                  </tr>
-                ) : (
-                  existingTransportes.map((et) => (
-                    <tr key={et.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2">{et.nombre}</td>
-                      <td className="px-4 py-2 text-center space-x-2">
-                        <button
-                          onClick={() => openTransportViewModal(et)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full"
-                        >
-                          <FiEye size={16} />
-                        </button>
-                        <button
-                          onClick={() => openTransportEditModal(et)}
-                          className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full"
-                        >
-                          <FiEdit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTransport(et.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
+                </thead>
+                <tbody>
+                  {loadingExistingTrans ? (
+                    <tr>
+                      <td colSpan={2} className="text-center py-4">
+                        Cargando...
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+                  ) : existingTransportes.length === 0 ? (
+                    <tr>
+                      <td colSpan={2} className="text-center py-4 text-gray-500">
+                        No hay registros.
+                      </td>
+                    </tr>
+                  ) : (
+                    existingTransportes.map((et) => (
+                      <tr key={et.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2">{et.nombre}</td>
+                        <td className="px-4 py-2 text-center space-x-2">
+                          <button
+                            onClick={() => openTransportViewModal(et)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full"
+                          >
+                            <FiEye size={16} />
+                          </button>
+                          <button
+                            onClick={() => openTransportEditModal(et)}
+                            className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full"
+                          >
+                            <FiEdit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTransport(et.id)}
+                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {/* ========== BARCOS ========== */}
         {activeTab === "barcos" && (
@@ -959,8 +1014,8 @@ const handleSaveTransportes = async () => {
       </div>
 
       {/* ========== MODALES ========== */}
-      {/* ===== MODALES DE TRANSPORTES ===== */}
-      {/* Transportes Modal (Carga Excel) */}
+
+      {/* MODALES DE TRANSPORTES */}
       {isTransportUploadModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50">
           <div className="bg-white w-full max-w-3xl rounded-lg shadow-xl p-6 space-y-6 max-h-[90vh] overflow-auto">
@@ -1064,7 +1119,7 @@ const handleSaveTransportes = async () => {
         </div>
       )}
 
-      {/* Modal VER DETALLE (solo lectura) */}
+      {/* VER DETALLE TRANSPORTE */}
       {isTransportViewModalOpen && selectedTransportView && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50 overflow-auto">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl p-6 space-y-4">
@@ -1115,7 +1170,7 @@ const handleSaveTransportes = async () => {
         </div>
       )}
 
-      {/* Modal EDITAR Transporte */}
+      {/* EDITAR TRANSPORTE */}
       {isTransportEditModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50 overflow-auto">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl p-6 space-y-4">
@@ -1162,10 +1217,7 @@ const handleSaveTransportes = async () => {
                       />
                     </td>
                     <td className="p-2 text-center">
-                      <button
-                        onClick={() => removeTransportRow(i)}
-                        className="text-red-500 hover:text-red-700"
-                      >
+                      <button onClick={() => removeTransportRow(i)} className="text-red-500 hover:text-red-700">
                         <FiTrash2 />
                       </button>
                     </td>
@@ -1195,7 +1247,7 @@ const handleSaveTransportes = async () => {
         </div>
       )}
 
-      {/* Crear Barco */}
+      {/* CREAR BARCO */}
       {isCreateBarcoModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50 overflow-y-auto">
           <div className="bg-white w-full max-w-3xl rounded-lg shadow-xl">
@@ -1228,9 +1280,10 @@ const handleSaveTransportes = async () => {
                   <Select
                     isMulti
                     options={productoOptions}
-                    // react-select controla value por objetos
-                    value={productoOptions.filter((opt) => createBarcoForm.productos.includes(opt.value))}
-                    onChange={(opts) => handleCreateBarcoProductosChange(opts)}
+                    value={productoOptions.filter((opt) =>
+                      createBarcoForm.productos.includes(opt.value)
+                    )}
+                    onChange={handleCreateBarcoProductosChange}
                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     placeholder="Selecciona productos..."
@@ -1243,8 +1296,10 @@ const handleSaveTransportes = async () => {
                     options={descargaOptions}
                     value={descargaOptions
                       .flatMap((g) => g.options)
-                      .filter((opt) => createBarcoForm.puntosDescarga.includes(opt.value))}
-                    onChange={(opts) => handleCreateBarcoPuntosChange(opts)}
+                      .filter((opt) =>
+                        createBarcoForm.puntosDescarga.includes(opt.value)
+                      )}
+                    onChange={handleCreateBarcoPuntosChange}
                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     placeholder="Selecciona puntos..."
@@ -1254,25 +1309,16 @@ const handleSaveTransportes = async () => {
                   <label className="block font-medium mb-1">Transportes</label>
                   <Select
                     isMulti
-                    options={transportesOptions}                      
-                    value={createBarcoForm.transportes.map(t => ({    
+                    options={transportesOptions}
+                    value={createBarcoForm.transportes.map((t) => ({
                       value: t.id,
-                      label: t.nombre
+                      label: t.nombre,
                     }))}
-                    onChange={opts =>
-                      setCreateBarcoForm(prev => ({
-                        ...prev,
-                        transportes: opts.map(o => ({                  
-                          id: o.value,
-                          nombre: o.label
-                        }))
-                      }))
-                    }
+                    onChange={handleCreateBarcoTransportesChange}
                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
-                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     placeholder="Selecciona transportes..."
                   />
-
                 </div>
                 <div className="flex justify-end space-x-2 pt-3">
                   <button
@@ -1292,7 +1338,7 @@ const handleSaveTransportes = async () => {
         </div>
       )}
 
-      {/* Editar Barco */}
+      {/* EDITAR BARCO */}
       {isEditBarcoModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50 overflow-y-auto">
           <div className="bg-white w-full max-w-3xl rounded-lg shadow-xl">
@@ -1325,8 +1371,10 @@ const handleSaveTransportes = async () => {
                   <Select
                     isMulti
                     options={productoOptions}
-                    value={productoOptions.filter((opt) => editBarcoForm.productos.includes(opt.value))}
-                    onChange={(opts) => handleEditBarcoProductosChange(opts)}
+                    value={productoOptions.filter((opt) =>
+                      editBarcoForm.productos.includes(opt.value)
+                    )}
+                    onChange={handleEditBarcoProductosChange}
                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     placeholder="Selecciona productos..."
@@ -1339,8 +1387,10 @@ const handleSaveTransportes = async () => {
                     options={descargaOptions}
                     value={descargaOptions
                       .flatMap((g) => g.options)
-                      .filter((opt) => editBarcoForm.puntosDescarga.includes(opt.value))}
-                    onChange={(opts) => handleEditBarcoPuntosChange(opts)}
+                      .filter((opt) =>
+                        editBarcoForm.puntosDescarga.includes(opt.value)
+                      )}
+                    onChange={handleEditBarcoPuntosChange}
                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                     styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     placeholder="Selecciona puntos..."
@@ -1351,24 +1401,15 @@ const handleSaveTransportes = async () => {
                   <Select
                     isMulti
                     options={transportesOptions}
-                    value={editBarcoForm.transportes.map(t => ({
+                    value={editBarcoForm.transportes.map((t) => ({
                       value: t.id,
-                      label: t.nombre
+                      label: t.nombre,
                     }))}
-                    onChange={opts =>
-                      setEditBarcoForm(prev => ({
-                        ...prev,
-                        transportes: opts.map(o => ({
-                          id: o.value,
-                          nombre: o.label
-                        }))
-                      }))
-                    }
+                    onChange={handleEditBarcoTransportesChange}
                     menuPortalTarget={typeof document !== "undefined" ? document.body : null}
-                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                    styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
                     placeholder="Selecciona transportes..."
                   />
-
                 </div>
                 <div className="flex justify-end space-x-2 pt-3">
                   <button
@@ -1388,7 +1429,7 @@ const handleSaveTransportes = async () => {
         </div>
       )}
 
-      {/* Detalle Barco */}
+      {/* DETALLE BARCO */}
       {isBarcoDetailModalOpen && selectedBarcoDetail && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50 overflow-y-auto">
           <div className="bg-white w-full max-w-4xl rounded-lg shadow-xl p-6">
@@ -1445,7 +1486,7 @@ const handleSaveTransportes = async () => {
         </div>
       )}
 
-      {/* Crear Producto */}
+      {/* CREAR PRODUCTO */}
       {isCreateProductoModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50 overflow-y-auto">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl">
@@ -1491,7 +1532,7 @@ const handleSaveTransportes = async () => {
         </div>
       )}
 
-      {/* Editar Producto */}
+      {/* EDITAR PRODUCTO */}
       {isEditProductoModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50 overflow-y-auto">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl">
@@ -1537,7 +1578,7 @@ const handleSaveTransportes = async () => {
         </div>
       )}
 
-      {/* Detalle Producto */}
+      {/* DETALLE PRODUCTO */}
       {isProductoDetailModalOpen && selectedProductoDetail && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 z-50 overflow-y-auto">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl p-6">

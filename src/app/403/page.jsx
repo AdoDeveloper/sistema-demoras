@@ -115,7 +115,7 @@ export default function ForbiddenPage() {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleGoBack}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-all"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-all hover:cursor-pointer"
                 >
                   <FaArrowLeft /> Volver
                 </motion.button>
@@ -125,7 +125,7 @@ export default function ForbiddenPage() {
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={goToHome}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all hover:cursor-pointer"
                   >
                     <FaHome /> Inicio
                   </motion.button>
@@ -134,7 +134,7 @@ export default function ForbiddenPage() {
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={goToLogin}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all hover:cursor-pointer"
                   >
                     <FaSignInAlt /> Ingresar
                   </motion.button>
