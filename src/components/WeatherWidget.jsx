@@ -58,7 +58,7 @@ const getDayLength = (sunriseStr, sunsetStr) => {
   const today = new Date();
   const sunriseDate = new Date(`${today.toDateString()} ${sunriseStr}`);
   const sunsetDate = new Date(`${today.toDateString()} ${sunsetStr}`);
-  const diffMs = sunsetDate - sunriseDate;
+  const diffMs = sunsetDate.getTime() - sunriseDate.getTime();
   if (diffMs < 0) return "--";
   const diffH = Math.floor(diffMs / (1000 * 60 * 60));
   const diffM = Math.floor((diffMs / (1000 * 60)) % 60);
@@ -193,7 +193,7 @@ const getTemperatureRange = (min, max, current) => {
 // ——————————————
 // Componente principal
 
-const WeatherWidget = () => {
+export default function WeatherWidget() {
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -203,7 +203,7 @@ const WeatherWidget = () => {
   const [currentHourIndex, setCurrentHourIndex] = useState(0);
 
   const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
-  const url = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=13.571590310635003,-89.83056926998199&days=7&aqi=yes&alerts=yes&lang=es`;
+  const url = `/api/weather/forecast.json?key=${API_KEY}&q=13.571590310635003,-89.83056926998199&days=7&aqi=yes&alerts=yes&lang=es`;
 
   const fetchWeather = useCallback(async () => {
     try {
@@ -214,14 +214,12 @@ const WeatherWidget = () => {
       localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
       setWeatherData(data);
 
-      // Encontrar índice de la hora actual después de cargar datos
+      // Encontrar índice de la hora actual
       if (data?.forecast?.forecastday?.[0]?.hour) {
         const now = new Date();
-        const currentHour = now.getHours();
         const hours = data.forecast.forecastday[0].hour;
         const index = hours.findIndex(h => {
-          const hourDate = new Date(h.time);
-          return hourDate.getHours() === currentHour;
+          return new Date(h.time).getHours() === now.getHours();
         });
         setCurrentHourIndex(index >= 0 ? index : 0);
       }
@@ -238,11 +236,7 @@ const WeatherWidget = () => {
     const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
     const now = Date.now();
 
-    if (
-      cachedData &&
-      cachedTimestamp &&
-      now - parseInt(cachedTimestamp, 10) < CACHE_DURATION
-    ) {
+    if (cachedData && cachedTimestamp && now - parseInt(cachedTimestamp, 10) < CACHE_DURATION) {
       setWeatherData(JSON.parse(cachedData));
       setLoading(false);
     } else {
@@ -254,26 +248,26 @@ const WeatherWidget = () => {
   }, [fetchWeather]);
 
   useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(interval);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  // Scroll al pronóstico de la hora actual al cargar datos
+  // Scroll al pronóstico de la hora actual
   useEffect(() => {
     if (hourlyForecastRef.current && !loading) {
       const container = hourlyForecastRef.current;
-      const element = container.children[currentHourIndex];
-      if (element) {
+      const elem = container.children[currentHourIndex];
+      if (elem) {
         container.scrollTo({
-          left: element.offsetLeft - container.offsetWidth / 2 + element.offsetWidth / 2,
-          behavior: 'smooth'
+          left: elem.offsetLeft - container.offsetWidth / 2 + elem.offsetWidth / 2,
+          behavior: "smooth",
         });
       }
     }
   }, [loading, currentHourIndex]);
 
   if (loading) return <WeatherLoader />;
-  if (!weatherData)
+  if (!weatherData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center p-6 bg-white rounded-xl shadow-lg">
@@ -289,32 +283,23 @@ const WeatherWidget = () => {
         </div>
       </div>
     );
+  }
 
   const { location, current, forecast, alerts } = weatherData;
   const hour = currentTime.getHours();
-  const saludo =
-    hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
-
+  const saludo = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
   const localDateStr = currentTime.toISOString().split("T")[0];
-  const todayData =
-    forecast.forecastday.find((d) => d.date === localDateStr) ||
-    forecast.forecastday[0];
+  const todayData = forecast.forecastday.find(d => d.date === localDateStr) || forecast.forecastday[0];
   const { day: todayForecast, astro, hour: hourlyData } = todayData;
 
   const uvInfo = getUvIndexInfo(current.uv);
-  const airQualityData = getAirQualityInfo(
-    current.air_quality?.["us-epa-index"]
-  );
+  const airQualityData = getAirQualityInfo(current.air_quality?.["us-epa-index"] ?? 0);
   const moonPhase = getMoonPhase(astro.moon_phase);
   const moonIcon = getMoonIcon(astro.moon_phase);
-  const apparentTemps = hourlyData.map((h) => h.feelslike_c);
+  const apparentTemps = hourlyData.map(h => h.feelslike_c);
   const apparentMin = apparentTemps.length ? Math.min(...apparentTemps) : "--";
   const apparentMax = apparentTemps.length ? Math.max(...apparentTemps) : "--";
-  const tempRangePosition = getTemperatureRange(
-    todayForecast.mintemp_c,
-    todayForecast.maxtemp_c,
-    current.temp_c
-  );
+  const tempRangePosition = getTemperatureRange(todayForecast.mintemp_c, todayForecast.maxtemp_c, current.temp_c);
 
   const weatherMetrics = [
     {
@@ -333,7 +318,7 @@ const WeatherWidget = () => {
       icon: <FaWind className="text-xl text-sky-500" />,
       title: "Viento",
       value: `${current.wind_kph} km/h`,
-      description: `Dirección: ${current.wind_dir} - Rafagas: ${current.gust_kph} km/h`,
+      description: `Dirección: ${current.wind_dir} - Ráfagas: ${current.gust_kph} km/h`,
     },
     {
       icon: <FaCloudSunRain className="text-xl text-indigo-500" />,
@@ -345,20 +330,13 @@ const WeatherWidget = () => {
       icon: <WiBarometer className="text-2xl text-purple-500" />,
       title: "Presión",
       value: `${current.pressure_mb} mb`,
-      description: `Tendencia: ${
-        current.pressure_in > 30 ? "Alta" : "Baja"
-      }`,
+      description: `Tendencia: ${current.pressure_in > 30 ? "Alta" : "Baja"}`,
     },
     {
       icon: <MdVisibility className="text-xl text-gray-500" />,
       title: "Visibilidad",
       value: `${current.vis_km} km`,
-      description:
-        current.vis_km > 10
-          ? "Excelente"
-          : current.vis_km > 5
-          ? "Buena"
-          : "Limitada",
+      description: current.vis_km > 10 ? "Excelente" : current.vis_km > 5 ? "Buena" : "Limitada",
     },
   ];
 
@@ -393,10 +371,7 @@ const WeatherWidget = () => {
       icon: <BsSunset className="text-xl text-orange-500" />,
       title: "Atardecer",
       value: astro.sunset,
-      description: `Duración: ${getDayLength(
-        astro.sunrise,
-        astro.sunset
-      )}`,
+      description: `Duración: ${getDayLength(astro.sunrise, astro.sunset)}`,
     },
     {
       icon: moonIcon,
@@ -408,12 +383,7 @@ const WeatherWidget = () => {
       icon: <WiDayCloudyHigh className="text-2xl text-gray-400" />,
       title: "Nubosidad",
       value: `${current.cloud}%`,
-      description:
-        current.cloud < 30
-          ? "Despejado"
-          : current.cloud < 70
-          ? "Parcial"
-          : "Nublado",
+      description: current.cloud < 30 ? "Despejado" : current.cloud < 70 ? "Parcial" : "Nublado",
     },
   ];
 
@@ -537,10 +507,7 @@ const WeatherWidget = () => {
               </span>
               <span className="whitespace-nowrap">
                 Media:{" "}
-                {(
-                  (todayForecast.mintemp_c + todayForecast.maxtemp_c) /
-                  2
-                ).toFixed(1)}
+                {((todayForecast.mintemp_c + todayForecast.maxtemp_c) / 2).toFixed(1)}
                 °C
               </span>
               <span className="whitespace-nowrap">
@@ -602,275 +569,270 @@ const WeatherWidget = () => {
         </div>
       </div>
 
-      {/* Información adicional */}
-      <div className="px-5 py-6 md:px-8 md:py-8 border-t border-gray-200">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 flex items-center">
-          <WiDayCloudyHigh className="text-2xl text-blue-400 mr-2" />
-          Información Adicional
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {additionalMetrics.map((metric, i) => (
-            <div
-              key={i}
-              className="bg-gray-50 rounded-lg p-3 text-center"
-            >
-              <div className="flex justify-center mb-2">
-                {metric.icon}
-              </div>
-              <h3 className="text-xs font-medium text-gray-500">
-                {metric.title}
-              </h3>
-              <p className="text-lg font-semibold text-gray-800">
-                {metric.value}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {metric.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Calidad del Aire */}
-      <div className="px-5 py-6 md:px-8 md:py-8 border-t border-gray-200">
-        <div
-          className={`${airQualityData.bgColor} rounded-xl p-5 cursor-pointer`}
-          onClick={() =>
-            setExpandedSection(expandedSection === "air" ? null : "air")
-          }
-        >
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <MdAir className="text-3xl" style={{ color: airQualityData.color }} />
-              <div>
-                <h2
-                  className="text-xl font-bold"
-                  style={{ color: airQualityData.color }}
-                >
-                  Calidad del Aire: {airQualityData.label} {airQualityData.emoji}
-                </h2>
-                <p className="text-gray-700">
-                  {airQualityData.description}
-                </p>
-              </div>
-            </div>
-            <div
-              className={`transform transition-transform ${
-                expandedSection === "air" ? "rotate-180" : ""
-              }`}
-            >
-              <svg
-                className="w-6 h-6 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
-
-          {expandedSection === "air" && (
-            <div className="mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {airQualityMetrics.map((metric, i) => (
-                  <div
-                    key={i}
-                    className="bg-white bg-opacity-80 rounded-lg p-3 flex flex-col items-center text-center"
-                  >
-                    <h3 className="text-sm font-medium text-gray-700 mb-1">
-                      {metric.name}
-                    </h3>
-                    <p
-                      className={`text-xl font-bold ${
-                        parseFloat(metric.value) > metric.safeLevel
-                          ? "text-red-500"
-                          : "text-green-500"
-                      }`}
-                    >
-                      {metric.value}
-                      <span className="text-xs ml-1">{metric.unit}</span>
-                    </p>
-                    <div className="mt-1 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${
-                          parseFloat(metric.value) > metric.safeLevel
-                            ? "bg-red-300"
-                            : "bg-green-300"
-                        }`}
-                        style={{
-                          width: `${Math.min(
-                            (parseFloat(metric.value) / metric.safeLevel) * 100,
-                            100
-                          )}%`
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {parseFloat(metric.value) > metric.safeLevel
-                        ? `Supera en ${(parseFloat(metric.value) - metric.safeLevel).toFixed(1)}µg`
-                        : "Dentro de lo seguro"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 text-xs text-gray-600 text-center">
-                <p>
-                  Niveles seguros según OMS: CO ≤4µg/m³ • NO₂ ≤25µg/m³<br/>
-                  O₃ ≤60µg/m³ • SO₂ ≤20µg/m³ • PM2.5 ≤12µg/m³ • PM10 ≤20µg/m³
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Pronóstico por Horas */}
-      <div className="px-5 py-6 md:px-8 md:py-8 border-t border-gray-200">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 flex items-center">
-          <IoMdTime className="text-2xl text-blue-500 mr-2" />
-          Pronóstico por Horas
-        </h2>
-        <div className="overflow-x-auto">
-          <div className="flex space-x-4 pb-4" ref={hourlyForecastRef}>
-            {hourlyData.map((hour, i) => {
-              const hourDate = new Date(hour.time);
-              const isCurrentHour =
-                hourDate.getHours() === currentTime.getHours();
-              return (
-                <div
-                  key={i}
-                  className={`flex-shrink-0 rounded-xl p-3 w-20 sm:w-24 md:w-28 flex flex-col items-center ${
-                    isCurrentHour
-                      ? "bg-blue-50 border border-blue-200"
-                      : "bg-gray-50"
-                  }`}
-                >
-                  <p
-                    className={`text-sm font-medium ${
-                      isCurrentHour ? "text-blue-600" : "text-gray-500"
-                    }`}
-                  >
-                    {hourDate.getHours()}h
-                  </p>
-                  <img
-                    src={`https:${hour.condition.icon}`}
-                    alt={hour.condition.text}
-                    className="w-10 h-10 sm:w-12 sm:h-12 object-contain my-1"
-                  />
-                  <p
-                    className={`text-lg font-semibold ${
-                      isCurrentHour ? "text-blue-700" : "text-gray-800"
-                    }`}
-                  >
-                    {hour.temp_c}°
-                  </p>
-                  {hour.chance_of_rain > 0 && (
-                    <div className="flex items-center space-x-1">
-                      <BsDropletHalf className="text-blue-400 text-xs" />
-                      <span className="text-xs text-blue-500">
-                        {hour.chance_of_rain}%
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Alertas */}
-      {alerts?.alert?.length > 0 && (
-        <div className="px-5 py-6 md:px-8 md:py-8 border-t border-red-200 bg-red-50">
-          <div
-            className="cursor-pointer"
-            onClick={() =>
-              setExpandedSection(
-                expandedSection === "alerts" ? null : "alerts"
-              )
-            }
-          >
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-red-600 flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Alertas Meteorológicas ({alerts.alert.length})
-              </h2>
-              <div
-                className={`transform transition-transform ${
-                  expandedSection === "alerts" ? "rotate-180" : ""
-                }`}
-              >
-                <svg
-                  className="w-6 h-6 text-red-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-          {expandedSection === "alerts" && (
-            <div className="mt-4 space-y-4">
-              {alerts.alert.map((alert, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-lg p-4 border border-red-200"
-                >
-                  <h3 className="font-bold text-red-700">
-                    {alert.headline}
-                  </h3>
-                  <p className="text-sm text-red-600 mt-1">
-                    {alert.desc}
-                  </p>
-                  <div className="flex flex-col sm:flex-row justify-between mt-2 text-xs text-red-500 gap-1">
-                    <span>Inicio: {alert.effective}</span>
-                    <span>Fin: {alert.expires}</span>
-                  </div>
-                  {alert.instruction && (
-                    <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
-                      <p className="font-semibold">Recomendación:</p>
-                      <p>{alert.instruction}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="bg-gray-50 py-4 text-center text-xs text-gray-500">
-        <p>Datos proporcionados por WeatherAPI.com</p>
-        <p className="mt-1">
-          Actualizado: {new Date(current.last_updated).toLocaleString("es-ES")}
-        </p>
-      </div>
-    </div>
-  );
-};
-
-export default WeatherWidget;
+      {/* Información adicional */}  
+      <div className="px-5 py-6 md:px-8 md:py-8 border-t border-gray-200">  
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 flex items-center">  
+          <WiDayCloudyHigh className="text-2xl text-blue-400 mr-2" />  
+          Información Adicional  
+        </h2>  
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">  
+          {additionalMetrics.map((metric, i) => (  
+            <div  
+              key={i}  
+              className="bg-gray-50 rounded-lg p-3 text-center"  
+            >  
+              <div className="flex justify-center mb-2">  
+                {metric.icon}  
+              </div>  
+              <h3 className="text-xs font-medium text-gray-500">  
+                {metric.title}  
+              </h3>  
+              <p className="text-lg font-semibold text-gray-800">  
+                {metric.value}  
+              </p>  
+              <p className="text-xs text-gray-500 mt-1">  
+                {metric.description}  
+              </p>  
+            </div>  
+          ))}  
+        </div>  
+      </div>  
+      
+      {/* Calidad del Aire */}  
+      <div className="px-5 py-6 md:px-8 md:py-8 border-t border-gray-200">  
+        <div  
+          className={`${airQualityData.bgColor} rounded-xl p-5 cursor-pointer`}  
+          onClick={() =>  
+            setExpandedSection(expandedSection === "air" ? null : "air")  
+          }  
+        >  
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">  
+            <div className="flex items-center gap-4">  
+              <MdAir className="text-3xl" style={{ color: airQualityData.color }} />  
+              <div>  
+                <h2  
+                  className="text-xl font-bold"  
+                  style={{ color: airQualityData.color }}  
+                >  
+                  Calidad del Aire: {airQualityData.label} {airQualityData.emoji}  
+                </h2>  
+                <p className="text-gray-700">  
+                  {airQualityData.description}  
+                </p>  
+              </div>  
+            </div>  
+            <div  
+              className={`transform transition-transform ${  
+                expandedSection === "air" ? "rotate-180" : ""  
+              }`}  
+            >  
+              <svg  
+                className="w-6 h-6 text-gray-500"  
+                fill="none"  
+                stroke="currentColor"  
+                viewBox="0 0 24 24"  
+              >  
+                <path  
+                  strokeLinecap="round"  
+                  strokeLinejoin="round"  
+                  strokeWidth={2}  
+                  d="M19 9l-7 7-7-7"  
+                />  
+              </svg>  
+            </div>  
+          </div>  
+      
+          {expandedSection === "air" && (  
+            <div className="mt-4">  
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">  
+                {airQualityMetrics.map((metric, i) => (  
+                  <div  
+                    key={i}  
+                    className="bg-white bg-opacity-80 rounded-lg p-3 flex flex-col items-center text-center"  
+                  >  
+                    <h3 className="text-sm font-medium text-gray-700 mb-1">  
+                      {metric.name}  
+                    </h3>  
+                    <p  
+                      className={`text-xl font-bold ${  
+                        parseFloat(metric.value) > metric.safeLevel  
+                          ? "text-red-500"  
+                          : "text-green-500"  
+                      }`}  
+                    >  
+                      {metric.value}  
+                      <span className="text-xs ml-1">{metric.unit}</span>  
+                    </p>  
+                    <div className="mt-1 w-full h-1 bg-gray-200 rounded-full overflow-hidden">  
+                      <div  
+                        className={`h-full ${  
+                          parseFloat(metric.value) > metric.safeLevel  
+                            ? "bg-red-300"  
+                            : "bg-green-300"  
+                        }`}  
+                        style={{  
+                          width: `${Math.min(  
+                            (parseFloat(metric.value) / metric.safeLevel) * 100,  
+                            100  
+                          )}%`,  
+                        }}  
+                      />  
+                    </div>  
+                    <p className="text-xs text-gray-500 mt-1">  
+                      {parseFloat(metric.value) > metric.safeLevel  
+                        ? `Supera en ${(parseFloat(metric.value) - metric.safeLevel).toFixed(1)}µg`  
+                        : "Dentro de lo seguro"}  
+                    </p>  
+                  </div>  
+                ))}  
+              </div>  
+              <div className="mt-4 text-xs text-gray-600 text-center">  
+                <p>  
+                  Niveles seguros según OMS: CO ≤4µg/m³ • NO₂ ≤25µg/m³<br/>  
+                  O₃ ≤60µg/m³ • SO₂ ≤20µg/m³ • PM2.5 ≤12µg/m³ • PM10 ≤20µg/m³  
+                </p>  
+              </div>  
+            </div>  
+          )}  
+        </div>  
+      </div>  
+      
+      {/* Pronóstico por Horas */}  
+      <div className="px-5 py-6 md:px-8 md:py-8 border-t border-gray-200">  
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 flex items-center">  
+          <IoMdTime className="text-2xl text-blue-500 mr-2" />  
+          Pronóstico por Horas  
+        </h2>  
+        <div className="overflow-x-auto">  
+          <div className="flex space-x-4 pb-4" ref={hourlyForecastRef}>  
+            {hourlyData.map((hour, i) => {  
+              const hourDate = new Date(hour.time);  
+              const isCurrentHour = hourDate.getHours() === currentTime.getHours();  
+              return (  
+                <div  
+                  key={i}  
+                  className={`flex-shrink-0 rounded-xl p-3 w-20 sm:w-24 md:w-28 flex flex-col items-center ${  
+                    isCurrentHour  
+                      ? "bg-blue-50 border border-blue-200"  
+                      : "bg-gray-50"  
+                  }`}  
+                >  
+                  <p  
+                    className={`text-sm font-medium ${  
+                      isCurrentHour ? "text-blue-600" : "text-gray-500"  
+                    }`}  
+                  >  
+                    {hourDate.getHours()}h  
+                  </p>  
+                  <img  
+                    src={`https:${hour.condition.icon}`}  
+                    alt={hour.condition.text}  
+                    className="w-10 h-10 sm:w-12 sm:h-12 object-contain my-1"  
+                  />  
+                  <p  
+                    className={`text-lg font-semibold ${  
+                      isCurrentHour ? "text-blue-700" : "text-gray-800"  
+                    }`}  
+                  >  
+                    {hour.temp_c}°  
+                  </p>  
+                  {hour.chance_of_rain > 0 && (  
+                    <div className="flex items-center space-x-1">  
+                      <BsDropletHalf className="text-blue-400 text-xs" />  
+                      <span className="text-xs text-blue-500">  
+                        {hour.chance_of_rain}%  
+                      </span>  
+                    </div>  
+                  )}  
+                </div>  
+              );  
+            })}  
+          </div>  
+        </div>  
+      </div>  
+      
+      {/* Alertas */}  
+      {alerts?.alert?.length > 0 && (  
+        <div className="px-5 py-6 md:px-8 md:py-8 border-t border-red-200 bg-red-50">  
+          <div  
+            className="cursor-pointer"  
+            onClick={() =>  
+              setExpandedSection(expandedSection === "alerts" ? null : "alerts")  
+            }  
+          >  
+            <div className="flex justify-between items-center">  
+              <h2 className="text-xl font-bold text-red-600 flex items-center">  
+                <svg  
+                  className="w-5 h-5 mr-2"  
+                  fill="currentColor"  
+                  viewBox="0 0 20 20"  
+                >  
+                  <path  
+                    fillRule="evenodd"  
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"  
+                    clipRule="evenodd"  
+                  />  
+                </svg>  
+                Alertas Meteorológicas ({alerts.alert.length})  
+              </h2>  
+              <div  
+                className={`transform transition-transform ${  
+                  expandedSection === "alerts" ? "rotate-180" : ""  
+                }`}  
+              >  
+                <svg  
+                  className="w-6 h-6 text-red-500"  
+                  fill="none"  
+                  stroke="currentColor"  
+                  viewBox="0 0 24 24"  
+                >  
+                  <path  
+                    strokeLinecap="round"  
+                    strokeLinejoin="round"  
+                    strokeWidth={2}  
+                    d="M19 9l-7 7-7-7"  
+                  />  
+                </svg>  
+              </div>  
+            </div>  
+          </div>  
+          {expandedSection === "alerts" && (  
+            <div className="mt-4 space-y-4">  
+              {alerts.alert.map((alert, i) => (  
+                <div  
+                  key={i}  
+                  className="bg-white rounded-lg p-4 border border-red-200"  
+                >  
+                  <h3 className="font-bold text-red-700">  
+                    {alert.headline}  
+                  </h3>  
+                  <p className="text-sm text-red-600 mt-1">  
+                    {alert.desc}  
+                  </p>  
+                  <div className="flex flex-col sm:flex-row justify-between mt-2 text-xs text-red-500 gap-1">  
+                    <span>Inicio: {alert.effective}</span>  
+                    <span>Fin: {alert.expires}</span>  
+                  </div>  
+                  {alert.instruction && (  
+                    <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">  
+                      <p className="font-semibold">Recomendación:</p>  
+                      <p>{alert.instruction}</p>  
+                    </div>  
+                  )}  
+                </div>  
+              ))}  
+            </div>  
+          )}  
+        </div>  
+      )}  
+      
+      {/* Footer */}  
+      <div className="bg-gray-50 py-4 text-center text-xs text-gray-500">  
+        <p>Datos proporcionados por WeatherAPI.com</p>  
+        <p className="mt-1">  
+          Actualizado: {new Date(current.last_updated).toLocaleString("es-ES")}  
+        </p>  
+      </div>  
+    </div>  
+  );  
+}
