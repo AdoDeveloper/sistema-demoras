@@ -694,7 +694,7 @@ export default function BarcoProductoManagement() {
             </div>
             <div className="grid grid-cols-2 md:flex md:flex-row items-center mt-4 md:mt-0 gap-3">
               <button
-                onClick={() => router.push("/proceso/consultar/recepción")}
+                onClick={() => router.push("/proceso/consultar/recepcion")}
                 className="bg-orange-600 hover:bg-orange-700 px-3 py-2 rounded flex items-center"
               >
                 <PiBarnFill className="mr-1" /> Registros
