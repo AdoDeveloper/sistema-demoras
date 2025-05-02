@@ -551,16 +551,26 @@ export default function BarcoProductoManagement() {
     }).then(async (r) => {
       if (!r.isConfirmed) return;
       try {
-        const w = await fetch(`/api/recepcion/barcos/${id}`, { method: "DELETE" });
-        if (!w.ok) throw new Error();
+        const res = await fetch(`/api/recepcion/barcos/${id}`, { method: "DELETE" });
+        // Intentamos leer el JSON (si falla, asumimos objeto vacío)
+        const data = await res.json().catch(() => ({}));
+      
+        if (!res.ok) {
+          // Extraemos el mensaje de data.error (o fallback)
+          const mensaje = data.error ?? data.message ?? "No se pudo eliminar";
+          throw new Error(mensaje);
+        }
+      
+        // Si OK, refrescamos y mostramos éxito
         await refreshData();
         Swal.fire({
           title: "¡Eliminado!",
           icon: "success",
           confirmButtonColor: "#007BFF",
         });
-      } catch {
-        Swal.fire("Error", "No se pudo eliminar", "error");
+      } catch (err) {
+        // err.message contiene ahora "No puedes eliminar un barco con recepciones/traslados asociados"
+        Swal.fire("Error", err.message, "error");
       }
     });
   };
@@ -732,7 +742,7 @@ export default function BarcoProductoManagement() {
 
         {/* ========== TRANSPORTES ========== */}
         {activeTab === "transportes" && (
-          <section className="bg-white p-6 rounded-lg shadow space-y-6">
+          <section className="bg-white p-4 rounded-lg shadow space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between">
               <h2 className="text-lg font-semibold mb-4 md:mb-0">Transportes</h2>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
@@ -755,9 +765,9 @@ export default function BarcoProductoManagement() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full table-auto bg-white rounded-lg shadow">
-                <thead className="bg-gray-100">
+            <div className="overflow-x-auto bg-white py-2">
+            <table className="w-full table-auto bg-white rounded-lg shadow whitespace-nowrap">
+                <thead className="bg-gray-200">
                   <tr>
                     <th className="px-4 py-2 text-left">Empresa</th>
                     <th className="px-4 py-2 text-center">Acciones</th>
@@ -767,12 +777,12 @@ export default function BarcoProductoManagement() {
                   {loadingExistingTrans ? (
                     <tr>
                       <td colSpan={2} className="text-center py-4">
-                        Cargando...
+                        Cargando Transportes...
                       </td>
                     </tr>
                   ) : existingTransportes.length === 0 ? (
                     <tr>
-                      <td colSpan={2} className="text-center py-4 text-gray-500">
+                      <td colSpan={5} className="text-center py-8 text-gray-500 font-medium italic">
                         No hay registros.
                       </td>
                     </tr>
@@ -828,11 +838,8 @@ export default function BarcoProductoManagement() {
               </button>
             </div>
             <section className="overflow-x-auto bg-white rounded-lg shadow p-4">
-              {loadingBarcos ? (
-                <p className="text-center text-gray-500">Cargando barcos...</p>
-              ) : (
-                <>
-                  <table className="w-full border-collapse whitespace-nowrap">
+            <h2 className="text-lg font-semibold mb-4 mt-2">Barcos Recepción</h2>
+            <table className="w-full table-auto bg-white rounded-lg shadow whitespace-nowrap">
                     <thead className="bg-gray-200">
                       <tr>
                         <th className="px-4 py-3 text-left">Vapor Barco</th>
@@ -842,52 +849,66 @@ export default function BarcoProductoManagement() {
                         <th className="px-4 py-3 text-center">Acciones</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {filteredBarcos.map((barco) => (
-                        <tr key={barco.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2">{barco.vaporBarco}</td>
-                          <td className="px-4 py-2">
-                            {Array.isArray(barco.productos)
-                              ? barco.productos.join(", ")
-                              : barco.productos}
-                          </td>
-                          <td className="px-4 py-2">
-                            {Array.isArray(barco.puntosDescarga)
-                              ? barco.puntosDescarga.join(", ")
-                              : barco.puntosDescarga}
-                          </td>
-                          <td className="px-4 py-2">
-                            {Array.isArray(barco.transportes)
-                              ? barco.transportes.map((t) => t.nombre).join(", ")
-                              : barco.transportes}
-                          </td>
-                          <td className="px-4 py-2 text-center space-x-2">
-                            <button
-                              onClick={() => {
-                                setSelectedBarcoDetail(barco);
-                                setIsBarcoDetailModalOpen(true);
-                              }}
-                              className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full"
-                            >
-                              <FiEye size={16} />
-                            </button>
-                            <button
-                              onClick={() => openEditBarcoModal(barco)}
-                              className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full"
-                            >
-                              <FiEdit size={16} />
-                            </button>
-                            <button
-                              onClick={() => openDeleteBarcoModal(barco.id)}
-                              className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
-                            >
-                              <FiTrash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <tbody className="divide-y divide-gray-100">
+                  {loadingBarcos ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-4 text-gray-500">
+                        Cargando Barcos...
+                      </td>
+                    </tr>
+                  ) : filteredBarcos.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-8 text-gray-500 font-medium italic">
+                        No hay registros.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredBarcos.map((barco) => (
+                      <tr key={barco.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2">{barco.vaporBarco}</td>
+                        <td className="px-4 py-2">
+                          {Array.isArray(barco.productos)
+                            ? barco.productos.join(", ")
+                            : barco.productos}
+                        </td>
+                        <td className="px-4 py-2">
+                          {Array.isArray(barco.puntosDescarga)
+                            ? barco.puntosDescarga.join(", ")
+                            : barco.puntosDescarga}
+                        </td>
+                        <td className="px-4 py-2">
+                          {Array.isArray(barco.transportes)
+                            ? barco.transportes.map((t) => t.nombre).join(", ")
+                            : barco.transportes}
+                        </td>
+                        <td className="px-4 py-2 text-center space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedBarcoDetail(barco);
+                              setIsBarcoDetailModalOpen(true);
+                            }}
+                            className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full"
+                          >
+                            <FiEye size={16} />
+                          </button>
+                          <button
+                            onClick={() => openEditBarcoModal(barco)}
+                            className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full"
+                          >
+                            <FiEdit size={16} />
+                          </button>
+                          <button
+                            onClick={() => openDeleteBarcoModal(barco.id)}
+                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
 
                   {/* PAGINACIÓN */}
                   <div className="flex flex-col sm:flex-row justify-between items-center mt-4">
@@ -941,9 +962,7 @@ export default function BarcoProductoManagement() {
                       </div>
                     </div>
                   </div>
-                </>
-              )}
-            </section>
+              </section>
           </>
         )}
 
@@ -966,53 +985,65 @@ export default function BarcoProductoManagement() {
               </button>
             </div>
             <section className="overflow-x-auto bg-white rounded-lg shadow p-4">
-              {loadingProductos ? (
-                <p className="text-center text-gray-500">Cargando productos...</p>
-              ) : (
-                <table className="w-full border-collapse whitespace-nowrap">
-                  <thead className="bg-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Nombre</th>
-                      <th className="px-4 py-3 text-center">Acciones</th>
+            <h2 className="text-lg font-semibold mb-4 mt-2">Productos</h2>
+            <table className="w-full table-auto bg-white rounded-lg shadow whitespace-nowrap">
+              <thead className="bg-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left">Nombre</th>
+                  <th className="px-4 py-3 text-left">Descripción</th>
+                  <th className="px-4 py-3 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loadingProductos ? (
+                  <tr>
+                    <td colSpan={3} className="text-center py-4 text-gray-500">
+                      Cargando productos...
+                    </td>
+                  </tr>
+                ) : filteredProductos.length === 0 ? (
+                  <tr>
+                      <td colSpan={5} className="text-center py-8 text-gray-500 font-medium italic">
+                        No hay registros.
+                      </td>
+                  </tr>
+                ) : (
+                  filteredProductos.map((prod) => (
+                    <tr key={prod.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2">{prod.nombre}</td>
+                      <td className="px-4 py-2">{prod.descripcion}</td>
+                      <td className="px-4 py-2 text-center space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedProductoDetail(prod);
+                            setIsProductoDetailModalOpen(true);
+                          }}
+                          className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full"
+                        >
+                          <FiEye size={16} />
+                        </button>
+                        <button
+                          onClick={() => openEditProductoModal(prod)}
+                          className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full"
+                        >
+                          <FiEdit size={16} />
+                        </button>
+                        <button
+                          onClick={() => openDeleteProductoModal(prod.id)}
+                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {filteredProductos.map((prod) => (
-                      <tr key={prod.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2">{prod.nombre}</td>
-                        <td className="px-4 py-2 text-center space-x-2">
-                          <button
-                            onClick={() => {
-                              setSelectedProductoDetail(prod);
-                              setIsProductoDetailModalOpen(true);
-                            }}
-                            className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full"
-                          >
-                            <FiEye size={16} />
-                          </button>
-                          <button
-                            onClick={() => openEditProductoModal(prod)}
-                            className="bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-full"
-                          >
-                            <FiEdit size={16} />
-                          </button>
-                          <button
-                            onClick={() => openDeleteProductoModal(prod.id)}
-                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
-                          >
-                            <FiTrash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                  ))
+                )}
+              </tbody>
+            </table>
             </section>
           </>
         )}
-      </div>
-
+        </div>
       {/* ========== MODALES ========== */}
 
       {/* MODALES DE TRANSPORTES */}
