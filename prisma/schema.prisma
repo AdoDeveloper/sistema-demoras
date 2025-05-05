@@ -1,6 +1,8 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  provider        = "prisma-client"                         // nuevo cliente (sin -js)
+  output          = "../src/generated/prisma"               // fuera de node_modules
+  previewFeatures = ["queryCompiler", "driverAdapters"]     // mejoras de rendimiento
+  moduleFormat    = "esm"
 }
 
 datasource db {
