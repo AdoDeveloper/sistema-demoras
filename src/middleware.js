@@ -161,13 +161,16 @@ export async function middleware(req) {
     if (pathname.startsWith("/api")) {
       return NextResponse.json({ error: "Not authenticated", message: "Authentication required" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL("/login?authorize=SessionRequired", req.url));
   }
 
   // Verificación de permisos
   const routeKey = Object.keys(ROUTE_PERMISSIONS).find(route => matchRoute(pathname, route));
   const allowedRoles = routeKey ? ROUTE_PERMISSIONS[routeKey] : null;
   if (!allowedRoles) {
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json({ error: "Unauthorized", message: "Access denied" }, { status: 403 });
+    }
     return NextResponse.redirect(new URL("/403", req.url));
   }
   if (allowedRoles.length === 0 || allowedRoles.includes(token.roleId)) {

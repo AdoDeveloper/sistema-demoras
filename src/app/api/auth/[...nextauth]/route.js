@@ -6,8 +6,8 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-// Configuración de NextAuth sin exportar authOptions directamente en la ruta
-const authOptions = {
+// Configuración de NextAuth
+export const authOptions = {
   adapter: PrismaAdapter(prisma),
 
   providers: [
@@ -18,41 +18,53 @@ const authOptions = {
         password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
-        console.log(`🔑 [authorize] Intento login: ${credentials?.username}`);
+        console.log(`🔑 [authorize] Intento de login con usuario: ${credentials?.username}`);
+
         if (!credentials?.username || !credentials?.password) {
-          console.log(`❌ [authorize] Faltan credenciales`);
+          console.log(`❌ [authorize] Faltan credenciales: username o password no proporcionados`);
           throw new Error("Faltan credenciales");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username },
-          include: { role: true },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { username: credentials.username },
+            include: { role: true },
+          });
 
-        if (!user || user.eliminado) {
-          console.log(`❌ [authorize] Usuario no existe o eliminado`);
-          throw new Error("Credenciales incorrectas");
-        }
-        if (!user.activo) {
-          console.log(`🚫 [authorize] Usuario inactivo`);
-          throw new Error("Usuario inactivo. Comuníquese con el administrador");
-        }
+          if (!user) {
+            console.log(`❌ [authorize] Usuario no encontrado: ${credentials.username}`);
+            throw new Error("Credenciales incorrectas");
+          }
 
-        const valid = await bcrypt.compare(credentials.password, user.password);
-        if (!valid) {
-          console.log(`❌ [authorize] Contraseña inválida`);
-          throw new Error("Credenciales incorrectas");
-        }
+          if (user.eliminado) {
+            console.log(`🚫 [authorize] Usuario eliminado: ${user.username}`);
+            throw new Error("El usuario fue eliminado del sistema");
+          }
 
-        console.log(`✅ [authorize] Login OK: ${user.username}`);
-        return {
-          id:             user.id,
-          username:       user.username,
-          roleId:         user.roleId,
-          roleName:       user.role.name,
-          codigo:         user.codigo,
-          nombreCompleto: user.nombreCompleto,
-        };
+          if (!user.activo) {
+            console.log(`🚫 [authorize] Usuario inactivo: ${user.username}`);
+            throw new Error("Usuario inactivo. Comuníquese con el administrador");
+          }
+
+          const valid = await bcrypt.compare(credentials.password, user.password);
+          if (!valid) {
+            console.log(`❌ [authorize] Contraseña incorrecta para usuario: ${user.username}`);
+            throw new Error("Credenciales incorrectas");
+          }
+
+          console.log(`✅ [authorize] Login exitoso para: ${user.username}`);
+          return {
+            id:             user.id,
+            username:       user.username,
+            roleId:         user.roleId,
+            roleName:       user.role.name,
+            codigo:         user.codigo,
+            nombreCompleto: user.nombreCompleto,
+          };
+        } catch (error) {
+          console.error(`💥 [authorize] Error inesperado durante la autenticación:`, error);
+          throw new Error("Error en el servidor de autenticación");
+        }
       },
     }),
   ],
@@ -79,10 +91,15 @@ const authOptions = {
         token.roleName       = user.roleName;
         token.codigo         = user.codigo;
         token.nombreCompleto = user.nombreCompleto;
-        console.log(`✅ [JWT] Token inicial para ${user.username}`);
+
+        console.log(`✅ [JWT] Token generado para usuario: ${user.username} (Rol: ${user.roleName})`);
+      } else {
+        console.log(`🔄 [JWT] Reutilizando token existente para: ${token.username}`);
       }
+
       return token;
     },
+
     async session({ session, token }) {
       session.user = {
         id:             token.id,
@@ -92,31 +109,36 @@ const authOptions = {
         codigo:         token.codigo,
         nombreCompleto: token.nombreCompleto,
       };
+
       console.log(
-        `🕒 [session] Enviando session para ${token.username}; expires in ${session.expires}`
+        `🕒 [session] Sesión generada para: ${token.username} (Rol: ${token.roleName}) | Expira: ${session.expires}`
       );
+
       return session;
     },
   },
 
   events: {
-    async signIn({ user, isNewUser }) {
+    async signIn({ user }) {
       console.log(
-        `🎉 [event signIn] id=${user.id}, username=${user.username}, isNewUser=${isNewUser}`
+        `🎉 [event signIn] Login exitoso - ID: ${user.id}, Usuario: ${user.username}`
       );
     },
+
     async signOut({ token }) {
       console.log(
-        `🔒 [event signOut] id=${token?.id}, username=${token?.username}`
+        `🔒 [event signOut] Cierre de sesión - ID: ${token?.id}, Usuario: ${token?.username}`
       );
     },
+
     async error({ error, method }) {
-      console.log(`⚠️ [event error] método=${method}`, error);
+      console.error(`⚠️ [event error] Método: ${method} | Detalles:`, error);
     },
   },
 
   secret: process.env.NEXTAUTH_SECRET,
 };
 
+// Exportación correcta para App Router
 const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST, handler as OPTIONS };
+export { handler as GET, handler as POST };
