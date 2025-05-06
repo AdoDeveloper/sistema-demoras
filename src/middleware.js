@@ -121,6 +121,8 @@ const ROUTE_PERMISSIONS = {
   "/api/recepcion/transportes/:path*": PERMISSIONS.RECEPCION_LIMITED,
   "/api/transportes": PERMISSIONS.RECEPCION_LIMITED,
   "/proceso/consultar/recepcion/barcos": PERMISSIONS.RECEPCION_FULL,
+  "/api/recepcion/:path*": PERMISSIONS.ADMIN_ONLY,
+  "/proceso/editar/recepcion": PERMISSIONS.ADMIN_ONLY,
 };
 
 // 7) Headers de seguridad
@@ -256,6 +258,7 @@ export const config = {
 
     // RECEPCIÓN
     "/api/recepcion",
+    "/api/recepcion/:path*",
     "/api/recepcion/bitacoras/:path*",
     "/api/recepcion/barcos",
     "/api/recepcion/productos",
@@ -266,6 +269,7 @@ export const config = {
     "/api/recepcion/transportes/:path*",
     "/api/transportes",
     "/proceso/iniciar/recepcion",
+    "/proceso/editar/recepcion",
     "/proceso/consultar/recepcion",
     "/proceso/consultar/recepcion/barcos",
 
