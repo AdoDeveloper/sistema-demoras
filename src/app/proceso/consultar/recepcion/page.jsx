@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, Fragment, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FiArrowLeft, FiFileText, FiRefreshCw } from "react-icons/fi";
 import Swal from "sweetalert2";
 import PDFRecepcion from "../../../../components/PDFRecepcion";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { FaEye, FaFilePdf } from "react-icons/fa";
+import { FaEdit, FaEye, FaFilePdf } from "react-icons/fa";
 
 // debounce helper
 function debounce(func, wait) {
@@ -80,6 +81,8 @@ export default function RecepcionPage() {
     debounce((v) => setSearch(v), 500),
     []
   );
+
+  const router = useRouter();
 
   // Función para obtener datos desde la API
   async function fetchRecepcion() {
@@ -178,6 +181,11 @@ export default function RecepcionPage() {
     if (j) return f <= j;
     return true;
   });
+
+  const handleEditRecord = (item) => {
+    localStorage.setItem("recepcionId",item.id);
+    router.push(`/proceso/editar/recepcion`);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -315,8 +323,17 @@ export default function RecepcionPage() {
                           className="bg-blue-500 text-white p-2 rounded"
                           title="Ver detalles"
                         >
-                          <FaEye />
+                          <FaEye size={18}/>
                         </button>
+                        {roleId === 1 && (
+                        <button
+                          onClick={() => handleEditRecord(item)}
+                          title="Editar"
+                          className="bg-amber-500 hover:bg-amber-600 text-white p-2 rounded ml-2 transition-all duration-300 transform hover:scale-105 text-xs"
+                        >
+                          <FaEdit size={18} />
+                        </button>
+                      )}
                       </td>
                     </tr>
                     {expandedRows.includes(item.id) && (

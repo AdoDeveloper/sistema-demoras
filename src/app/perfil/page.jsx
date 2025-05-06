@@ -502,7 +502,7 @@ export default function Profile() {
         <div className="flex items-center">
           <button
             onClick={() => router.push("/")}
-            className="bg-blue-600 text-white p-2 rounded-full mr-3"
+            className="bg-blue-600 text-white p-2 rounded-full mr-3 hover:bg-blue-800 transition-all duration-300 transform hover:scale-105"
           >
             <FiArrowLeft size={20} />
           </button>

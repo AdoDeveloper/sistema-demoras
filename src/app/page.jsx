@@ -14,7 +14,8 @@ import {
   FaArrowRight,
 } from "react-icons/fa";
 import { PiTruckTrailerFill, PiBarnFill } from "react-icons/pi";
-import { FiUsers, FiLoader } from "react-icons/fi";
+import { FiUsers } from "react-icons/fi";
+import { ImSpinner5 } from "react-icons/im";
 import { HiOutlineUserCircle } from "react-icons/hi";
 import { IoBoatSharp } from "react-icons/io5";
 import { GiGrain } from "react-icons/gi";
@@ -93,7 +94,7 @@ export default function Dashboard() {
   if (status === "loading") {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
-        <FiLoader className="animate-spin mb-4" size={48} />
+        <ImSpinner5 className="animate-spin mb-4" size={48} />
         <span className="text-xl text-gray-600">Cargando...</span>
       </div>
     );

@@ -1,15 +1,16 @@
+// app/health/page.tsx
 "use client";
-
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
-  FiCheckCircle,
-  FiAlertCircle,
+  FiDatabase,
+  FiServer,
+  FiCloud,
   FiLoader,
-  FiRefreshCw,
-  FiSearch,
   FiArrowLeft,
+  FiRefreshCw,
 } from "react-icons/fi";
+import { FaServer } from "react-icons/fa";
 
 interface ServiceData {
   status: string;
@@ -34,28 +35,87 @@ interface Toast {
   type: "success" | "error";
 }
 
+const steps = [
+  { text: "Consultando base de datos", Icon: FiDatabase },
+  { text: "Consultando servidor", Icon: FiServer },
+  { text: "Consultando servicios en la nube", Icon: FiCloud },
+  { text: "Procesando datos", Icon: FiLoader },
+];
+
+function LoadingAnimation() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % steps.length);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const { text, Icon } = steps[index];
+  const isSpinner = Icon === FiLoader;
+
+  return (
+    <div className="flex flex-col items-center justify-center space-y-4 p-8 rounded-lg shadow-md">
+      <div
+        className={`text-6xl text-blue-500 ${
+          isSpinner ? "animate-spin" : "animate-bounce"
+        }`}
+      >
+        <Icon />
+      </div>
+      <p className="text-lg font-medium animate-pulse">{text}</p>
+      <div className="flex space-x-2">
+        {steps.map((_, i) => (
+          <span
+            key={i}
+            className={`h-2 transition-all duration-300 rounded-full ${
+              i === index ? "bg-green-500 w-6" : "bg-gray-300 w-2"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatusIndicator({ status }: { status: string }) {
+  return status === "Activo" ? (
+    <div className="relative flex items-center">
+      <span className="absolute inline-flex h-3 w-3 rounded-full bg-green-400 animate-ping"></span>
+      <span className="relative inline-flex h-3 w-3 rounded-full bg-green-600"></span>
+    </div>
+  ) : (
+    <div className="relative flex items-center">
+      <span className="inline-flex h-3 w-3 rounded-full bg-red-600"></span>
+    </div>
+  );
+}
+
 export default function HealthStatusPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filterQuery, setFilterQuery] = useState("");
   const [toast, setToast] = useState<Toast | null>(null);
+  const [showLoader, setShowLoader] = useState(true);
 
-  // Función para mostrar una tostada (toast) con duración de 3 segundos.
+  useEffect(() => {
+    const t = setTimeout(() => setShowLoader(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 1000);
   };
 
-  // Función para obtener los datos de Health desde /api/health
   const fetchHealthData = async () => {
     setRefreshing(true);
     try {
       const res = await fetch("/api/health");
       if (res.status === 401) {
-        // No autenticado: se muestran solo Componentes Principales
-        const defaultData: HealthData = {
+        setHealthData({
           database: {
             status: "Activo",
             description: "Servicio de base de datos funcionando correctamente.",
@@ -69,14 +129,12 @@ export default function HealthStatusPage() {
             description: "Servicio de caché funcionando correctamente.",
           },
           timestamp: new Date().toISOString(),
-        };
-        setHealthData(defaultData);
+        });
       } else {
         const data: HealthData = await res.json();
         setHealthData(data);
       }
-    } catch (error) {
-      console.error("Error al obtener datos de health:", error);
+    } catch {
       showToast("Error al actualizar la información.", "error");
     } finally {
       setLoading(false);
@@ -88,125 +146,85 @@ export default function HealthStatusPage() {
     fetchHealthData();
   }, []);
 
-  // Al actualizar healthData, se muestra una tostada con los mensajes de error (si existen)
   useEffect(() => {
-    if (healthData) {
-      let messages: string[] = [];
-      // Revisar componentes principales
-      if (healthData.database.status !== "Activo") {
-        messages.push(`Base de Datos: ${healthData.database.description}`);
-      }
-      if (healthData.authentication.status !== "Activo") {
-        messages.push(`Autenticación: ${healthData.authentication.description}`);
-      }
-      if (healthData.cache.status !== "Activo") {
-        messages.push(`Caché: ${healthData.cache.description}`);
-      }
-      // Revisar endpoints generales
-      if (healthData.apis) {
-        Object.entries(healthData.apis).forEach(([key, service]) => {
-          if (service.status !== "Activo") {
-            messages.push(`${key}: ${service.message}`);
-          }
-        });
-      }
-      // Revisar servicios de reporte
-      if (healthData.reportServices) {
-        Object.entries(healthData.reportServices).forEach(([key, service]) => {
-          if (service.status !== "Activo") {
-            messages.push(`${key}: ${service.message}`);
-          }
-        });
-      }
-      if (messages.length > 0) {
-        showToast(messages.join(" | "), "error");
-      } else {
-        showToast(`Información actualizada a las ${new Date().toLocaleTimeString("es-ES")}`, "success");
-      }
-    }
+    if (!healthData) return;
+    const msgs: string[] = [];
+    if (healthData.database.status !== "Activo")
+      msgs.push(`Base de Datos: ${healthData.database.description}`);
+    if (healthData.authentication.status !== "Activo")
+      msgs.push(`Autenticación: ${healthData.authentication.description}`);
+    if (healthData.cache.status !== "Activo")
+      msgs.push(`Caché: ${healthData.cache.description}`);
+    healthData.apis &&
+      Object.entries(healthData.apis).forEach(([k, svc]) => {
+        if (svc.status !== "Activo") msgs.push(`${k}: ${svc.message}`);
+      });
+    healthData.reportServices &&
+      Object.entries(healthData.reportServices).forEach(([k, svc]) => {
+        if (svc.status !== "Activo") msgs.push(`${k}: ${svc.message}`);
+      });
+    if (msgs.length)
+      showToast(msgs.join(" | "), "error");
+    else
+      showToast(
+        `Información actualizada a las ${new Date().toLocaleTimeString("es-ES")}`,
+        "success"
+      );
   }, [healthData]);
 
-  // Calcula el estado global: si DB, Auth y Caché son "Activo" y, si existen, todos los endpoints en apis también.
   const computeGlobalStatus = (data: HealthData) => {
-    const mainComponents = [
-      data.database.status,
-      data.authentication.status,
-      data.cache.status,
-    ];
-    let apiStatuses: string[] = [];
-    if (data.apis) {
-      apiStatuses = Object.values(data.apis).map((api: ServiceData) => api.status);
-    }
-    const allActive =
-      mainComponents.every((s) => s === "Activo") &&
-      (apiStatuses.length ? apiStatuses.every((s) => s === "Activo") : true);
-    return allActive ? "Todos los Servicios Funcionando" : "Interrupción Parcial del Sistema";
+    const ok = [data.database, data.authentication, data.cache].every(
+      (c) => c.status === "Activo"
+    );
+    return ok
+      ? "Todos los Servicios Funcionando"
+      : "Interrupción Parcial del Sistema";
   };
 
-  const globalStatus = healthData ? computeGlobalStatus(healthData) : "";
-
-  // Filtrar APIs según el filtro de búsqueda (si existen)
-  let filteredAPIs: [string, ServiceData][] = [];
-  if (healthData && healthData.apis) {
-    filteredAPIs = Object.entries(healthData.apis).filter(([apiName]) =>
-      apiName.toLowerCase().includes(filterQuery.toLowerCase())
-    );
-  }
-
-  // Componente para mostrar un indicador pulsante según el estado.
-  const StatusIndicator = ({ status }: { status: string }) => {
-    if (status === "Activo") {
-      return (
-        <div className="relative flex items-center">
-          <span className="absolute inline-flex h-3 w-3 rounded-full bg-green-400 animate-ping"></span>
-          <span className="relative inline-flex h-3 w-3 rounded-full bg-green-600"></span>
-        </div>
-      );
-    }
+  if (showLoader) {
     return (
-      <div className="relative flex items-center">
-        <span className="inline-flex h-3 w-3 rounded-full bg-red-600"></span>
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <FiLoader className="animate-spin" size={40} />
-        <p className="mt-4 text-gray-600">Cargando información del sistema...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingAnimation />
       </div>
     );
   }
 
-  // Determinar si el usuario está autenticado
-  const isAuthenticated = sessionStatus === "authenticated";
+  if (loading || !healthData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <FaServer className="animate-pulse text-gray-500" size={48} />
+        <p className="mt-4 text-gray-600">
+          Cargando información del sistema...
+        </p>
+      </div>
+    );
+  }
+
+  const globalStatus = computeGlobalStatus(healthData);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6 relative">
-      {/* Tostada */}
+    <div className="min-h-screen p-4 md:p-6">
       {toast && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-2 rounded shadow text-sm font-medium 
-          ${toast.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+          className={`fixed top-4 right-4 z-50 px-4 py-2 rounded shadow text-sm font-medium ${
+            toast.type === "success"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
         >
           {toast.message}
         </div>
       )}
 
-      {/* Encabezado */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <div className="flex flex-col md:flex-row justify-between">
-            <div className="flex items-center">
-                <button
-                onClick={() => (window.location.href = "/")}
-                className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition-all duration-300 transform hover:scale-105"
-                title="Volver"
-                >
-                <FiArrowLeft size={20} />
-                </button>
-                <h1 className="text-xl font-bold">Estado del Sistema</h1>
-            </div>
+        <div className="flex items-center">
+          <button
+            onClick={() => (window.location.href = "/")}
+            className="bg-blue-600 hover:bg-blue-900 text-white p-2 rounded-full mr-3 transition transform hover:scale-105"
+          >
+            <FiArrowLeft size={20} />
+          </button>
+          <h1 className="text-xl font-bold">Estado del Sistema</h1>
         </div>
         <div className="flex items-center mt-4 md:mt-0">
           <button
@@ -220,62 +238,51 @@ export default function HealthStatusPage() {
             )}
             Actualizar
           </button>
-          <div>
-            {globalStatus === "Todos los Servicios Funcionando" ? (
-              <div className="px-4 py-2 rounded-full bg-green-100 text-green-800 text-sm font-medium">
-                {globalStatus}
-              </div>
-            ) : (
-              <div className="px-4 py-2 rounded-full bg-red-100 text-red-800 text-sm font-medium">
-                {globalStatus}
-              </div>
-            )}
-          </div>
+          <span
+            className={`px-4 py-2 rounded-full text-sm font-medium ${
+              globalStatus === "Todos los Servicios Funcionando"
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {globalStatus}
+          </span>
         </div>
       </div>
+
       <p className="text-sm text-gray-500 mb-4">
-            Última actualización:{" "}
-            {new Date(healthData!.timestamp).toLocaleString("es-ES")}
+        Última actualización:{" "}
+        {new Date(healthData.timestamp).toLocaleString("es-ES")}
       </p>
-      {/* Componentes Principales */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+
+      <div className="rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">
           Componentes Principales
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Base de Datos */}
-          <div className="p-4 border rounded-lg flex flex-col">
-            <span className="block text-gray-600 font-medium">Base de Datos</span>
-            <div className="mt-2 flex items-center space-x-2">
-              <StatusIndicator status={healthData!.database.status} />
-              <span className={healthData!.database.status === "Activo" ? "text-green-700" : "text-red-700"}>
-                {healthData!.database.status}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-gray-500">{healthData!.database.description}</p>
-          </div>
-          {/* Autenticación */}
-          <div className="p-4 border rounded-lg flex flex-col">
-            <span className="block text-gray-600 font-medium">Autenticación</span>
-            <div className="mt-2 flex items-center space-x-2">
-              <StatusIndicator status={healthData!.authentication.status} />
-              <span className={healthData!.authentication.status === "Activo" ? "text-green-700" : "text-red-700"}>
-                {healthData!.authentication.status}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-gray-500">{healthData!.authentication.description}</p>
-          </div>
-          {/* Caché */}
-          <div className="p-4 border rounded-lg flex flex-col">
-            <span className="block text-gray-600 font-medium">Caché</span>
-            <div className="mt-2 flex items-center space-x-2">
-              <StatusIndicator status={healthData!.cache.status} />
-              <span className={healthData!.cache.status === "Activo" ? "text-green-700" : "text-red-700"}>
-                {healthData!.cache.status}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-gray-500">{healthData!.cache.description}</p>
-          </div>
+          {(["database", "authentication", "cache"] as const).map((key) => {
+            const svc = healthData[key];
+            return (
+              <div key={key} className="p-4 border rounded-lg flex flex-col">
+                <span className="text-gray-600 font-medium capitalize">
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                </span>
+                <div className="mt-2 flex items-center space-x-2">
+                  <StatusIndicator status={svc.status} />
+                  <span
+                    className={
+                      svc.status === "Activo" ? "text-green-700" : "text-red-700"
+                    }
+                  >
+                    {svc.status}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  {svc.description}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

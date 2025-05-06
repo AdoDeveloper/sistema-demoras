@@ -600,7 +600,7 @@ export default function BarcoProductoManagement() {
       await refreshData();
       setIsCreateProductoModalOpen(false);
       Swal.fire({
-        title: "¡ÉxITO!",
+        title: "¡Éxito!",
         text: "Producto creado",
         icon: "success",
         confirmButtonColor: "#007BFF",
@@ -624,7 +624,7 @@ export default function BarcoProductoManagement() {
       await refreshData();
       setIsEditProductoModalOpen(false);
       Swal.fire({
-        title: "¡ÉxITO!",
+        title: "¡Éxito!",
         text: "Producto actualizado",
         icon: "success",
         confirmButtonColor: "#007BFF",

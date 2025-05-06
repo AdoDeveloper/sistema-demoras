@@ -6,18 +6,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
+import { FiLoader } from "react-icons/fi";
 
 // Loader dinámico para no romper el SSR
 const Loader = dynamic(() => import("./Loader"), { ssr: false });
 
-// Componente encargado de la lógica relacionada con useSearchParams
 function LoginFormContent() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [locked, setLocked] = useState(false);
   const [timer, setTimer] = useState(30);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [progress, setProgress] = useState(0);
+
   const lockIntervalRef = useRef(null);
+  const progressIntervalRef = useRef(null);
 
   const { data: session, status } = useSession({ required: false });
   const router = useRouter();
@@ -35,7 +39,7 @@ function LoginFormContent() {
     }
   }, [status, session, router]);
 
-  // 2️⃣ Si vinimos por falta de sesión (SessionRequired), mostramos toast
+  // 2️⃣ Si venimos por falta de sesión, mostramos toast
   useEffect(() => {
     if (params.get("authorize") === "SessionRequired") {
       Swal.fire({
@@ -49,7 +53,7 @@ function LoginFormContent() {
     }
   }, [params]);
 
-  // 3️⃣ Al montar, comprobar si hay bloqueo en curso
+  // 3️⃣ Al montar, comprobamos si hay bloqueo en curso
   useEffect(() => {
     const attempts = parseInt(localStorage.getItem("loginAttempts") || "0", 10);
     const lockStart = parseInt(localStorage.getItem("loginLockoutStart") || "0", 10);
@@ -92,11 +96,29 @@ function LoginFormContent() {
     if (locked) return;
 
     setError("");
+    setIsSubmitting(true);
+
+    // Iniciar barra de progreso animada
+    setProgress(0);
+    progressIntervalRef.current = setInterval(() => {
+      setProgress(prev => {
+        const next = prev + Math.random() * 15;
+        return next >= 90 ? 90 : next;
+      });
+    }, 300);
+
     const result = await signIn("credentials", {
       redirect: false,
       username,
       password,
     });
+
+    // Finalizar progreso
+    clearInterval(progressIntervalRef.current);
+    setProgress(100);
+    setTimeout(() => setProgress(0), 400);
+
+    setIsSubmitting(false);
 
     if (result?.error) {
       // Registramos intento fallido
@@ -130,7 +152,7 @@ function LoginFormContent() {
           },
           willClose: () => {
             clearInterval(toastInterval);
-          }
+          },
         });
       } else {
         setError(result.error);
@@ -138,7 +160,7 @@ function LoginFormContent() {
     }
   };
 
-  // Loader mientras NextAuth carga el estado
+  // Loader mientras NextAuth carga estado
   if (status === "loading") {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
@@ -148,71 +170,90 @@ function LoginFormContent() {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-r p-4">
-      <div className="bg-white p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md border-t-8 border-orange-500">
-        {/* Logo */}
-        <div className="flex justify-center mb-4">
-          <Image
-            src="https://res.cloudinary.com/dw7txgvbh/image/upload/f_auto,q_auto/almapac-logo"
-            alt="Almapac Logo"
-            width={250}
-            height={120}
-            style={{ width: "100%", height: "auto" }}
-            className="object-contain"
-            priority
-          />
+    <div className="relative">
+      {/* Barra de progreso superior */}
+      {isSubmitting && (
+        <div
+          className="fixed top-0 left-0 h-1 bg-cyan-600 z-50 transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      )}
+
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-r p-4">
+        <div className="bg-white p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md border-t-8 border-orange-500">
+          {/* Logo */}
+          <div className="flex justify-center mb-4">
+            <Image
+              src="https://res.cloudinary.com/dw7txgvbh/image/upload/f_auto,q_auto/almapac-logo"
+              alt="Almapac Logo"
+              width={250}
+              height={120}
+              style={{ width: "100%", height: "auto" }}
+              className="object-contain"
+              priority
+            />
+          </div>
+
+          {/* Título */}
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 text-cyan-700">
+            Control de Tiempos
+          </h2>
+
+          {/* Error */}
+          {error && !locked && (
+            <p className="text-red-600 text-sm text-center bg-red-100 p-2 rounded-md mb-4">
+              {error}
+            </p>
+          )}
+
+          {/* Formulario */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="text"
+              placeholder="Nombre de usuario"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              disabled={locked || isSubmitting}
+            />
+            <input
+              type="password"
+              placeholder="Contraseña"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={locked || isSubmitting}
+            />
+            <button
+              type="submit"
+              disabled={locked || isSubmitting}
+              className={`w-full font-bold py-3 rounded-lg shadow-md transform active:translate-y-1 active:shadow-sm transition-all
+                ${locked
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-orange-500 hover:bg-orange-600 text-white"
+                }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <FiLoader className="animate-spin text-white text-xl" />
+                  <span>Procesando...</span>
+                </div>
+              ) : locked ? (
+                `Intentar de nuevo en ${timer}s`
+              ) : (
+                "Iniciar Sesión"
+              )}
+            </button>
+          </form>
         </div>
-
-        {/* Título */}
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 text-cyan-700">
-          Control de Tiempos
-        </h2>
-
-        {/* Error */}
-        {error && !locked && (
-          <p className="text-red-600 text-sm text-center bg-red-100 p-2 rounded-md mb-4">
-            {error}
-          </p>
-        )}
-
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Nombre de usuario"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={locked}
-          />
-          <input
-            type="password"
-            placeholder="Contraseña"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={locked}
-          />
-          <button
-            type="submit"
-            className={`w-full font-bold py-3 rounded-lg shadow-md transform active:translate-y-1 active:shadow-sm transition-all
-              ${locked
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-orange-500 hover:bg-orange-600 text-white"
-              }`}
-            disabled={locked}
-          >
-            {locked ? `Intentar de nuevo en ${timer}s` : "Iniciar Sesión"}
-          </button>
-        </form>
       </div>
     </div>
   );
 }
 
-// Componente fallback simple para Suspense
+// Componente fallback para Suspense
 function LoginFormFallback() {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-r">
@@ -221,7 +262,7 @@ function LoginFormFallback() {
   );
 }
 
-// Componente principal que implementa Suspense
+// Componente principal
 export default function LoginForm() {
   return (
     <Suspense fallback={<LoginFormFallback />}>
