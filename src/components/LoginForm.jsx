@@ -125,7 +125,7 @@ function LoginFormContent() {
       const prev = parseInt(localStorage.getItem("loginAttempts") || "0", 10) + 1;
       localStorage.setItem("loginAttempts", String(prev));
 
-      if (prev >= 3) {
+      if (prev >= 5) {
         // Iniciar bloqueo de 30 s
         const now = Date.now();
         localStorage.setItem("loginLockoutStart", String(now));
