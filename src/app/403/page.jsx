@@ -16,7 +16,6 @@ export default function ForbiddenPage() {
   const handleHome = () => router.push("/");
   const handleLogin = () => router.push("/login");
 
-  // Loader animado mientras se verifica la sesión
   if (isLoading) {
     return (
       <motion.div
@@ -34,15 +33,24 @@ export default function ForbiddenPage() {
     );
   }
 
-  // Variants para animar secuencialmente hijos
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { when: "beforeChildren", staggerChildren: 0.15 } },
+    visible: {
+      opacity: 1,
+      transition: { when: "beforeChildren", staggerChildren: 0.15 },
+    },
   };
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 120 } },
   };
+
+  const holesCoords = [
+    "top-4 left-4",
+    "top-4 right-4",
+    "bottom-4 left-4",
+    "bottom-4 right-4",
+  ];
 
   return (
     <>
@@ -63,41 +71,29 @@ export default function ForbiddenPage() {
           exit="hidden"
           variants={containerVariants}
         >
-          <motion.div
+          <div
             className="relative w-full max-w-lg bg-white shadow-xl rounded-2xl overflow-hidden"
             style={{ fontFamily: "Montserrat, sans-serif" }}
-            variants={itemVariants}
           >
-            {/* Agujeros decorativos */}
-            {["top-left", "top-right", "bottom-left", "bottom-right"].map((pos, i) => {
-              const coords = {
-                "top-left": "top-4 left-4",
-                "top-right": "top-4 right-4",
-                "bottom-left": "bottom-4 left-4",
-                "bottom-right": "bottom-4 right-4",
-              }[pos];
-              return (
-                <div
-                  key={i}
-                  className={`absolute rounded-full rotate-45 w-4 h-4 sm:w-6 sm:h-6 ${coords}`}
-                  style={{
-                    backgroundImage:
-                      "radial-gradient(circle at 99%, #f4f4f4 10%, grey 70%)",
-                  }}
-                />
-              );
-            })}
+            {/* Marchamos estáticos con z-index elevado */}
+            {holesCoords.map((coords, i) => (
+              <div
+                key={i}
+                className={`absolute rounded-full rotate-45 w-4 h-4 sm:w-6 sm:h-6 ${coords} z-20`}
+                style={{
+                  backgroundImage:
+                    "radial-gradient(circle at 99%, #f4f4f4 10%, grey 70%)",
+                }}
+              />
+            ))}
 
-            {/* Encabezado con icono */}
-            <motion.div
-              className="bg-red-600 text-white text-center py-6"
-              variants={itemVariants}
-            >
+            {/* Encabezado estático, SIN ANIMACIÓN */}
+            <div className="bg-red-600 text-white text-center py-6">
               <FaLock className="mx-auto mb-2 text-6xl animate-pulse" />
               <h1 className="text-3xl sm:text-4xl font-extrabold">403 Prohibido</h1>
-            </motion.div>
+            </div>
 
-            {/* Mensaje principal */}
+            {/* Mensaje principal animado */}
             <motion.div
               className="p-4 flex flex-row items-center"
               variants={itemVariants}
@@ -110,7 +106,7 @@ export default function ForbiddenPage() {
                   <strong>Error 403:</strong> Forbidden. No tienes permiso para ver este recurso.
                 </p>
               </div>
-              <div className="flex-1 mt-4 md:mt-0 md:mb-0 flex justify-center">
+              <div className="flex-1 mt-4 md:mt-0 flex justify-center">
                 <svg
                   viewBox="0 0 500 500"
                   className="w-32 h-32 sm:w-40 sm:h-40"
@@ -152,7 +148,7 @@ export default function ForbiddenPage() {
               </div>
             </motion.div>
 
-            {/* Botones de acción */}
+            {/* Botones animados */}
             <motion.div
               className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8"
               variants={itemVariants}
@@ -180,7 +176,7 @@ export default function ForbiddenPage() {
                 </button>
               )}
             </motion.div>
-          </motion.div>
+          </div>
         </motion.div>
       </AnimatePresence>
     </>
