@@ -1,5 +1,5 @@
 generator client {
-  provider        = "prisma-client"                         // nuevo cliente (sin -js)
+  provider        = "prisma-client-js"                         // nuevo cliente (sin -js)
   output          = "../src/generated/prisma"               // fuera de node_modules
   previewFeatures = ["driverAdapters"]     // mejoras de rendimiento
   moduleFormat    = "esm"
