@@ -19,6 +19,7 @@ import {
   GiGrain,
 } from "react-icons/gi";
 import { IoBoatSharp } from "react-icons/io5";
+import { RiCalendarScheduleFill } from "react-icons/ri";
 import Swal from "sweetalert2";
 
 // 1) Definimos toda la configuración de procesos en un array
@@ -34,7 +35,8 @@ const PROCESOS = [
   { key: "barco", name: "Barco", path: "/proceso/iniciar/barco", icon: IoBoatSharp, bgColor: "bg-indigo-700", hoverColor: "hover:bg-indigo-800", roles: [1, 3], },
   { key: "equipo", name: "Inspección de Equipo", path: "/proceso/iniciar/equipo", icon: MdFrontLoader, bgColor: "bg-red-700", hoverColor: "hover:bg-red-800", roles: [1, 4, 5], },
   { key: "recepcion", name: "Recepción/Traslado", path: "/proceso/iniciar/recepcion", icon: PiBarnFill, bgColor: "bg-cyan-700", hoverColor: "hover:bg-cyan-800", roles: [1, 6, 7], },
-  { key: "back", name: "Regresar", onClick: (router) => router.push("/"), icon: FiArrowLeft, bgColor: "bg-gray-500", hoverColor: "hover:bg-gray-600", roles: [1,2,3,4,5,6,7], },
+  { key: "acontecimientos", name: "Acontecimiento", path: "/proceso/iniciar/acontecimiento", icon: RiCalendarScheduleFill , bgColor: "bg-orange-700", hoverColor: "hover:bg-orange-800", roles: [1, 8], },
+  { key: "back", name: "Regresar", onClick: (router) => router.push("/"), icon: FiArrowLeft, bgColor: "bg-gray-500", hoverColor: "hover:bg-gray-600", roles: [1,2,3,4,5,6,7,8], },
 ];
 
 // 2) Componente genérico de botón de proceso

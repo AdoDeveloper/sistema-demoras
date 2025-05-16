@@ -10,6 +10,7 @@ const ROLES = {
   SUPERVISOR_MANTENIMIENTO: 5,
   CHEQUERO: 6,
   AUDITOR_PROCESOS: 7,
+  SUPERVISOR_DESPACHOS: 8,
 };
 
 // 2) Rutas públicas (no requieren auth)
@@ -29,6 +30,7 @@ const PERMISSIONS = {
   EQUIPOS: [ROLES.ADMINISTRADOR, ROLES.OPERADOR, ROLES.SUPERVISOR_MANTENIMIENTO],
   RECEPCION_FULL: [ROLES.ADMINISTRADOR, ROLES.CHEQUERO, ROLES.AUDITOR_PROCESOS],
   RECEPCION_LIMITED: [ROLES.ADMINISTRADOR, ROLES.AUDITOR_PROCESOS],
+  ACONTECIMIENTOS: [ROLES.ADMINISTRADOR, ROLES.SUPERVISOR_DESPACHOS],
 };
 
 // 4) Módulos reutilizables
@@ -123,6 +125,12 @@ const ROUTE_PERMISSIONS = {
   "/proceso/consultar/recepcion/barcos": PERMISSIONS.RECEPCION_FULL,
   "/api/recepcion/:path*": PERMISSIONS.ADMIN_ONLY,
   "/proceso/editar/recepcion": PERMISSIONS.ADMIN_ONLY,
+
+  // Acontecimientos
+  "/api/acontecimientos": PERMISSIONS.ACONTECIMIENTOS,
+  "/api/acontecimientos/export-excel": PERMISSIONS.ACONTECIMIENTOS,
+  "/proceso/iniciar/acontecimiento": PERMISSIONS.ACONTECIMIENTOS,
+  "/proceso/consultar/acontecimientos": PERMISSIONS.ACONTECIMIENTOS,
 };
 
 // 7) Headers de seguridad
@@ -185,6 +193,7 @@ export async function middleware(req) {
 
 export const config = {
   matcher: [
+    "/",
     "/login",
     "/health",
     "/api/health",
@@ -285,6 +294,12 @@ export const config = {
     "/soporte",
     "/soporte/chat",
     "/soporte/chat/:path*",
+
+    // Acontecimientos
+    "/api/acontecimientos",
+    "/api/acontecimientos/export-excel" ,
+    "/proceso/iniciar/acontecimiento",
+    "/proceso/consultar/acontecimientos",
 
     // ADMIN
     "/usuarios",

@@ -21,6 +21,7 @@ import { IoBoatSharp } from "react-icons/io5";
 import { GiGrain } from "react-icons/gi";
 import { MdPendingActions, MdFrontLoader } from "react-icons/md";
 import { HiClipboardDocumentList } from "react-icons/hi2";
+import { RiCalendarScheduleFill } from "react-icons/ri";
 
 const WeatherWidget = dynamic(
   () => import("../components/WeatherWidget"),
@@ -62,7 +63,7 @@ const ActionButton = ({ path, icon: Icon, label, bgColor, hoverColor, onNavigate
 
 // Define all possible actions and their allowed roles
 const ACTIONS = [
-  { path: "/proceso/iniciar", icon: FaPlay, label: "Iniciar Proceso", bgColor: "bg-green-700", hoverColor: "hover:bg-green-800", roles: [1,2,3,4,5,6,7] },
+  { path: "/proceso/iniciar", icon: FaPlay, label: "Iniciar Proceso", bgColor: "bg-green-700", hoverColor: "hover:bg-green-800", roles: [1,2,3,4,5,6,7,8] },
   { path: "/proceso/consultar/granel", icon: GiGrain, label: "Registros Granel", bgColor: "bg-blue-900", hoverColor: "hover:bg-blue-950", roles: [1,2] },
   { path: "/proceso/consultar/envasado", icon: PiTruckTrailerFill, label: "Registros Envasado", bgColor: "bg-amber-500", hoverColor: "hover:bg-amber-600", roles: [1,2] },
   { path: "/proceso/consultar/molino", icon: GiGrain, label: "Registros Molino", bgColor: "bg-emerald-600", hoverColor: "hover:bg-emerald-700", roles: [1,2] },
@@ -73,6 +74,7 @@ const ACTIONS = [
   { path: "/proceso/consultar/barco", icon: IoBoatSharp, label: "Registros Barcos", bgColor: "bg-orange-700", hoverColor: "hover:bg-orange-800", roles: [1] },
   { path: "/proceso/consultar/recepcion/barcos", icon: IoBoatSharp, label: "Barcos Recepción", bgColor: "bg-blue-800", hoverColor: "hover:bg-blue-900", roles: [1] },
   { path: "/proceso/consultar/recepcion", icon: PiBarnFill, label: "Recepciones & Traslados", bgColor: "bg-cyan-700", hoverColor: "hover:bg-cyan-800", roles: [1,6,7] },
+  { path: "/proceso/consultar/acontecimientos", icon: RiCalendarScheduleFill, label: "Registros Acontecimientos", bgColor: "bg-orange-700", hoverColor: "hover:bg-orange-800", roles: [1,8] },
   { path: "/usuarios", icon: FiUsers, label: "Usuarios & Roles", bgColor: "bg-gray-700", hoverColor: "hover:bg-gray-800", roles: [1] },
 ];
 

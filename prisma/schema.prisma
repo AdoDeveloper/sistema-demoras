@@ -1,8 +1,8 @@
 generator client {
-  provider        = "prisma-client-js"                         // nuevo cliente (sin -js)
-  output          = "../src/generated/prisma"               // fuera de node_modules
-  previewFeatures = ["driverAdapters"]     // mejoras de rendimiento
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma/client"
   moduleFormat    = "esm"
+  previewFeatures = ["driverAdapters"]     // mejoras de rendimiento
 }
 
 datasource db {
@@ -791,4 +791,24 @@ model EmpresaTransporte {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@map("empresas_transporte")
+}
+
+model Acontecimiento {
+  id              Int       @id @default(autoincrement()) @map("id")
+  userId          Int       @map("user_id")
+  userName        String?   @map("user_name")
+  fecha           String    @map("fecha")
+  turno           String?   @map("turno")
+  condicion       String?   @map("condicion")
+  puntosDescarga  Json?     @map("puntos_descarga")  // e.g. ["Terminal 1", "Terminal 2", ...]
+  operadores      Int?      @map("operadores")
+  enlonadores     Int?      @map("enlonadores")
+  equipos         Int?      @map("equipos")
+  basculas        Json?     @map("basculas")           // e.g. ["BASCULA 1", "BASCULA 2", ...]
+  acontecimientos Json?     @map("acontecimientos")     // e.g. [{ "razon": "Corte de energía eléctrica", "horaInicio": "15:01:40", "horaFinal": "15:22:42", "tiempoTotal": "00:21:02", "observaciones": "" }, …]
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("acontecimientos")
 }
