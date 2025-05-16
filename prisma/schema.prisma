@@ -1,8 +1,6 @@
 generator client {
-  provider        = "prisma-client-js"        // ESM, nuevo cliente
-  output          = "../src/generated/prisma/client"
-  previewFeatures = ["driverAdapters"]        // Opcional
-  moduleFormat    = "esm"                     // Formato ESM
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
