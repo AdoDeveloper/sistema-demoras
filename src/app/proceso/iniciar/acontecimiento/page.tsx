@@ -329,9 +329,9 @@ export default function CreateAcontecimientosPage() {
   ]);
 
   function addOrUpdateEvento() {
-    if (!evtForm.razon || !evtForm.horaInicio || !evtForm.horaFinal) {
-      return Swal.fire("Error", "Completa razón e horas", "warning");
-    }
+    // if (!evtForm.razon || !evtForm.horaInicio || !evtForm.horaFinal) {
+    //   return Swal.fire("Error", "Completa razón e horas", "warning");
+    // }
     const nuevo = { ...evtForm };
     setAcontecimientos((arr) => {
       const copy = [...arr];
