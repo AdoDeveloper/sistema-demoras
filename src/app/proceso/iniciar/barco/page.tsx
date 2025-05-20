@@ -189,7 +189,7 @@ export default function Bitacora() {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTab, setActiveTab] = useState<number>(1);
   const [userNameLoaded, setUserNameLoaded] = useState(false);
-
+  const [loadingBoat, setLoadingBoat] = useState(false);
   // Estado para la lista de barcos proveniente de la API
   const [barcosList, setBarcosList] = useState<any[]>([]);
 
@@ -355,6 +355,66 @@ export default function Bitacora() {
       });
       return null;
     }
+  };
+
+  const handleChangeBoat = (e) => {
+    const selectedValue = e.target.value;
+    const selectedBoat = barcosList.find((b) => b.vaporBarco === selectedValue);
+    if (!selectedBoat) return;
+
+    setLoadingBoat(true);
+
+    // Mostrar SweetAlert loading
+    Swal.fire({
+      title: "Cargando información...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    fetch(`/api/barcos/${selectedBoat.id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(res.statusText);
+        return res.json();
+      })
+      .then((data) => {
+        // Actualizar formulario
+        updateBarcoData({
+          id: data.id,
+          bValue: data.muelle,
+          valorMuelle: data.vaporBarco,
+          arriboFecha: data.fechaArribo,
+          arriboHora: data.horaArribo,
+          atraqueFecha: data.fechaAtraque,
+          atraqueHora: data.horaAtraque,
+          recibidoFecha: data.fechaRecibido,
+          recibidoHora: data.horaRecibido,
+          inicioOperacionesFecha: data.fechaInicioOperaciones,
+          inicioOperacionesHora: data.horaInicioOperaciones,
+          finOperacionesFecha: data.fechaFinOperaciones,
+          finOperacionesHora: data.horaFinOperaciones,
+          tipoCarga: JSON.parse(data.tipoCarga),
+          sistemaUtilizado: JSON.parse(data.sistemaUtilizado),
+        });
+        Swal.close();
+        Swal.fire({
+          icon: "success",
+          title: "Barco cargado",
+          showConfirmButton: false,
+          timer: 1200,
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        Swal.close();
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo obtener la información actualizada del barco",
+        });
+      })
+      .finally(() => {
+        setLoadingBoat(false);
+      });
   };
 
   // Función para actualizar la información del Barco mediante PUT a /api/barcos/[id]
@@ -646,12 +706,6 @@ export default function Bitacora() {
         setEditingIndex(null);
       } else {
         updateBitacoraData({ ...activeFormData.bitacora, operaciones: [...activeFormData.bitacora.operaciones, newOperacion] });
-        Swal.fire({
-          icon: "success",
-          title: "Actividad agregada",
-          showConfirmButton: false,
-          timer: 1200,
-        });
       }
     }
     resetNewOperacion();
@@ -942,60 +996,27 @@ export default function Bitacora() {
           <div>
             <label className="block text-sm font-semibold mb-1">VAPOR/BARCO</label>
             <select
-              name="valorMuelle"
-              value={activeFormData?.barco.valorMuelle || ""}
-              onChange={(e) => {
-                const selectedValue = e.target.value;
-                const selectedBoat = barcosList.find((b) => b.vaporBarco === selectedValue);
-                if (selectedBoat) {
-                  // Se consulta la API para obtener la información actualizada del barco seleccionado
-                  fetch(`/api/barcos/${selectedBoat.id}`)
-                    .then((res) => res.json())
-                    .then((data) => {
-                      // Actualizamos la información con la respuesta de la API
-                      updateBarcoData({
-                        id: data.id,
-                        bValue: data.muelle,
-                        valorMuelle: data.vaporBarco,
-                        arriboFecha: data.fechaArribo,
-                        arriboHora: data.horaArribo,
-                        atraqueFecha: data.fechaAtraque,
-                        atraqueHora: data.horaAtraque,
-                        recibidoFecha: data.fechaRecibido,
-                        recibidoHora: data.horaRecibido,
-                        inicioOperacionesFecha: data.fechaInicioOperaciones,
-                        inicioOperacionesHora: data.horaInicioOperaciones,
-                        finOperacionesFecha: data.fechaFinOperaciones,
-                        finOperacionesHora: data.horaFinOperaciones,
-                        tipoCarga: JSON.parse(data.tipoCarga),
-                        sistemaUtilizado: JSON.parse(data.sistemaUtilizado),
-                      });
-                      Swal.fire({
-                        icon: "success",
-                        title: "Barco cargado",
-                        showConfirmButton: false,
-                        timer: 1200,
-                      });
-                    })
-                    .catch((err) => {
-                      console.error(err);
-                      Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "No se pudo obtener la información actualizada del barco",
-                      });
-                    });
-                }
-              }}
-              className="w-full h-9 border border-gray-300 rounded-md px-2 py-1 text-black"
-            >
-              <option value="">Seleccione Vapor/Barco</option>
-              {barcosList.map((boat) => (
-                <option key={boat.id} value={boat.vaporBarco}>
-                  {boat.vaporBarco}
-                </option>
-              ))}
-            </select>
+                  name="valorMuelle"
+                  value={activeFormData?.barco.valorMuelle || ""}
+                  onChange={handleChangeBoat}
+                  disabled={loadingBoat}
+                  className={`w-full h-9 border border-gray-300 rounded-md px-2 py-1 text-black ${
+                    loadingBoat ? "bg-gray-100 cursor-wait" : ""
+                  }`}
+                >
+                  {loadingBoat ? (
+                    <option value="">Procesando solicitud…</option>
+                  ) : (
+                    <>
+                      <option value="">Seleccione Vapor/Barco</option>
+                      {barcosList.map((boat) => (
+                        <option key={boat.id} value={boat.vaporBarco}>
+                          {boat.vaporBarco}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
           </div>
         </div>
         {/* Tarjetas: Tipo de Carga y Sistema Utilizado */}

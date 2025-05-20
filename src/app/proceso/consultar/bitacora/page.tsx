@@ -91,6 +91,7 @@ function DownloadPDF({
         {({ loading, blob, url, error }) => {
           if (!loading && blob && url && !downloadTriggered.current) {
             downloadTriggered.current = true;
+            Swal.close();
             // Crear un enlace temporal para forzar la descarga con el nombre deseado
             const link = document.createElement("a");
             link.href = url;
@@ -145,11 +146,18 @@ export default function BitacorasPage() {
     []
   );
 
-  // Función para iniciar la descarga del PDF
-  const handleGenerarPDF = () => {
-    setRenderPDFLink(true);
-    setPdfKey((prev) => prev + 1);
-  };
+const handleGenerarPDF = () => {
+
+  Swal.fire({
+    title: "Generando PDF...",
+    html: "Por favor, espera un momento.",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  setRenderPDFLink(true);
+  setPdfKey((prev) => prev + 1);
+};
 
   // Función para cargar bitácoras desde la API
   async function fetchBitacoras() {

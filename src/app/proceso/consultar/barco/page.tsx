@@ -557,176 +557,226 @@ export default function BarcosPage() {
 
       {/* MODAL CREAR */}
       {showCreateModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2">
-          <div className="bg-white w-full max-w-3xl p-4 rounded-md overflow-y-auto max-h-screen">
-            <h2 className="text-xl font-bold mb-4">Información del Barco</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              {/* MUELLE y VAPOR/BARCO */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">MUELLE</label>
-                  <input
-                    type="text"
-                    value={muelle}
-                    onChange={(e) => setMuelle(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-2xl lg:max-w-4xl p-6 rounded-lg shadow-xl overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">Nuevo Barco</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreate} className="space-y-6">
+              <div className="space-y-6">
+                {/* MUELLE y VAPOR/BARCO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">MUELLE</label>
+                    <input
+                      type="text"
+                      value={muelle}
+                      onChange={(e) => setMuelle(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Ingrese muelle"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">VAPOR/BARCO</label>
+                    <input
+                      type="text"
+                      value={vaporBarco}
+                      onChange={(e) => setVaporBarco(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Ingrese nombre del barco"
+                      required
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">VAPOR/BARCO</label>
-                  <input
-                    type="text"
-                    value={vaporBarco}
-                    onChange={(e) => setVaporBarco(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
-                </div>
-              </div>
 
-              {/* Tipo de Carga y Sistema Utilizado */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2">TIPO DE CARGA</h3>
-                  {TIPO_CARGA_OPCIONES.map((item) => (
-                    <label key={item} className="block text-xs">
-                      <input
-                        type="checkbox"
-                        checked={tipoCarga.includes(item)}
-                        onChange={() => toggleCheckTipoCarga(item)}
-                        className="mr-1"
-                      />
-                      {item}
-                    </label>
-                  ))}
-                </div>
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2">SISTEMA UTILIZADO</h3>
-                  {SISTEMA_UTILIZADO_OPCIONES.map((item) => (
-                    <label key={item} className="block text-xs">
-                      <input
-                        type="checkbox"
-                        checked={sistemaUtilizado.includes(item)}
-                        onChange={() => toggleCheckSistema(item)}
-                        className="mr-1"
-                      />
-                      {item}
-                    </label>
-                  ))}
-                </div>
-              </div>
+                {/* Tipo de Carga y Sistema Utilizado */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <fieldset className="border p-4 rounded-xl">
+                    <legend className="text-sm font-medium text-gray-700 px-2">TIPO DE CARGA</legend>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {TIPO_CARGA_OPCIONES.map((item) => (
+                        <label key={item} className="flex items-center space-x-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={tipoCarga.includes(item)}
+                            onChange={() => toggleCheckTipoCarga(item)}
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <span>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
 
-              {/* ARRIBO, ATRAQUE, RECIBIDO, INICIO OP, FIN OP */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* ARRIBO */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">ARRIBO</h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Arribo</label>
-                  <input
-                    type="date"
-                    value={fechaArribo}
-                    onChange={(e) => setFechaArribo(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Arribo</label>
-                  <input
-                    type="time"
-                    value={horaArribo}
-                    onChange={(e) => setHoraArribo(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
+                  <fieldset className="border p-4 rounded-xl">
+                    <legend className="text-sm font-medium text-gray-700 px-2">SISTEMA UTILIZADO</legend>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {SISTEMA_UTILIZADO_OPCIONES.map((item) => (
+                        <label key={item} className="flex items-center space-x-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={sistemaUtilizado.includes(item)}
+                            onChange={() => toggleCheckSistema(item)}
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <span>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                 </div>
-                {/* ATRAQUE */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">ATRAQUE</h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Atraque</label>
-                  <input
-                    type="date"
-                    value={fechaAtraque}
-                    onChange={(e) => setFechaAtraque(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Atraque</label>
-                  <input
-                    type="time"
-                    value={horaAtraque}
-                    onChange={(e) => setHoraAtraque(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
-                </div>
-                {/* RECIBIDO */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">RECIBIDO</h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Recibido</label>
-                  <input
-                    type="date"
-                    value={fechaRecibido}
-                    onChange={(e) => setFechaRecibido(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Recibido</label>
-                  <input
-                    type="time"
-                    value={horaRecibido}
-                    onChange={(e) => setHoraRecibido(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
-                </div>
-                {/* INICIO OPERACIONES */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    INICIO OPERACIONES
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Inicio</label>
-                  <input
-                    type="date"
-                    value={fechaInicioOp}
-                    onChange={(e) => setFechaInicioOp(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Inicio</label>
-                  <input
-                    type="time"
-                    value={horaInicioOp}
-                    onChange={(e) => setHoraInicioOp(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
-                </div>
-                {/* FIN OPERACIONES */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    FIN OPERACIONES
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Fin</label>
-                  <input
-                    type="date"
-                    value={fechaFinOp}
-                    onChange={(e) => setFechaFinOp(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Fin</label>
-                  <input
-                    type="time"
-                    value={horaFinOp}
-                    onChange={(e) => setHoraFinOp(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
+
+                {/* Sección de Fechas y Horas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* ARRIBO */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">ARRIBO</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaArribo}
+                          onChange={(e) => setFechaArribo(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaArribo}
+                          onChange={(e) => setHoraArribo(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ATRAQUE */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">ATRAQUE</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaAtraque}
+                          onChange={(e) => setFechaAtraque(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaAtraque}
+                          onChange={(e) => setHoraAtraque(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RECIBIDO */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">RECIBIDO</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaRecibido}
+                          onChange={(e) => setFechaRecibido(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaRecibido}
+                          onChange={(e) => setHoraRecibido(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* INICIO OPERACIONES */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">INICIO OPERACIONES</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaInicioOp}
+                          onChange={(e) => setFechaInicioOp(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaInicioOp}
+                          onChange={(e) => setHoraInicioOp(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FIN OPERACIONES */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">FIN OPERACIONES</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaFinOp}
+                          onChange={(e) => setFechaFinOp(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaFinOp}
+                          onChange={(e) => setHoraFinOp(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Botones */}
-              <div className="flex justify-end gap-2 mt-4">
+              <div className="flex justify-end gap-3 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="border border-blue-600 text-blue-600 px-4 py-2 rounded-md"
+                  className="border-2 px-5 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                 >
-                  Guardar
+                  Guardar Barco
                 </button>
               </div>
             </form>
@@ -734,138 +784,137 @@ export default function BarcosPage() {
         </div>
       )}
 
-      {/* MODAL VER (detalles del barco) */}
+      {/* MODAL VER */}
       {showViewModal && viewData && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2">
-          <div className="bg-white w-full max-w-3xl p-6 rounded-md overflow-y-auto max-h-screen">
-            <h2 className="text-2xl font-bold mb-4">Detalles del Barco</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-2xl lg:max-w-4xl p-6 rounded-lg shadow-xl overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">Detalles del Barco</h2>
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            
             <div className="space-y-4">
-              {/* Primera fila: MUELLE y VAPOR/BARCO */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">MUELLE</label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.muelle || "-"}
+                  <label className="block text-sm font-medium text-gray-600 mb-1">MUELLE</label>
+                  <div className="w-full px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
+                    <span className={viewData.muelle ? "text-gray-800" : "text-gray-400"}>{viewData.muelle || "-"}</span>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">VAPOR/BARCO</label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.vaporBarco || "-"}
-                  </div>
-                </div>
-              </div>
-              {/* Segunda fila: Fecha Arribo y Hora Arribo */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Fecha Arribo</label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.fechaArribo || "-"}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Hora Arribo</label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.horaArribo || "-"}
+                  <label className="block text-sm font-medium text-gray-600 mb-1">VAPOR/BARCO</label>
+                  <div className="w-full px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
+                    <span className={viewData.vaporBarco ? "text-gray-800" : "text-gray-400"}>{viewData.vaporBarco || "-"}</span>
                   </div>
                 </div>
               </div>
-              {/* Tercera fila: Fecha Atraque y Hora Atraque */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Fecha Atraque</label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.fechaAtraque || "-"}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* ARRIBO */}
+                <div className="border p-3 rounded-xl bg-gray-50">
+                  <h3 className="text-xs font-semibold text-gray-600 uppercase mb-2">ARRIBO</h3>
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-sm text-gray-600">Fecha: </span>
+                      <span className={viewData.fechaArribo ? "text-gray-800" : "text-gray-400"}>{viewData.fechaArribo || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Hora: </span>
+                      <span className={viewData.horaArribo ? "text-gray-800" : "text-gray-400"}>{viewData.horaArribo || "-"}</span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Hora Atraque</label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.horaAtraque || "-"}
+
+                {/* ATRAQUE */}
+                <div className="border p-3 rounded-xl bg-gray-50">
+                  <h3 className="text-xs font-semibold text-gray-600 uppercase mb-2">ATRAQUE</h3>
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-sm text-gray-600">Fecha: </span>
+                      <span className={viewData.fechaAtraque ? "text-gray-800" : "text-gray-400"}>{viewData.fechaAtraque || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Hora: </span>
+                      <span className={viewData.horaAtraque ? "text-gray-800" : "text-gray-400"}>{viewData.horaAtraque || "-"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RECIBIDO */}
+                <div className="border p-3 rounded-xl bg-gray-50">
+                  <h3 className="text-xs font-semibold text-gray-600 uppercase mb-2">RECIBIDO</h3>
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-sm text-gray-600">Fecha: </span>
+                      <span className={viewData.fechaRecibido ? "text-gray-800" : "text-gray-400"}>{viewData.fechaRecibido || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Hora: </span>
+                      <span className={viewData.horaRecibido ? "text-gray-800" : "text-gray-400"}>{viewData.horaRecibido || "-"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* INICIO OPERACIONES */}
+                <div className="border p-3 rounded-xl bg-gray-50">
+                  <h3 className="text-xs font-semibold text-gray-600 uppercase mb-2">INICIO OPERACIONES</h3>
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-sm text-gray-600">Fecha: </span>
+                      <span className={viewData.fechaInicioOperaciones ? "text-gray-800" : "text-gray-400"}>{viewData.fechaInicioOperaciones || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Hora: </span>
+                      <span className={viewData.horaInicioOperaciones ? "text-gray-800" : "text-gray-400"}>{viewData.horaInicioOperaciones || "-"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* FIN OPERACIONES */}
+                <div className="border p-3 rounded-xl bg-gray-50">
+                  <h3 className="text-xs font-semibold text-gray-600 uppercase mb-2">FIN OPERACIONES</h3>
+                  <div className="space-y-1">
+                    <div>
+                      <span className="text-sm text-gray-600">Fecha: </span>
+                      <span className={viewData.fechaFinOperaciones ? "text-gray-800" : "text-gray-400"}>{viewData.fechaFinOperaciones || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Hora: </span>
+                      <span className={viewData.horaFinOperaciones ? "text-gray-800" : "text-gray-400"}>{viewData.horaFinOperaciones || "-"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-              {/* Cuarta fila: Fecha Recibido y Hora Recibido */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Fecha Recibido</label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.fechaRecibido || "-"}
+                  <label className="block text-sm font-medium text-gray-600 mb-1">TIPO DE CARGA</label>
+                  <div className="w-full px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
+                    <span className={viewData.tipoCarga ? "text-gray-800" : "text-gray-400"}>
+                      {viewData.tipoCarga ? JSON.parse(viewData.tipoCarga).join(", ") : "-"}
+                    </span>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Hora Recibido</label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.horaRecibido || "-"}
-                  </div>
-                </div>
-              </div>
-              {/* Quinta fila: Fecha Inicio y Hora Inicio Operaciones */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Fecha Inicio Operaciones
-                  </label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.fechaInicioOperaciones || "-"}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Hora Inicio Operaciones
-                  </label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.horaInicioOperaciones || "-"}
-                  </div>
-                </div>
-              </div>
-              {/* Sexta fila: Fecha Fin y Hora Fin Operaciones */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Fecha Fin Operaciones
-                  </label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.fechaFinOperaciones || "-"}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Hora Fin Operaciones
-                  </label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.horaFinOperaciones || "-"}
-                  </div>
-                </div>
-              </div>
-              {/* Séptima fila: Tipo de Carga y Sistema Utilizado */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Tipo de Carga
-                  </label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.tipoCarga
-                      ? JSON.parse(viewData.tipoCarga).join(", ")
-                      : "-"}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Sistema Utilizado
-                  </label>
-                  <div className="w-full border rounded-md px-2 py-1">
-                    {viewData.sistemaUtilizado
-                      ? JSON.parse(viewData.sistemaUtilizado).join(", ")
-                      : "-"}
+                  <label className="block text-sm font-medium text-gray-600 mb-1">SISTEMA UTILIZADO</label>
+                  <div className="w-full px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
+                    <span className={viewData.sistemaUtilizado ? "text-gray-800" : "text-gray-400"}>
+                      {viewData.sistemaUtilizado ? JSON.parse(viewData.sistemaUtilizado).join(", ") : "-"}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end mt-6">
+
+            <div className="flex justify-end pt-4 border-t mt-6">
               <button
                 onClick={() => setShowViewModal(false)}
-                className="bg-gray-600 text-white px-4 py-2 rounded-md"
+                className="px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
               >
                 Cerrar
               </button>
@@ -876,176 +925,226 @@ export default function BarcosPage() {
 
       {/* MODAL EDITAR */}
       {showEditModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2">
-          <div className="bg-white w-full max-w-3xl p-4 rounded-md overflow-y-auto max-h-screen">
-            <h2 className="text-xl font-bold mb-4">Editar Barco</h2>
-            <form onSubmit={handleEdit} className="space-y-4">
-              {/* MUELLE y VAPOR/BARCO */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">MUELLE</label>
-                  <input
-                    type="text"
-                    value={muelle}
-                    onChange={(e) => setMuelle(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-2xl lg:max-w-4xl p-6 rounded-lg shadow-xl overflow-y-auto max-h-[90vh]">
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">Editar Barco</h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleEdit} className="space-y-6">
+              <div className="space-y-6">
+                {/* MUELLE y VAPOR/BARCO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">MUELLE</label>
+                    <input
+                      type="text"
+                      value={muelle}
+                      onChange={(e) => setMuelle(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Ingrese muelle"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">VAPOR/BARCO</label>
+                    <input
+                      type="text"
+                      value={vaporBarco}
+                      onChange={(e) => setVaporBarco(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Ingrese nombre del barco"
+                      required
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">VAPOR/BARCO</label>
-                  <input
-                    type="text"
-                    value={vaporBarco}
-                    onChange={(e) => setVaporBarco(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
-                </div>
-              </div>
 
-              {/* Tipo de Carga y Sistema Utilizado */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2">TIPO DE CARGA</h3>
-                  {TIPO_CARGA_OPCIONES.map((item) => (
-                    <label key={item} className="block text-xs">
-                      <input
-                        type="checkbox"
-                        checked={tipoCarga.includes(item)}
-                        onChange={() => toggleCheckTipoCarga(item)}
-                        className="mr-1"
-                      />
-                      {item}
-                    </label>
-                  ))}
-                </div>
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2">SISTEMA UTILIZADO</h3>
-                  {SISTEMA_UTILIZADO_OPCIONES.map((item) => (
-                    <label key={item} className="block text-xs">
-                      <input
-                        type="checkbox"
-                        checked={sistemaUtilizado.includes(item)}
-                        onChange={() => toggleCheckSistema(item)}
-                        className="mr-1"
-                      />
-                      {item}
-                    </label>
-                  ))}
-                </div>
-              </div>
+                {/* Tipo de Carga y Sistema Utilizado */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <fieldset className="border p-4 rounded-xl">
+                    <legend className="text-sm font-medium text-gray-700 px-2">TIPO DE CARGA</legend>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {TIPO_CARGA_OPCIONES.map((item) => (
+                        <label key={item} className="flex items-center space-x-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={tipoCarga.includes(item)}
+                            onChange={() => toggleCheckTipoCarga(item)}
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <span>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
 
-              {/* ARRIBO, ATRAQUE, RECIBIDO, INICIO OP, FIN OP */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* ARRIBO */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">ARRIBO</h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Arribo</label>
-                  <input
-                    type="date"
-                    value={fechaArribo}
-                    onChange={(e) => setFechaArribo(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Arribo</label>
-                  <input
-                    type="time"
-                    value={horaArribo}
-                    onChange={(e) => setHoraArribo(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
+                  <fieldset className="border p-4 rounded-xl">
+                    <legend className="text-sm font-medium text-gray-700 px-2">SISTEMA UTILIZADO</legend>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {SISTEMA_UTILIZADO_OPCIONES.map((item) => (
+                        <label key={item} className="flex items-center space-x-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={sistemaUtilizado.includes(item)}
+                            onChange={() => toggleCheckSistema(item)}
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <span>{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                 </div>
-                {/* ATRAQUE */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">ATRAQUE</h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Atraque</label>
-                  <input
-                    type="date"
-                    value={fechaAtraque}
-                    onChange={(e) => setFechaAtraque(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Atraque</label>
-                  <input
-                    type="time"
-                    value={horaAtraque}
-                    onChange={(e) => setHoraAtraque(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
-                </div>
-                {/* RECIBIDO */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">RECIBIDO</h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Recibido</label>
-                  <input
-                    type="date"
-                    value={fechaRecibido}
-                    onChange={(e) => setFechaRecibido(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Recibido</label>
-                  <input
-                    type="time"
-                    value={horaRecibido}
-                    onChange={(e) => setHoraRecibido(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
-                </div>
-                {/* INICIO OPERACIONES */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    INICIO OPERACIONES
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Inicio</label>
-                  <input
-                    type="date"
-                    value={fechaInicioOp}
-                    onChange={(e) => setFechaInicioOp(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Inicio</label>
-                  <input
-                    type="time"
-                    value={horaInicioOp}
-                    onChange={(e) => setHoraInicioOp(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
-                </div>
-                {/* FIN OPERACIONES */}
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-semibold mb-2 uppercase">
-                    FIN OPERACIONES
-                  </h3>
-                  <label className="block text-xs font-semibold mb-1">Fecha Fin</label>
-                  <input
-                    type="date"
-                    value={fechaFinOp}
-                    onChange={(e) => setFechaFinOp(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1 mb-2"
-                  />
-                  <label className="block text-xs font-semibold mb-1">Hora Fin</label>
-                  <input
-                    type="time"
-                    value={horaFinOp}
-                    onChange={(e) => setHoraFinOp(e.target.value)}
-                    className="w-full border rounded-md px-2 py-1"
-                  />
+
+                {/* Sección de Fechas y Horas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* ARRIBO */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">ARRIBO</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaArribo}
+                          onChange={(e) => setFechaArribo(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaArribo}
+                          onChange={(e) => setHoraArribo(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ATRAQUE */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">ATRAQUE</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaAtraque}
+                          onChange={(e) => setFechaAtraque(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaAtraque}
+                          onChange={(e) => setHoraAtraque(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* RECIBIDO */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">RECIBIDO</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaRecibido}
+                          onChange={(e) => setFechaRecibido(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaRecibido}
+                          onChange={(e) => setHoraRecibido(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* INICIO OPERACIONES */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">INICIO OPERACIONES</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaInicioOp}
+                          onChange={(e) => setFechaInicioOp(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaInicioOp}
+                          onChange={(e) => setHoraInicioOp(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FIN OPERACIONES */}
+                  <div className="border p-4 rounded-xl">
+                    <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">FIN OPERACIONES</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={fechaFinOp}
+                          onChange={(e) => setFechaFinOp(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={horaFinOp}
+                          onChange={(e) => setHoraFinOp(e.target.value)}
+                          className="w-full px-2 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Botones */}
-              <div className="flex justify-end gap-2 mt-4">
+              <div className="flex justify-end gap-3 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="border border-blue-600 text-blue-600 px-4 py-2 rounded-md"
+                  className="border-2 px-5 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                 >
-                  Guardar
+                  Actualizar Barco
                 </button>
               </div>
             </form>
