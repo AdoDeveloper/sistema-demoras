@@ -287,22 +287,46 @@ export default function Bitacora() {
         text: "Si las conserva, deberá actualizarlas manualmente.",
         icon: "question",
         showCancelButton: true,
-        confirmButtonText: "Sí, conservar",
+        confirmButtonText: "Sí, conservar", 
         cancelButtonText: "No, vaciar",
       }).then(result => {
         if (result.isConfirmed) {
           setBitacora(b => ({ ...b, id: newId! }));
-          fetchBarcoDetail(newId!, true);
-          Swal.fire("Actualice las bitacoras existentes", "", "info");
+          Swal.fire({
+            title: "Cargando datos...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+          });
+          fetchBarcoDetail(newId!, true)
+            .finally(() => {
+              Swal.fire("Actualice las bitacoras existentes", "", "info");
+            });
         } else {
           setBitacora(b => ({ ...b, id: newId!, bitacoras: [] }));
-          fetchBarcoDetail(newId!, false);
+          Swal.fire({
+            title: "Cargando datos...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+          });
+          fetchBarcoDetail(newId!, false)
+            .finally(() => {
+              Swal.close();
+            });
         }
       });
     } else {
       setBitacora(b => ({ ...b, id: newId, bitacoras: [] }));
-      if (newId != null) fetchBarcoDetail(newId, false);
-      else {
+      if (newId != null) {
+        Swal.fire({
+          title: "Cargando datos...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
+        });
+        fetchBarcoDetail(newId, false)
+          .finally(() => {
+            Swal.close();
+          });
+      } else {
         setSelectedBarco(null);
         setOptsProductos([]);
         setOptsPuntos([]);
